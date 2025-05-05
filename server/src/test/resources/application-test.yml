@@ -1,0 +1,26 @@
+spring:
+  datasource:
+    # H2 Database Configuration
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driverClassName: org.h2.Driver
+    username: sa
+    password: ""
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yml
+    contexts: test
+  h2:
+    console:
+      enabled: true
+logging.level.net.dmcollection: DEBUG
+admin:
+  username: admin
+  password: admin
+logging.level.org.springframework.security: DEBUG
+server:
+  servlet:
+    session:
+      cookie:
+        same-site: lax
+        secure: false
+        http-only: true
+        max-age: 86400

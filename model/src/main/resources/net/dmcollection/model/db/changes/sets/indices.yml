@@ -1,0 +1,21 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-sets-indices
+      author: luk-lo
+      preConditions:
+        - tableExists:
+            tableName: CARD_SET
+      failOnError: false
+      changes:
+        - createIndex:
+            tableName: CARD_SET
+            indexName: IDX_CARD_SET_DM_ID
+            columns:
+              - column:
+                  name: DM_ID
+        - createIndex:
+            tableName: CARD_SET
+            indexName: IDX_CARD_SET_RELEASE
+            columns:
+              - column:
+                  name: RELEASE

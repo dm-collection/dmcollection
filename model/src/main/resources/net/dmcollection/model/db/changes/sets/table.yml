@@ -1,0 +1,34 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-sets-table
+      author: luk-lo
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: CARD_SET
+      changes:
+        - createTable:
+            tableName: CARD_SET
+            columns:
+              - column:
+                  name: ID
+                  type: bigint
+                  autoIncrement: true
+                  constraints:
+                    primaryKey: true
+                    nullable: false
+              - column:
+                  name: DM_ID
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: NAME
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false
+              - column:
+                  name: RELEASE
+                  type: DATE
+

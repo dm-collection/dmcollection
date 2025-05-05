@@ -1,0 +1,11 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-card-release-view
+      author: luk-lo
+      changes:
+        - createView:
+            viewName: CARDS_W_RELEASE
+            selectQuery: >
+              SELECT c.*, s.RELEASE
+              FROM CARDS c
+              JOIN CARD_SET s ON c."SET" = s.ID

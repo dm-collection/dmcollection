@@ -1,0 +1,30 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-rarity-table
+      author: luk-lo
+      preConditions:
+        - onFail: MARK_RAN
+        - not:
+            - tableExists:
+                tableName: RARITY
+      changes:
+        - createTable:
+            tableName: RARITY
+            columns:
+              - column:
+                  name: CODE
+                  type: VARCHAR(10)
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_rarity
+              - column:
+                  name: ORDER
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: NAME
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: false

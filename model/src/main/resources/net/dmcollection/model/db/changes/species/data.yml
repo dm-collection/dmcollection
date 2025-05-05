@@ -1,0 +1,58 @@
+databaseChangeLog:
+  - changeSet:
+      id: update-species-table
+      author: luk-lo
+      context: '!test'
+      preConditions:
+        - tableExists:
+            tableName: SPECIES
+      runAlways: true
+      changes:
+        - loadUpdateData:
+            columns:
+              - column:
+                  header: ID
+                  name: ID
+                  type: NUMERIC
+              - column:
+                  header: SPECIES
+                  name: SPECIES
+                  type: STRING
+            commentLineStartsWith: '#'
+            encoding: UTF-8
+            file: net/dmcollection/card-data/csv/species.csv
+            quotchar: '"'
+            separator: ','
+            primaryKey: ID
+            tableName: SPECIES
+  - changeSet:
+      id: update-facet-species-table
+      author: luk-lo
+      context: '!test'
+      preConditions:
+        - tableExists:
+            tableName: FACET_SPECIES
+      runAlways: true
+      changes:
+        - loadUpdateData:
+            columns:
+              - column:
+                  header: CARD_FACETS
+                  name: CARD_FACETS
+                  type: NUMERIC
+              - column:
+                  header: POSITION
+                  name: POSITION
+                  type: NUMERIC
+              - column:
+                  header: SPECIES
+                  name: SPECIES
+                  type: NUMERIC
+            commentLineStartsWith: '#'
+            encoding: UTF-8
+            file: net/dmcollection/card-data/csv/facet_species.csv
+            quotchar: '"'
+            separator: ','
+            primaryKey: CARD_FACETS,POSITION,SPECIES
+            tableName: FACET_SPECIES
+

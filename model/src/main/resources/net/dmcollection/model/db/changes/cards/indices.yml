@@ -1,0 +1,27 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-cards-indices
+      author: luk-lo
+      preConditions:
+        - tableExists:
+            tableName: CARDS
+      failOnError: false
+      changes:
+        - createIndex:
+            tableName: CARDS
+            indexName: IDX_OFFICIAL_ID_CARDS
+            columns:
+              - column:
+                  name: OFFICIAL_ID
+        - createIndex:
+            tableName: CARDS
+            indexName: IDX_CARD_RARITY
+            columns:
+              - column:
+                  name: RARITY
+        - createIndex:
+            tableName: CARDS
+            indexName: IDX_CARDS_SET_ID
+            columns:
+              - column:
+                  name: SET

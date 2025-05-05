@@ -1,0 +1,59 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-species-table
+      author: luk-lo
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: CARD_FACETS
+        - not:
+            - tableExists:
+                tableName: SPECIES
+      changes:
+        - createTable:
+            tableName: SPECIES
+            columns:
+              - column:
+                  name: ID
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_species
+              - column:
+                  name: SPECIES
+                  type: VARCHAR(255)
+        - createIndex:
+            tableName: SPECIES
+            indexName: IDX_SPECIES_VALUE
+            columns:
+              - column:
+                  name: SPECIES
+        - createTable:
+            tableName: FACET_SPECIES
+            columns:
+              - column:
+                  name: CARD_FACETS
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_species_facets
+                    referencedTableName: CARD_FACETS
+                    referencedColumnNames: ID
+              - column:
+                  name: POSITION
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: SPECIES
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_facets_species
+                    referencedTableName: SPECIES
+                    referencedColumnNames: ID
+
+
+

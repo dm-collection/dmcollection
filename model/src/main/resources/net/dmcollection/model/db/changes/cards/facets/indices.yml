@@ -1,0 +1,45 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-facets-indices
+      author: luk-lo
+      preConditions:
+        - tableExists:
+            tableName: CARD_FACETS
+      failOnError: false # can be removed if liquibase supports ifNotExists on createIndex
+      changes:
+        - createIndex:
+            tableName: CARD_FACETS
+            columns:
+              - column:
+                  name: CARDS
+            indexName: IDX_FACETS_CARD_ID
+        - createIndex:
+            tableName: CARD_FACETS
+            indexName: IDX_FACET_TYPE
+            columns:
+              - column:
+                  name: TYPE
+        - createIndex:
+            tableName: CARD_FACETS
+            indexName: IDX_FACET_CIVS
+            columns:
+              - column:
+                  name: CIVS
+        - createIndex:
+            tableName: CARD_FACETS
+            indexName: IDX_FACET_POWER
+            columns:
+              - column:
+                  name: POWER
+        - createIndex:
+            tableName: CARD_FACETS
+            indexName: IDX_FACET_COST
+            columns:
+              - column:
+                  name: COST
+        - createIndex:
+            tableName: CARD_FACETS
+            indexName: IDX_FACET_POWER_SORT
+            columns:
+              - column:
+                  name: POWER_SORT

@@ -1,0 +1,43 @@
+databaseChangeLog:
+  - changeSet:
+      id: update-cards-table
+      author: luk-lo
+      context: '!test'
+      preConditions:
+        - tableExists:
+            tableName: CARDS
+      runAlways: true
+      changes:
+        - loadUpdateData:
+            columns:
+              - column:
+                  header: ID
+                  name: ID
+                  type: NUMERIC
+              - column:
+                  header: OFFICIAL_ID
+                  name: OFFICIAL_ID
+                  type: STRING
+              - column:
+                  header: SET
+                  name: SET
+                  type: NUMERIC
+              - column:
+                  header: TWINPACT
+                  name: TWINPACT
+                  type: BOOLEAN
+              - column:
+                  header: RARITY
+                  name: RARITY
+                  type: STRING
+              - column:
+                  header: ID_TEXT
+                  name: ID_TEXT
+                  type: STRING
+            commentLineStartsWith: '#'
+            encoding: UTF-8
+            file: net/dmcollection/card-data/csv/cards.csv
+            quotchar: '"'
+            separator: ','
+            primaryKey: ID
+            tableName: CARDS
