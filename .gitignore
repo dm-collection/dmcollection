@@ -37,9 +37,7 @@ server/data/*.csv
 .idea/
 
 # Frontend build files
-server/src/main/resources/static/index.html
-server/src/main/resources/static/favicon.png
-server/src/main/resources/static/_app/
+server/src/main/resources/static/**
 
 # docker mounts
 db-data
