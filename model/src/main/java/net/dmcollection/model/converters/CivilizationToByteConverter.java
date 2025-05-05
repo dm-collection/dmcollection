@@ -1,4 +1,4 @@
-package net.dmcollection.server.card.internal;
+package net.dmcollection.model.converters;
 
 import java.sql.JDBCType;
 import net.dmcollection.model.card.Civilization;

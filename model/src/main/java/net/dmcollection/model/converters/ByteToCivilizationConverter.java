@@ -1,4 +1,4 @@
-package net.dmcollection.server.card.internal;
+package net.dmcollection.model.converters;
 
 import net.dmcollection.model.card.Civilization;
 import org.springframework.core.convert.converter.Converter;
