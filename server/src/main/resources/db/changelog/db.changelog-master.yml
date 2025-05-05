@@ -1,0 +1,38 @@
+databaseChangeLog:
+  # card data tables
+  - include:
+      file: net/dmcollection/model/db/changes/sets/table.yml
+  - include:
+      file: net/dmcollection/model/db/changes/sets/indices.yml
+  - include:
+      file: net/dmcollection/model/db/changes/cards/table.yml
+  - include:
+      file: net/dmcollection/model/db/changes/cards/indices.yml
+  - include:
+      file: net/dmcollection/model/db/changes/cards/facets/table.yml
+  - include:
+      file: net/dmcollection/model/db/changes/cards/facets/indices.yml
+  - include:
+      file: net/dmcollection/model/db/changes/species/table.yml
+  - include:
+      file: net/dmcollection/model/db/changes/rarities/table.yml
+  # server data tables
+  - include:
+      file: db/changelog/changes/00-initial-schema.yml
+  - include:
+      file: db/changelog/changes/10-collections.yml
+  - include:
+      file: db/changelog/changes/11-collection-segregation.yml
+  - include:
+      file: db/changelog/changes/12-card-release-view.yml
+  # reload card data
+  - include:
+      file: net/dmcollection/model/db/changes/sets/data.yml
+  - include:
+      file: net/dmcollection/model/db/changes/cards/data.yml
+  - include:
+      file: net/dmcollection/model/db/changes/cards/facets/data.yml
+  - include:
+      file: net/dmcollection/model/db/changes/species/data.yml
+  - include:
+      file: net/dmcollection/model/db/changes/rarities/data.yml

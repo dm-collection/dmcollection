@@ -1,0 +1,36 @@
+databaseChangeLog:
+  - changeSet:
+      id: update-sets-table
+      author: luk-lo
+      context: '!test'
+      preConditions:
+        - onFail: CONTINUE
+        - tableExists:
+            tableName: CARD_SET
+      runAlways: true
+      changes:
+        - loadUpdateData:
+            columns:
+              - column:
+                  header: ID
+                  name: ID
+                  type: NUMERIC
+              - column:
+                  header: DM_ID
+                  name: DM_ID
+                  type: STRING
+              - column:
+                  header: NAME
+                  name: NAME
+                  type: STRING
+              - column:
+                  header: RELEASE
+                  name: RELEASE
+                  type: DATE
+            commentLineStartsWith: '#'
+            encoding: UTF-8
+            file: net/dmcollection/card-data/csv/card_set.csv
+            quotchar: '"'
+            separator: ','
+            tableName: CARD_SET
+            primaryKey: ID

@@ -1,0 +1,31 @@
+databaseChangeLog:
+  - changeSet:
+      id: update-rarity-table
+      author: luk-lo
+      context: '!test'
+      preConditions:
+        - tableExists:
+            tableName: RARITY
+      runAlways: true
+      changes:
+        - loadUpdateData:
+            columns:
+              - column:
+                  header: CODE
+                  name: CODE
+                  type: STRING
+              - column:
+                  header: ORDER
+                  name: ORDER
+                  type: NUMERIC
+              - column:
+                  header: NAME
+                  name: NAME
+                  type: STRING
+            commentLineStartsWith: '#'
+            encoding: UTF-8
+            file: net/dmcollection/card-data/csv/rarities.csv
+            quotchar: '"'
+            separator: ','
+            primaryKey: CODE
+            tableName: RARITY

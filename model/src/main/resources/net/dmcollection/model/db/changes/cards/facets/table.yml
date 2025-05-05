@@ -1,0 +1,71 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-card-facets-table
+      author: luk-lo
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: CARDS
+        - not:
+            - tableExists:
+                tableName: CARD_FACETS
+      changes:
+        - createTable:
+            tableName: CARD_FACETS
+            columns:
+              - column:
+                  name: ID
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_card_facets
+              - column:
+                  name: CARDS
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_facets_cards
+                    referencedTableName: CARDS
+                    referencedColumnNames: ID
+              - column:
+                  name: POSITION
+                  type: INT
+                  constraints:
+                    nullable: false
+              - column:
+                  name: IMAGE_FILENAME
+                  type: VARCHAR(255)
+              - column:
+                  name: NAME
+                  type: VARCHAR(255)
+              - column:
+                  name: COST
+                  type: INTEGER
+                  constraints:
+                    nullable: true
+              - column:
+                  name: TYPE
+                  type: VARCHAR(255)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: POWER_TXT
+                  type: VARCHAR(10)
+                  constraints:
+                    nullable: true
+              - column:
+                  name: POWER
+                  type: INTEGER
+                  constraints:
+                    nullable: true
+              - column:
+                  name: POWER_SORT
+                  type: INTEGER
+                  constraints:
+                    nullable: true
+        - sql:
+            dbms: h2,postgresql
+            sql: ALTER TABLE IF EXISTS CARD_FACETS ADD COLUMN IF NOT EXISTS CIVS TINYINT ARRAY[6]
+

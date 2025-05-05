@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: Server
+  datasource:
+    url: jdbc:h2:file:./data/db;DB_CLOSE_ON_EXIT=FALSE
+    driverClassName: org.h2.Driver
+    username: dev_user
+    password: devpw
+  h2:
+    console:
+      enabled: false
+      path: /h2-console
+  liquibase.change-log: classpath:db/changelog/db.changelog-master.yml
+dmcollection:
+  image-storage-path: ${dmcollection_image_storage_path:${user.home}/dmcollection-images}
+  card-page:
+    default-size: 40
+    max-size: 100
+  registration-code: ${dmcollection_registration_code:}
+server:
+  servlet:
+    session:
+      cookie:
+        same-site: lax
+        secure: true
+        http-only: true
+        max-age: 86400

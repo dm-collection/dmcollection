@@ -1,0 +1,60 @@
+databaseChangeLog:
+  - changeSet:
+      id: 10
+      author: luk-lo
+      changes:
+        - createTable:
+            tableName: COLLECTIONS
+            columns:
+              - column:
+                  name: ID
+                  type: UUID
+                  defaultValueComputed: RANDOM_UUID(7)
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_collections
+              - column:
+                  name: USER
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_collection_owner
+                    referencedTableName: USERS
+                    referencedColumnNames: ID
+              - column:
+                  name: NAME
+                  type: VARCHAR(255)
+              - column:
+                  name: CREATED_AT
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  type: TIMESTAMP
+              - column:
+                  name: UPDATED_AT
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  type: TIMESTAMP
+
+        - createTable:
+            tableName: COLLECTION_CARDS
+            columns:
+              - column:
+                  name: COLLECTIONS
+                  type: UUID
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_cards_collections
+                    referencedTableName: COLLECTIONS
+                    referencedColumnNames: ID
+              - column:
+                  name: AMOUNT
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: CARD
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_collections_cards
+                    referencedTableName: CARDS
+                    referencedColumnNames: ID

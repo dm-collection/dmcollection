@@ -1,0 +1,76 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1731963252841-7
+      author: luk-lo
+      changes:
+        - createTable:
+            tableName: EVENT_PUBLICATION
+            columns:
+              - column:
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: CONSTRAINT_E
+                  name: ID
+                  type: VARCHAR(255)
+              - column:
+                  constraints:
+                    nullable: false
+                  name: PUBLICATION_DATE
+                  type: TIMESTAMP
+              - column:
+                  name: COMPLETION_DATE
+                  type: TIMESTAMP
+              - column:
+                  constraints:
+                    nullable: false
+                  name: SERIALIZED_EVENT
+                  type: CHARACTER LARGE OBJECT
+              - column:
+                  constraints:
+                    nullable: false
+                  name: EVENT_TYPE
+                  type: VARCHAR(255)
+              - column:
+                  constraints:
+                    nullable: false
+                  name: LISTENER_ID
+                  type: VARCHAR(255)
+  - changeSet:
+      id: create-users-table
+      author: luk-lo
+      changes:
+        - createTable:
+            tableName: USERS
+            columns:
+              - column:
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_users
+                  name: ID
+                  type: UUID
+                  defaultValueComputed: RANDOM_UUID(7)
+              - column:
+                  constraints:
+                    nullable: false
+                    unique: true
+                  name: USERNAME
+                  type: VARCHAR(50)
+              - column:
+                  constraints:
+                    nullable: false
+                  name: PASSWORD
+                  type: VARCHAR
+              - column:
+                  constraints:
+                    nullable: false
+                  defaultValueBoolean: true
+                  name: ENABLED
+                  type: BOOLEAN
+              - column:
+                  constraints:
+                    nullable: false
+                  defaultValueComputed: CURRENT_TIMESTAMP
+                  name: CREATED_AT
+                  type: TIMESTAMP

@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: 11
+      author: luk-lo
+      changes:
+        - addColumn:
+            tableName: COLLECTIONS
+            columns:
+              - column:
+                  name: PRIMARY
+                  type: BOOLEAN
+
