@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import net.dmcollection.server.user.AuthenticationController.LoginRequest;
 import net.dmcollection.server.user.AuthenticationController.RegistrationRequest;
+import net.dmcollection.server.user.AuthenticationController.UsernameRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -150,21 +151,21 @@ public class AuthenticationControllerIntegrationTest {
   @Test
   void testUsernameExists() {
     sendInitialGetRequest();
-    postJson("/api/auth/checkUsername", USERNAME)
+    postJson("/api/auth/checkUsername", new UsernameRequest(USERNAME))
         .expectStatus()
         .isOk()
         .expectBody()
         .jsonPath("$")
         .isEqualTo(false);
 
-    postJson("/api/auth/checkUsername", USERNAME.toUpperCase())
+    postJson("/api/auth/checkUsername", new UsernameRequest(USERNAME.toUpperCase()))
         .expectStatus()
         .isOk()
         .expectBody()
         .jsonPath("$")
         .isEqualTo(false);
 
-    postJson("/api/auth/checkUsername", "newUserName")
+    postJson("/api/auth/checkUsername", new UsernameRequest("newUserName"))
         .expectStatus()
         .isOk()
         .expectBody()
