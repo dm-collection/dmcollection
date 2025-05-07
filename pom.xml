@@ -22,6 +22,16 @@
     <module>server</module>
   </modules>
 
+  <repositories>
+    <repository>
+      <id>github</id>
+      <url>https://maven.pkg.github.com/dm-collection/dmcollection</url>
+      <snapshots>
+        <enabled>true</enabled>
+      </snapshots>
+    </repository>
+  </repositories>
+
   <build>
     <pluginManagement>
       <plugins>
