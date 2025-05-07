@@ -5,7 +5,7 @@ on:
     branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-    paths: [ "pom.xml", "model/**", "server/**", ".github/workflows/maven.yml" ]
+    paths: [ "pom.xml", "model/**", "server/**", ".github/workflows/maven.yml", ".mvn/wrapper/**", "mvnw" ]
 
 jobs:
   build:
