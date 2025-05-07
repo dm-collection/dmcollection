@@ -21,6 +21,6 @@ jobs:
           distribution: 'temurin'
           cache: maven
       - name: Build and test
-        run: ./mvnw -B install
+        run: ./mvnw -B -Dstyle.color=always install
         env:
           GITHUB_TOKEN: ${{ github.token }}
