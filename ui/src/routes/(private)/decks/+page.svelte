@@ -114,6 +114,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Decks</title>
+</svelte:head>
+
 <dialog
 	id="importDialog"
 	class="rounded-md px-6 py-6 shadow-lg"

@@ -36,6 +36,9 @@ server/data/*.csv
 # IntelliJ IDEA project files
 .idea/
 
+# VS Code project files
+ui/.vscode/
+
 # Frontend build files
 server/src/main/resources/static/**
 

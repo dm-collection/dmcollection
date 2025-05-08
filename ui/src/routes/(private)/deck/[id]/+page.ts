@@ -16,7 +16,7 @@ export const load: PageLoad = async ({ fetch, params }) => {
 		const response = await fetch(`/api/collection/0?${search.searchParams.toString()}`); // load first page only
 		if (response.ok) {
 			const collection = (await response.json()) as CollectionData;
-			if (collection && collection.cardPage?.page) {
+			if (collection?.cardPage?.page) {
 				collection.cardPage.page.number += 1;
 			}
 			return { deck, collection, search };

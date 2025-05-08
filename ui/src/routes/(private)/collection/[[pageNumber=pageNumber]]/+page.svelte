@@ -97,6 +97,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Collection</title>
+</svelte:head>
+
 <dialog
 	id="importDialog"
 	class="rounded-md px-6 py-6 shadow-lg"

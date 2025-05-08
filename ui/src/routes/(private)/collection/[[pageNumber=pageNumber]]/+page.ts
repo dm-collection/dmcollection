@@ -9,7 +9,7 @@ export const load: PageLoad = async ({ fetch, params, url }) => {
 		const response = await fetch(`/api/collection/${pageNumber}?${search.searchParams.toString()}`);
 		if (response.ok) {
 			const collection = (await response.json()) as CollectionData;
-			if (collection && collection.cardPage?.page) {
+			if (collection?.cardPage?.page) {
 				collection.cardPage.page.number += 1;
 			}
 			return { collection, search };
