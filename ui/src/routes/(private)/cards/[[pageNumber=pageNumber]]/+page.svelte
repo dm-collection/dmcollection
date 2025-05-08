@@ -36,6 +36,10 @@
 	}
 </script>
 
+<svelte:head>
+	<title>Cards</title>
+</svelte:head>
+
 <h1 class="txt-h1">{data.cardPage?.page.totalElements} Cards</h1>
 {#await getSets() then sets}
 	{#await getSpecies() then species}

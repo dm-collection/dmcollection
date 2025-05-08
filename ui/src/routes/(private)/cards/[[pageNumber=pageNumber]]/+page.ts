@@ -10,7 +10,7 @@ export const load: PageLoad = async ({ fetch, params, url }) => {
 		const response = await fetch(`/api/cards/${pageNumber}?${search.searchParams.toString()}`);
 		if (response.ok) {
 			const cardPage = (await response.json()) as PagedResult<CardStub>;
-			if (cardPage && cardPage.page) {
+			if (cardPage?.page) {
 				cardPage.page.number += 1; // we index pages from 1 for easier display
 			}
 			return { cardPage, search };

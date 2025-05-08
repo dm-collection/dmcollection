@@ -14,10 +14,9 @@ export const load: PageLoad = async ({ fetch, params }) => {
 			};
 			return { card, collectionEntry };
 		}
-	} else {
-		if (response.status === 401 || response.status === 403) {
-			error(response.status, 'unauthorized');
-		}
+	} else if (response.status === 401 || response.status === 403) {
+		error(response.status, 'unauthorized');
 	}
+
 	return {};
 };
