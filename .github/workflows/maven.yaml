@@ -6,9 +6,10 @@ on:
   pull_request:
     branches: [ "main" ]
     paths: [ "pom.xml", "model/**", "server/**", ".github/workflows/maven.yaml", ".mvn/wrapper/**", "mvnw" ]
-  permissions:
-    contents: read
-    packages: read
+
+permissions:
+  contents: read
+  packages: read
 
 jobs:
   build:
