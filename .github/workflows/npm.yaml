@@ -6,6 +6,8 @@ on:
   pull_request:
     branches: [ "main" ]
     paths: [ "ui/**", ".github/workflows/npm.yaml" ]
+  permissions:
+    contents: read
 
 jobs:
   build:
