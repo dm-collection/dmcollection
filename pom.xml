@@ -6,7 +6,7 @@
 
   <groupId>net.dmcollection</groupId>
   <artifactId>parent</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>${revision}</version>
   <packaging>pom</packaging>
 
 
@@ -20,7 +20,17 @@
   <modules>
     <module>model</module>
     <module>server</module>
+    <module>coverage-aggregate</module>
   </modules>
+
+  <properties>
+    <revision>0.0.1-SNAPSHOT</revision>
+    <sonar.organization>dm-collection</sonar.organization>
+    <sonar.host.url>https://sonarcloud.io</sonar.host.url>
+    <sonar.coverage.jacoco.xmlReportPaths>
+      ${maven.multiModuleProjectDirectory}/coverage-aggregate/target/site/jacoco-aggregate/jacoco.xml
+    </sonar.coverage.jacoco.xmlReportPaths>
+  </properties>
 
   <repositories>
     <repository>
@@ -83,8 +93,58 @@
             </includes>
           </configuration>
         </plugin>
+        <plugin>
+          <groupId>org.jacoco</groupId>
+          <artifactId>jacoco-maven-plugin</artifactId>
+          <version>0.8.13</version>
+          <executions>
+            <execution>
+              <goals>
+                <goal>prepare-agent</goal>
+              </goals>
+            </execution>
+            <execution>
+              <id>default-report</id>
+              <goals>
+                <goal>report</goal>
+              </goals>
+            </execution>
+            <execution>
+              <id>integration-report</id>
+              <goals>
+                <goal>report-integration</goal>
+              </goals>
+            </execution>
+          </executions>
+        </plugin>
       </plugins>
     </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>flatten-maven-plugin</artifactId>
+        <version>1.7.0</version>
+        <configuration>
+          <updatePomFile>true</updatePomFile>
+        </configuration>
+        <executions>
+          <execution>
+            <id>flatten</id>
+            <phase>process-resources</phase>
+            <goals>
+              <goal>flatten</goal>
+            </goals>
+          </execution>
+          <execution>
+            <id>flatten.clean</id>
+            <phase>clean</phase>
+            <goals>
+              <goal>clean</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
   </build>
 
 
