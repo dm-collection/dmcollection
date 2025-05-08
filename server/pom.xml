@@ -5,14 +5,13 @@
   <modelVersion>4.0.0</modelVersion>
 
   <artifactId>server</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
   <name>Server</name>
   <description>DM Collection Server</description>
 
   <parent>
     <groupId>net.dmcollection</groupId>
     <artifactId>parent</artifactId>
-    <version>0.0.1-SNAPSHOT</version>
+    <version>${revision}</version>
   </parent>
 
   <properties>
@@ -23,7 +22,7 @@
     <dependency>
       <groupId>net.dmcollection</groupId>
       <artifactId>model</artifactId>
-      <version>0.0.1-SNAPSHOT</version>
+      <version>${revision}</version>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -91,6 +90,10 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-failsafe-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
       </plugin>
       <plugin>
         <groupId>org.liquibase</groupId>
