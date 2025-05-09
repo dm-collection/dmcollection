@@ -19,7 +19,7 @@
 					{/if}</span
 				>
 				<span
-					>{#if facet.species}{#each facet.species as specie, i}{#if i > 0}/{/if}{specie}{/each}{/if}</span
+					>{#if facet.species}{#each facet.species as specie, i (specie)}{#if i > 0}/{/if}{specie}{/each}{/if}</span
 				>
 			</h2>
 			<h1 class="text-lg font-semibold">{facet.name}</h1>

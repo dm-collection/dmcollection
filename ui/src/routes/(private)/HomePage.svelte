@@ -43,7 +43,7 @@
 						</tr></thead
 					>
 					<tbody>
-						{#each examples as card}
+						{#each examples as card (card.id)}
 							<tr class=" text-left hover:bg-teal-50 active:bg-teal-700 active:text-teal-50">
 								<td class="tbl-row">{card.type}</td>
 								<td class="tbl-row">

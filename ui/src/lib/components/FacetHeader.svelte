@@ -15,7 +15,7 @@
 		</div>
 	{/if}
 	<div class=" flex flex-row flex-wrap gap-1">
-		{#each civilizations as civ}
+		{#each civilizations as civ (civ)}
 			{#if civ != undefined}
 				<Civilization {civ} />
 			{/if}

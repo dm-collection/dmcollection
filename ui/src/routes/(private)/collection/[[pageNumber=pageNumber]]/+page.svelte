@@ -189,7 +189,7 @@
 	{#if data.collection && data.collection.cardPage.content.length > 0}
 		<PageNav pageInfo={data.collection.cardPage.page} path="/collection" />
 		<div class="grid gap-8 lg:grid-cols-5 xl:grid-cols-8">
-			{#each data.collection.cardPage.content as card, i}
+			{#each data.collection.cardPage.content as card, i (card.id)}
 				<CountedCardStub
 					{card}
 					amount={card.amount}

@@ -95,7 +95,7 @@
 			<label for="sets" class="block text-sm font-medium">Set</label>
 			<select class="select" name="sets" bind:value={search.setId} onchange={onChange}>
 				<option value={undefined}>All sets</option>
-				{#each sets as set}
+				{#each sets as set (set.id)}
 					<option value={set.id}>{set.idText} - {set.name}</option>
 				{/each}
 			</select>
@@ -117,7 +117,7 @@
 		<select class="select" name="rarity" bind:value={search.rarity} onchange={onChange}>
 			<option value={undefined}>指定なし</option>
 			{#if rarities != undefined}
-				{#each rarities as rarity}
+				{#each rarities as rarity (rarity.code)}
 					<option value={rarity.code}>{rarity.code != 'NONE' ? rarity.code : rarity.name}</option>
 				{/each}
 			{/if}
@@ -135,7 +135,7 @@
 		<label for="cardType" class="block text-sm font-medium">カードの種類</label>
 		<select class="select" name="cardType" bind:value={search.cardType} onchange={onChange}>
 			<option value={undefined}>指定なし</option>
-			{#each Object.entries(CardTypeFilter) as [key, value]}
+			{#each Object.entries(CardTypeFilter) as [key, value] (key)}
 				<option value={key}>{value}</option>
 			{/each}
 		</select>
@@ -153,7 +153,7 @@
 		/>
 		{#if species != undefined}
 			<datalist id="speciesList">
-				{#each species as spec}
+				{#each species as spec (spec)}
 					<option value={spec}></option>
 				{/each}
 			</datalist>
@@ -251,7 +251,7 @@
 		<div class="flex flex-row gap-4">
 			<fieldset class="mt-1.5 flex flex-row gap-4">
 				<legend class="text-sm font-medium">Included:</legend>
-				{#each Object.keys(Civ) as civ}
+				{#each Object.keys(Civ) as civ (civ)}
 					<label class="text-sm font-medium">
 						<input
 							type="checkbox"
@@ -271,7 +271,7 @@
 					search.includedCivs.filter((civ) => civ != 'ZERO').length <= 1}
 			>
 				<legend class="text-sm font-medium">Excluded:</legend>
-				{#each Object.keys(Civ).filter((civ) => Civ[civ as keyof typeof Civ] != Civ.ZERO && !search.includedCivs.includes(civ)) as civ}
+				{#each Object.keys(Civ).filter((civ) => Civ[civ as keyof typeof Civ] != Civ.ZERO && !search.includedCivs.includes(civ)) as civ (civ)}
 					<label class="text-sm font-medium">
 						<input
 							type="checkbox"
