@@ -127,7 +127,7 @@
 						portrait:min-w-full portrait:md:grid-cols-5 portrait:lg:grid-cols-6 portrait:xl:grid-cols-7
 						landscape:min-w-full landscape:lg:grid-cols-5 landscape:xl:grid-cols-6"
 					>
-						{#each data.deck.getCards() as card}
+						{#each data.deck.getCards() as card (card.id)}
 							{@const inCollection = collection.cardPage.content.find(
 								(c) => c.id == card.id
 							)?.amount}
@@ -173,7 +173,7 @@
 						portrait:md:grid-cols-4 portrait:lg:grid-cols-5 portrait:xl:grid-cols-6
 					    landscape:lg:grid-cols-4 landscape:xl:grid-cols-8"
 					>
-						{#each collection.cardPage.content as card}
+						{#each collection.cardPage.content as card (card.id)}
 							{#await data.deck.getAmount(card.id) then inDeck}
 								<CountedCardStub
 									{card}

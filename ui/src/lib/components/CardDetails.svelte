@@ -49,7 +49,7 @@
 	<div class="justify-self-center">
 		<AmountButton value={collectionEntry?.amount ?? 0} min={0} {onChange} />
 	</div>
-	{#each cards as facets}
+	{#each cards as facets (facets[0].position)}
 		<div class="col-span-1 self-center justify-self-center xl:col-start-2">
 			{#if facets[0]?.imagePath}
 				<img
@@ -59,7 +59,7 @@
 			{/if}
 		</div>
 		<div class="col-span-1 flex flex-col gap-8">
-			{#each facets as facet}
+			{#each facets as facet (facet.position)}
 				<FacetProps {facet} />
 			{/each}
 		</div>

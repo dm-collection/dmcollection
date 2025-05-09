@@ -199,7 +199,7 @@
 						<th class="tbl-header">Total Cards</th>
 						<th class="tbl-header">Last Modified</th>
 						<th class="tbl-header">
-							<form method="get" action={'/api/decks/export'} class="flex flex-row gap-2">
+							<form method="get" action="/api/decks/export" class="flex flex-row gap-2">
 								<button
 									type="submit"
 									class="inline-flex items-center rounded-md border bg-white py-2 pl-2 pr-3 enabled:border-teal-700 enabled:text-teal-700 enabled:hover:bg-teal-700 enabled:hover:text-teal-50 disabled:border-slate-300 disabled:text-slate-300"
@@ -212,7 +212,7 @@
 					</tr></thead
 				>
 				<tbody>
-					{#each data.decks as deck}
+					{#each data.decks as deck (deck.id)}
 						<tr
 							class="cursor-pointer hover:bg-teal-50 active:bg-teal-700 active:text-teal-50"
 							onclick={() => gotoDeck(deck.id)}
