@@ -25,6 +25,7 @@ replay_pid*
 
 # Build artifacts
 target/
+**/.flattened-pom.xml
 
 # Local H2 DB files
 **/db.mv.db
