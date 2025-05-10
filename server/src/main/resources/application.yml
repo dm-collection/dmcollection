@@ -11,6 +11,7 @@ spring:
       enabled: false
       path: /h2-console
   liquibase.change-log: classpath:db/changelog/db.changelog-master.yml
+logging.level.net.dmcollection: DEBUG
 dmcollection:
   image-storage-path: ${dmcollection_image_storage_path:${user.home}/dmcollection-images}
   card-page:

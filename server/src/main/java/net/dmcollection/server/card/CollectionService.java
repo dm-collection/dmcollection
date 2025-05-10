@@ -7,7 +7,7 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import net.dmcollection.server.Id;
+import net.dmcollection.server.card.CardCollection.CollectionIds;
 import net.dmcollection.server.card.CardService.CardDto;
 import net.dmcollection.server.card.CardService.CardFacetDto;
 import net.dmcollection.server.card.CardService.CardStub;
@@ -49,7 +49,7 @@ public class CollectionService {
       UUID ownerId) {
     static CollectionInfo ofCollection(CardCollection collection) {
       return new CollectionInfo(
-          collection.getId(),
+          collection.getPublicId(),
           collection.getName(),
           collection.cards.size(),
           collection.cards.stream().mapToInt(CollectionCards::amount).sum(),
@@ -84,7 +84,7 @@ public class CollectionService {
 
   public Optional<CollectionExport> exportDeck(UUID userId, UUID collectionId) {
     return collectionRepository
-        .findByIdAndOwnerAndPrimaryIsFalse(collectionId, userId)
+        .findByPublicIdAndOwnerAndPrimaryIsFalse(collectionId, userId)
         .map(c -> forExport(c, c.getName()));
   }
 
@@ -136,21 +136,21 @@ public class CollectionService {
   }
 
   public Optional<CollectionDto> getCollection(UUID userId, UUID collectionId) {
-    var collection = collectionRepository.findByIdAndOwnerAndPrimaryIsFalse(collectionId, userId);
+    var collection = collectionRepository.findByPublicIdAndOwnerAndPrimaryIsFalse(collectionId, userId);
     return collection.map(this::forTransfer);
   }
 
   public CollectionDto getPrimaryCollection(UUID userId, SearchFilter searchFilter) {
-    Optional<UUID> collectionId = getPrimaryCollectionId(userId);
-    if (collectionId.isEmpty()) {
+    Optional<CollectionIds> collectionIds = getPrimaryCollectionIds(userId);
+    if (collectionIds.isEmpty()) {
       CardCollection collection = makePrimaryCollection(userId);
       return forTransfer(collection);
     }
-    searchFilter = searchFilter.withCollectionFilter(collectionId.get(), true);
+    searchFilter = searchFilter.withCollectionFilter(collectionIds.get().internalId(), true);
     SearchResult searchResult = cardQueryService.search(searchFilter);
     CollectionInfo ci =
         new CollectionInfo(
-            collectionId.get(),
+            collectionIds.get().publicId(),
             null,
             searchResult.pageOfCards().getTotalElements(),
             searchResult.totalCollected(),
@@ -159,9 +159,8 @@ public class CollectionService {
     return new CollectionDto(ci, new PagedModel<>(searchResult.pageOfCards()));
   }
 
-  public Optional<UUID> getPrimaryCollectionId(UUID userId) {
-    Optional<Id> id = collectionRepository.findIdByOwnerAndPrimaryIsTrue(userId);
-    return id.map(Id::id);
+  public Optional<CollectionIds> getPrimaryCollectionIds(UUID userId) {
+    return collectionRepository.findIdsByOwnerAndPrimaryIsTrue(userId);
   }
 
   public Map<Long, Integer> getPrimaryStub(UUID userId) {
@@ -198,10 +197,10 @@ public class CollectionService {
 
   public boolean deleteCollection(UUID userId, UUID collectionId) {
     return collectionRepository
-        .findByIdAndOwnerAndPrimaryIsFalse(collectionId, userId)
+        .findByPublicIdAndOwnerAndPrimaryIsFalse(collectionId, userId)
         .map(
             c -> {
-              collectionRepository.deleteById(c.getId());
+              collectionRepository.deleteById(c.getInternalId());
               return true;
             })
         .orElse(false);
@@ -211,7 +210,8 @@ public class CollectionService {
     var newCollection = new CardCollection(true);
     newCollection.setOwner(userId);
     newCollection.setName("Collection");
-    return collectionRepository.save(newCollection);
+    collectionRepository.save(newCollection);
+    return collectionRepository.findById(collectionRepository.save(newCollection).getInternalId()).orElseThrow(IllegalStateException::new);
   }
 
   public CollectionInfo createCollection(UUID userId, String name) {
@@ -219,11 +219,11 @@ public class CollectionService {
     collection.setName(name);
     collection.setOwner(userId);
     collection = collectionRepository.save(collection);
-    return CollectionInfo.ofCollection(collection);
+    return CollectionInfo.ofCollection(collectionRepository.findById(collection.getInternalId()).orElseThrow(IllegalStateException::new));
   }
 
   public Optional<CollectionInfo> renameCollection(UUID userId, UUID collectionId, String name) {
-    var collection = collectionRepository.findByIdAndOwnerAndPrimaryIsFalse(collectionId, userId);
+    var collection = collectionRepository.findByPublicIdAndOwnerAndPrimaryIsFalse(collectionId, userId);
     if (collection.isPresent()) {
       collection.get().setName(name);
       return Optional.of(CollectionInfo.ofCollection(collectionRepository.save(collection.get())));
@@ -269,7 +269,7 @@ public class CollectionService {
 
   public Optional<CollectionInfo> setCardAmount(
       UUID userId, UUID collectionId, Long cardId, int amount) {
-    var collection = collectionRepository.findByIdAndOwnerAndPrimaryIsFalse(collectionId, userId);
+    var collection = collectionRepository.findByPublicIdAndOwnerAndPrimaryIsFalse(collectionId, userId);
     if (collection.isPresent()) {
       var cc = collection.get();
       if (cardService.cardExists(cardId)) {

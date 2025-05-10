@@ -73,13 +73,14 @@ public class CollectionServiceIntegrationTest {
   @Test
   void createsNewCollectionAndFindsId() {
     var collection = collectionService.getPrimaryCollection(user.getId(), search().build());
-    assertThat(collectionService.getPrimaryCollectionId(user.getId()))
-        .hasValue(collection.info().id());
+    assertThat(collectionService.getPrimaryCollectionIds(user.getId())).hasValueSatisfying(
+        ids -> assertThat(ids.publicId()).isEqualTo(collection.info().id())
+    );
   }
 
   @Test
   void idIsEmptyIfCollectionDoesNotExist() {
-    assertThat(collectionService.getPrimaryCollectionId(user.getId())).isEmpty();
+    assertThat(collectionService.getPrimaryCollectionIds(user.getId())).isEmpty();
   }
 
   @Test

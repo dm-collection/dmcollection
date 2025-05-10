@@ -1,6 +1,6 @@
 databaseChangeLog:
   - changeSet:
-      id: 1731963252841-7
+      id: initial-tables
       author: luk-lo
       changes:
         - createTable:
@@ -10,7 +10,7 @@ databaseChangeLog:
                   constraints:
                     nullable: false
                     primaryKey: true
-                    primaryKeyName: CONSTRAINT_E
+                    primaryKeyName: pk_event_pub
                   name: ID
                   type: VARCHAR(255)
               - column:

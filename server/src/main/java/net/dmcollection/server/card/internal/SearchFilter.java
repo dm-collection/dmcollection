@@ -2,7 +2,6 @@ package net.dmcollection.server.card.internal;
 
 import java.util.EnumSet;
 import java.util.Set;
-import java.util.UUID;
 import java.util.stream.Collectors;
 import net.dmcollection.model.card.Civilization;
 import net.dmcollection.model.card.RarityCode;
@@ -183,9 +182,9 @@ public record SearchFilter(
         || (nameSearch != null && !nameSearch.isBlank());
   }
 
-  public record CollectionFilter(UUID collectionId, boolean searchCollection) {}
+  public record CollectionFilter(long internalId, boolean searchCollection) {}
 
-  public SearchFilter withCollectionFilter(UUID collectionId, boolean searchCollection) {
+  public SearchFilter withCollectionFilter(long internalId, boolean searchCollection) {
     return new SearchFilter(
         this.setId,
         this.includedCivs,
@@ -202,7 +201,7 @@ public record SearchFilter(
         this.rarityFilter,
         this.speciesSearch,
         this.nameSearch,
-        new CollectionFilter(collectionId, searchCollection),
+        new CollectionFilter(internalId, searchCollection),
         this.pageable);
   }
 
