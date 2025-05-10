@@ -5,6 +5,8 @@ import static net.dmcollection.server.card.internal.CivsCondition.twinpactCondit
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -44,6 +46,8 @@ public class CardQueryService {
   private final SpeciesService speciesService;
   private final RarityService rarityService;
   private final TypeCondition typeCondition = new TypeCondition("TYPE");
+
+  private Instant start;
 
   public CardQueryService(
       JdbcTemplate db,
@@ -92,7 +96,7 @@ public class CardQueryService {
       return queryTemplate.formatted(CIV_AGG, IMAGE_AGG, UNIQUE_COUNT);
     }
     String join = filter.collectionFilter().searchCollection() ? "INNER" : "LEFT";
-    parameters.add(filter.collectionFilter().collectionId());
+    parameters.add(filter.collectionFilter().internalId());
     return collectionQueryTemplate.formatted(CIV_AGG, IMAGE_AGG, UNIQUE_COUNT, TOTAL_COUNT, join);
   }
 
@@ -109,6 +113,9 @@ public class CardQueryService {
   public record SearchResult(Page<CardStub> pageOfCards, long totalCollected) {}
 
   public SearchResult search(@NonNull SearchFilter searchFilter) {
+    if (log.isDebugEnabled()) {
+      this.start = Instant.now();
+    }
     if (searchFilter.isInvalid()) {
       log.warn("Invalid search filter: {}", searchFilter);
       return new SearchResult(new PageImpl<>(List.of()), 0);
@@ -180,9 +187,18 @@ public class CardQueryService {
 
     addSortingAndPaging(query, parameters, searchFilter.pageable());
     String finalQuery = String.join(" ", query);
-    log.debug(finalQuery.replaceAll("\\?", "{}"), parameters.toArray());
+    log.atDebug()
+        .setMessage("Built query in {}ms")
+        .addArgument(() -> Duration.between(start, Instant.now()).toMillis())
+        .log();
+    if (log.isDebugEnabled()) {
+      log.debug(finalQuery.replaceAll("\\?", "{}"), parameters.toArray());
+    }
     List<CardStubWithCount> result = List.of();
     try {
+      if (log.isDebugEnabled()) {
+        this.start = Instant.now();
+      }
       result =
           db.query(
               finalQuery,
@@ -194,6 +210,10 @@ public class CardQueryService {
       log.error("Search parameters: {}", searchFilter);
       log.error("Original exception:", e);
     }
+    log.atDebug()
+        .setMessage("Query executed in {}ms")
+        .addArgument(() -> Duration.between(start, Instant.now()).toMillis())
+        .log();
     long uniqueCount = !result.isEmpty() ? result.getFirst().uniqueCount() : 0;
     long totalCount = !result.isEmpty() ? result.getFirst().totalCount() : 0;
     log.debug("Query result size: {}", uniqueCount);

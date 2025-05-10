@@ -20,11 +20,9 @@ databaseChangeLog:
   - include:
       file: db/changelog/changes/00-initial-schema.yml
   - include:
-      file: db/changelog/changes/10-collections.yml
+      file: db/changelog/changes/01-collections.yml
   - include:
-      file: db/changelog/changes/11-collection-segregation.yml
-  - include:
-      file: db/changelog/changes/12-card-release-view.yml
+      file: db/changelog/changes/02-card-release-view.yml
   # reload card data
   - include:
       file: net/dmcollection/model/db/changes/sets/data.yml

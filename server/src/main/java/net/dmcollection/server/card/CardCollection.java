@@ -11,6 +11,7 @@ import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.annotation.PersistenceCreator;
+import org.springframework.data.annotation.ReadOnlyProperty;
 import org.springframework.data.jdbc.core.mapping.AggregateReference;
 import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.MappedCollection;
@@ -18,7 +19,13 @@ import org.springframework.data.relational.core.mapping.Table;
 
 @Table("COLLECTIONS")
 public class CardCollection {
-  @Id private UUID id;
+  @Id
+  @Column("ID_INTERNAL")
+  private long internalId;
+
+  @Column("ID_PUBLIC")
+  @ReadOnlyProperty
+  private UUID publicId;
 
   private String name;
 
@@ -35,14 +42,16 @@ public class CardCollection {
 
   @PersistenceCreator
   CardCollection(
-      UUID id,
+      long internalId,
+      UUID publicId,
       String name,
       Set<CollectionCards> cards,
       AggregateReference<User, UUID> owner,
       LocalDateTime createdAt,
       LocalDateTime updatedAt,
       Boolean primary) {
-    this.id = id;
+    this.internalId = internalId;
+    this.publicId = publicId;
     this.name = name;
     this.cards = cards;
     this.owner = owner;
@@ -50,6 +59,8 @@ public class CardCollection {
     this.updatedAt = updatedAt;
     this.primary = primary;
   }
+
+  public record CollectionIds(long internalId, UUID publicId) {}
 
   CardCollection(boolean primary) {
     this.primary = primary;
@@ -61,8 +72,12 @@ public class CardCollection {
     this.cards = new HashSet<>();
   }
 
-  public UUID getId() {
-    return this.id;
+  public long getInternalId() {
+    return this.internalId;
+  }
+
+  public UUID getPublicId() {
+    return this.publicId;
   }
 
   public void setName(String name) {

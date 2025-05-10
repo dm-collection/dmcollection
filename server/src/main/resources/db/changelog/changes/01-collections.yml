@@ -1,15 +1,22 @@
 databaseChangeLog:
   - changeSet:
-      id: 10
+      id: collection-tables
       author: luk-lo
       changes:
         - createTable:
             tableName: COLLECTIONS
             columns:
               - column:
-                  name: ID
+                  name: ID_PUBLIC
                   type: UUID
                   defaultValueComputed: RANDOM_UUID(7)
+                  constraints:
+                    nullable: false
+                    unique: true
+              - column:
+                  name: ID_INTERNAL
+                  type: BIGINT
+                  autoIncrement: true
                   constraints:
                     nullable: false
                     primaryKey: true
@@ -26,6 +33,9 @@ databaseChangeLog:
                   name: NAME
                   type: VARCHAR(255)
               - column:
+                  name: PRIMARY
+                  type: BOOLEAN
+              - column:
                   name: CREATED_AT
                   defaultValueComputed: CURRENT_TIMESTAMP
                   type: TIMESTAMP
@@ -33,18 +43,26 @@ databaseChangeLog:
                   name: UPDATED_AT
                   defaultValueComputed: CURRENT_TIMESTAMP
                   type: TIMESTAMP
+        - createIndex:
+            tableName: COLLECTIONS
+            columns:
+              - column:
+                  name: ID_PUBLIC
+            indexName: IDX_COLLECTION_ID_PUBLIC
 
         - createTable:
             tableName: COLLECTION_CARDS
             columns:
               - column:
                   name: COLLECTIONS
-                  type: UUID
+                  type: BIGINT
                   constraints:
                     nullable: false
-                    foreignKeyName: fk_cards_collections
+                    foreignKeyName: fk_collection_cards_collections_id
                     referencedTableName: COLLECTIONS
-                    referencedColumnNames: ID
+                    referencedColumnNames: ID_INTERNAL
+                    primaryKey: true
+                    primaryKeyName: pk_collection_cards
               - column:
                   name: AMOUNT
                   type: INTEGER
@@ -55,6 +73,8 @@ databaseChangeLog:
                   type: BIGINT
                   constraints:
                     nullable: false
-                    foreignKeyName: fk_collections_cards
+                    foreignKeyName: fk_collection_cards_cards_id
                     referencedTableName: CARDS
                     referencedColumnNames: ID
+                    primaryKey: true
+                    primaryKeyName: pk_collection_cards

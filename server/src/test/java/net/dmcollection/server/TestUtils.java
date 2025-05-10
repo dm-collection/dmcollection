@@ -18,8 +18,14 @@ import net.dmcollection.model.card.OfficialSet;
 import net.dmcollection.model.card.Rarity;
 import net.dmcollection.model.card.RarityCode;
 import net.dmcollection.server.card.CardService.CardStub;
+import net.dmcollection.server.card.internal.SearchFilter;
+import net.dmcollection.server.card.internal.SearchFilter.CardType;
+import net.dmcollection.server.card.internal.SearchFilter.FilterState;
+import net.dmcollection.server.card.internal.SearchFilter.Range;
+import net.dmcollection.server.card.internal.SearchFilter.RarityFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.data.domain.Pageable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.lang.NonNull;
 
@@ -60,6 +66,10 @@ public class TestUtils {
 
   public TestUtils(JdbcTemplate jdbcTemplate) {
     this.jdbcTemplate = jdbcTemplate;
+  }
+
+  public static SearchBuilder search() {
+    return new SearchBuilder();
   }
 
   private record LogEntry(String sql, @NonNull List<Object> args) {
@@ -374,5 +384,141 @@ public class TestUtils {
     Object[] values = {facetId, position, speciesId};
     jdbcTemplate.update(
         "INSERT INTO FACET_SPECIES (CARD_FACETS, POSITION, SPECIES) VALUES (?, ?, ?)", values);
+  }
+
+  public static class SearchBuilder {
+    private Long setId;
+    private Set<Civilization> includedCivs;
+    private Set<Civilization> excludedCivs;
+    private Boolean includeMono = null;
+    private Boolean includeRainbow = null;
+    private boolean matchNumberOfCivs = false;
+    private Integer minCost = null;
+    private Integer maxCost = null;
+    private Integer minPower = null;
+    private Integer maxPower = null;
+    private FilterState twinpact = FilterState.IN;
+    private CardType cardType = null;
+    private String speciesSearch = null;
+    private RarityFilter rarity = null;
+    private String nameSearch = null;
+    private Pageable pageable = null;
+
+    private void makeCivSet() {
+      if (includedCivs == null) {
+        includedCivs = new HashSet<>();
+      }
+      if (excludedCivs == null) {
+        excludedCivs = new HashSet<>();
+      }
+    }
+
+    public SearchBuilder setNameSearch(String nameSearch) {
+      this.nameSearch = nameSearch;
+      return this;
+    }
+
+    public SearchBuilder setRarity(RarityCode rarity) {
+      this.rarity = new RarityFilter(rarity, Range.EQ);
+      return this;
+    }
+
+    public SearchBuilder setRarity(RarityCode rarity, Range range) {
+      this.rarity = new RarityFilter(rarity, range);
+      return this;
+    }
+
+    public SearchBuilder setSpeciesSearch(String speciesSearch) {
+      this.speciesSearch = speciesSearch;
+      return this;
+    }
+
+    public SearchBuilder setTwinpact(FilterState twinpact) {
+      this.twinpact = twinpact;
+      return this;
+    }
+
+    public SearchBuilder setMatchExactRainbowCivs(boolean matchNumberOfCivs) {
+      this.matchNumberOfCivs = matchNumberOfCivs;
+      return this;
+    }
+
+    public SearchBuilder setPageable(Pageable pageable) {
+      this.pageable = pageable;
+      return this;
+    }
+
+    public SearchBuilder setIncludeMono(Boolean includeMono) {
+      this.includeMono = includeMono;
+      return this;
+    }
+
+    public SearchBuilder setIncludeRainbow(Boolean includeRainbow) {
+      this.includeRainbow = includeRainbow;
+      return this;
+    }
+
+    public SearchBuilder setSetId(Long setId) {
+      this.setId = setId;
+      return this;
+    }
+
+    public SearchBuilder addIncludedCivs(Civilization... civs) {
+      makeCivSet();
+      includedCivs.addAll(Set.of(civs));
+      return this;
+    }
+
+    public SearchBuilder addExcludedCivs(Civilization... civs) {
+      makeCivSet();
+      excludedCivs.addAll(Set.of(civs));
+      return this;
+    }
+
+    public SearchBuilder setMinCost(Integer minCost) {
+      this.minCost = minCost;
+      return this;
+    }
+
+    public SearchBuilder setMaxCost(Integer maxCost) {
+      this.maxCost = maxCost;
+      return this;
+    }
+
+    public SearchBuilder setMinPower(Integer minPower) {
+      this.minPower = minPower;
+      return this;
+    }
+
+    public SearchBuilder setMaxPower(Integer maxPower) {
+      this.maxPower = maxPower;
+      return this;
+    }
+
+    public SearchBuilder setCardType(CardType cardType) {
+      this.cardType = cardType;
+      return this;
+    }
+
+    public SearchFilter build() {
+      return new SearchFilter(
+          setId,
+          includedCivs,
+          excludedCivs,
+          includeMono,
+          includeRainbow,
+          matchNumberOfCivs,
+          minCost,
+          maxCost,
+          minPower,
+          maxPower,
+          twinpact,
+          cardType,
+          rarity,
+          speciesSearch,
+          nameSearch,
+          null,
+          pageable);
+    }
   }
 }

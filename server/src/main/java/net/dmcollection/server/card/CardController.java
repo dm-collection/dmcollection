@@ -54,9 +54,9 @@ public class CardController {
             pageSize,
             Sort.by("RELEASE").descending().and(Sort.by("OFFICIAL_ID").ascending()));
     var searchFilter = searchParams.toSearchFilter(request);
-    var collectionId = collectionService.getPrimaryCollectionId(currentUserId);
-    if (collectionId.isPresent()) {
-      searchFilter = searchFilter.withCollectionFilter(collectionId.get(), false);
+    var collectionIds = collectionService.getPrimaryCollectionIds(currentUserId);
+    if (collectionIds.isPresent()) {
+      searchFilter = searchFilter.withCollectionFilter(collectionIds.get().internalId(), false);
     }
     try {
       return ResponseEntity.ok(

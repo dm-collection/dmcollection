@@ -7,13 +7,14 @@ import static net.dmcollection.model.card.Civilization.NATURE;
 import static net.dmcollection.model.card.Civilization.WATER;
 import static net.dmcollection.model.card.Civilization.ZERO;
 import static net.dmcollection.server.TestUtils.D2_FIELD;
-import static net.dmcollection.server.card.CardQueryServiceIntegrationTest.search;
+import static net.dmcollection.server.TestUtils.search;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import net.dmcollection.model.card.CardRepository;
 import net.dmcollection.model.card.RarityCode;
 import net.dmcollection.server.TestUtils;
@@ -31,7 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 @Transactional
 @ActiveProfiles("test")
-public class CollectionServiceIntegrationTest {
+class CollectionServiceIntegrationTest {
 
   @Autowired CardRepository cardRepository;
   @Autowired CollectionService collectionService;
@@ -73,24 +74,24 @@ public class CollectionServiceIntegrationTest {
   @Test
   void createsNewCollectionAndFindsId() {
     var collection = collectionService.getPrimaryCollection(user.getId(), search().build());
-    assertThat(collectionService.getPrimaryCollectionId(user.getId()))
-        .hasValue(collection.info().id());
+    assertThat(collectionService.getPrimaryCollectionIds(user.getId()))
+        .hasValueSatisfying(ids -> assertThat(ids.publicId()).isEqualTo(collection.info().id()));
   }
 
   @Test
   void idIsEmptyIfCollectionDoesNotExist() {
-    assertThat(collectionService.getPrimaryCollectionId(user.getId())).isEmpty();
+    assertThat(collectionService.getPrimaryCollectionIds(user.getId())).isEmpty();
   }
 
   @Test
-  void cardsCanBeAdded() {
+  void cardsCanBeAddedToDeck() {
     var userId = user.getId();
     var info = collectionService.createCollection(userId, "New Collection");
-    addToCollection(info, new CardIdAndAmount("dm01-001", 5));
+    addToDeck(info, new CardIdAndAmount("dm01-001", 5));
     var result = collectionService.getCollection(userId, info.id());
     assertThat(result).isNotEmpty();
     assertThat(result.get().info().uniqueCardCount()).isEqualTo(1);
-    addToCollection(info, new CardIdAndAmount("dm24ex2-040", 1));
+    addToDeck(info, new CardIdAndAmount("dm24ex2-040", 1));
     result = collectionService.getCollection(userId, info.id());
     assertThat(result).isNotEmpty();
     assertThat(result.get().info().uniqueCardCount()).isEqualTo(2);
@@ -105,7 +106,7 @@ public class CollectionServiceIntegrationTest {
             new CardIdAndAmount("dm24ex2-040", 1),
             new CardIdAndAmount("dm01-001", 5),
             new CardIdAndAmount("dm01-001", 0));
-    addToCollection(info, testCards);
+    addToDeck(info, testCards);
     var result = collectionService.getCollection(userId, info.id());
     assertThat(result.get().info().uniqueCardCount()).isEqualTo(1);
   }
@@ -120,13 +121,14 @@ public class CollectionServiceIntegrationTest {
             new CardIdAndAmount("dm01-001", 5),
             new CardIdAndAmount("dmc36-003", 0),
             new CardIdAndAmount("dmr08-021", 5000));
-    addToCollection(info, testCards);
+    addToDeck(info, testCards);
     var result = collectionService.getCollection(userId, info.id());
     assertThat(result.get().info().totalCardCount()).isEqualTo(5007);
+    assertThat(result.get().info().uniqueCardCount()).isEqualTo(3);
   }
 
   @Test
-  void collectionCanBeRetrieved() {
+  void deckCanBeRetrieved() {
     var userId = user.getId();
     var collectionInfo = collectionService.createCollection(userId, "New Collection");
     List<CardIdAndAmount> testCards =
@@ -135,7 +137,7 @@ public class CollectionServiceIntegrationTest {
             new CardIdAndAmount("dm01-001", 5),
             new CardIdAndAmount("dmc36-003", 28),
             new CardIdAndAmount("dmr08-021", 5000));
-    addToCollection(collectionInfo, testCards);
+    addToDeck(collectionInfo, testCards);
     var result = collectionService.getCollection(userId, collectionInfo.id());
     assertThat(result).isNotEmpty();
     var collection = result.get();
@@ -145,7 +147,30 @@ public class CollectionServiceIntegrationTest {
         .containsExactlyInAnyOrderElementsOf(testCards);
   }
 
-  private void addToCollection(CollectionInfo info, CardIdAndAmount card) {
+  @Test
+  void collectionCanBeFiltered() {
+    var userId = user.getId();
+    List<CardIdAndAmount> testCards =
+        Arrays.asList(
+            new CardIdAndAmount("dm24ex2-040", 2),
+            new CardIdAndAmount("dm01-001", 5),
+            new CardIdAndAmount("dmc36-003", 28),
+            new CardIdAndAmount("dmr08-021", 5000));
+    addToCollection(userId, testCards);
+    var result =
+        collectionService.getPrimaryCollection(
+            userId, TestUtils.search().addIncludedCivs(ZERO).build());
+    assertThat(result.info().uniqueCardCount()).isEqualTo(1);
+    assertThat(result.cardPage().getContent())
+        .hasSize(1)
+        .allSatisfy(
+            cardStub -> {
+              assertThat(cardStub.dmId()).isEqualTo("dmr08-021");
+              assertThat(cardStub.amount()).isEqualTo(5000);
+            });
+  }
+
+  private void addToDeck(CollectionInfo info, CardIdAndAmount card) {
     if (cardRepository.existsByOfficialId(card.cardId())) {
       long id = cardRepository.findByOfficialId(card.cardId()).get().id();
       collectionService.setCardAmount(info.ownerId(), info.id(), id, card.amount);
@@ -154,8 +179,21 @@ public class CollectionServiceIntegrationTest {
     }
   }
 
-  private void addToCollection(CollectionInfo info, Collection<CardIdAndAmount> cards) {
-    cards.forEach(card -> addToCollection(info, card));
+  private void addToDeck(CollectionInfo info, Collection<CardIdAndAmount> cards) {
+    cards.forEach(card -> addToDeck(info, card));
+  }
+
+  private void addToCollection(UUID userId, Collection<CardIdAndAmount> cards) {
+    cards.forEach(card -> addToCollection(userId, card));
+  }
+
+  private void addToCollection(UUID userId, CardIdAndAmount card) {
+    if (cardRepository.existsByOfficialId(card.cardId())) {
+      long id = cardRepository.findByOfficialId(card.cardId()).get().id();
+      collectionService.setCardAmount(userId, id, card.amount);
+    } else {
+      throw new IllegalStateException("Card with id " + card.cardId() + " missing in test db");
+    }
   }
 
   private record CardIdAndAmount(String cardId, int amount) {}
