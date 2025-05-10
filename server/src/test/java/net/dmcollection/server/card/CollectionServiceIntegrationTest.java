@@ -32,7 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 @Transactional
 @ActiveProfiles("test")
-public class CollectionServiceIntegrationTest {
+class CollectionServiceIntegrationTest {
 
   @Autowired CardRepository cardRepository;
   @Autowired CollectionService collectionService;

@@ -45,7 +45,7 @@ import org.springframework.transaction.annotation.Transactional;
 @SpringBootTest
 @Transactional
 @ActiveProfiles("test")
-public class CardQueryServiceIntegrationTest {
+class CardQueryServiceIntegrationTest {
 
   private static final Logger log = LoggerFactory.getLogger(CardQueryServiceIntegrationTest.class);
 
