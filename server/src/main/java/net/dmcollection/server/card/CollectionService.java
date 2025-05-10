@@ -186,12 +186,6 @@ public class CollectionService {
   }
 
   private CardCollection getPrimary(UUID userId) {
-    if (!collectionRepository.existsByOwnerAndPrimaryIsTrue(userId)) {
-      var newCollection = new CardCollection(true);
-      newCollection.setOwner(userId);
-      newCollection.setName("Collection");
-      return collectionRepository.save(newCollection);
-    }
     var collection = collectionRepository.findByOwnerAndPrimaryIsTrue(userId);
     return collection.orElseGet(() -> makePrimaryCollection(userId));
   }

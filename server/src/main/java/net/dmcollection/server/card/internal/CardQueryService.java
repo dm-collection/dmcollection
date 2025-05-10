@@ -188,7 +188,7 @@ public class CardQueryService {
     addSortingAndPaging(query, parameters, searchFilter.pageable());
     String finalQuery = String.join(" ", query);
     log.atDebug()
-        .setMessage("Built query in {} ms")
+        .setMessage("Built query in {}ms")
         .addArgument(() -> Duration.between(start, Instant.now()).toMillis())
         .log();
     if (log.isDebugEnabled()) {
@@ -211,7 +211,7 @@ public class CardQueryService {
       log.error("Original exception:", e);
     }
     log.atDebug()
-        .setMessage("Query executed in {} ms")
+        .setMessage("Query executed in {}ms")
         .addArgument(() -> Duration.between(start, Instant.now()).toMillis())
         .log();
     long uniqueCount = !result.isEmpty() ? result.getFirst().uniqueCount() : 0;

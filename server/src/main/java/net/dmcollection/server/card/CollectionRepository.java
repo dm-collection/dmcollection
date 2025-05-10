@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import net.dmcollection.server.card.CardCollection.CollectionIds;
-import org.springframework.data.jdbc.repository.query.Modifying;
 import org.springframework.data.repository.CrudRepository;
 
 public interface CollectionRepository extends CrudRepository<CardCollection, Long> {
