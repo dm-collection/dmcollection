@@ -113,7 +113,7 @@ public class CardQueryService {
   public record SearchResult(Page<CardStub> pageOfCards, long totalCollected) {}
 
   public SearchResult search(@NonNull SearchFilter searchFilter) {
-    if(log.isDebugEnabled()) {
+    if (log.isDebugEnabled()) {
       this.start = Instant.now();
     }
     if (searchFilter.isInvalid()) {
@@ -187,13 +187,16 @@ public class CardQueryService {
 
     addSortingAndPaging(query, parameters, searchFilter.pageable());
     String finalQuery = String.join(" ", query);
-    log.atDebug().setMessage("Built query in {} ms").addArgument(() -> Duration.between(start, Instant.now()).toMillis()).log();
-    if(log.isDebugEnabled()) {
-     log.debug(finalQuery.replaceAll("\\?", "{}"), parameters.toArray());
+    log.atDebug()
+        .setMessage("Built query in {} ms")
+        .addArgument(() -> Duration.between(start, Instant.now()).toMillis())
+        .log();
+    if (log.isDebugEnabled()) {
+      log.debug(finalQuery.replaceAll("\\?", "{}"), parameters.toArray());
     }
     List<CardStubWithCount> result = List.of();
     try {
-      if(log.isDebugEnabled()) {
+      if (log.isDebugEnabled()) {
         this.start = Instant.now();
       }
       result =
@@ -207,7 +210,10 @@ public class CardQueryService {
       log.error("Search parameters: {}", searchFilter);
       log.error("Original exception:", e);
     }
-    log.atDebug().setMessage("Query executed in {} ms").addArgument(() -> Duration.between(start, Instant.now()).toMillis()).log();
+    log.atDebug()
+        .setMessage("Query executed in {} ms")
+        .addArgument(() -> Duration.between(start, Instant.now()).toMillis())
+        .log();
     long uniqueCount = !result.isEmpty() ? result.getFirst().uniqueCount() : 0;
     long totalCount = !result.isEmpty() ? result.getFirst().totalCount() : 0;
     log.debug("Query result size: {}", uniqueCount);

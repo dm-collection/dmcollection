@@ -19,7 +19,9 @@ import org.springframework.data.relational.core.mapping.Table;
 
 @Table("COLLECTIONS")
 public class CardCollection {
-  @Id @Column("ID_INTERNAL") private long internalId;
+  @Id
+  @Column("ID_INTERNAL")
+  private long internalId;
 
   @Column("ID_PUBLIC")
   @ReadOnlyProperty

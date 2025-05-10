@@ -136,7 +136,8 @@ public class CollectionService {
   }
 
   public Optional<CollectionDto> getCollection(UUID userId, UUID collectionId) {
-    var collection = collectionRepository.findByPublicIdAndOwnerAndPrimaryIsFalse(collectionId, userId);
+    var collection =
+        collectionRepository.findByPublicIdAndOwnerAndPrimaryIsFalse(collectionId, userId);
     return collection.map(this::forTransfer);
   }
 
@@ -211,7 +212,9 @@ public class CollectionService {
     newCollection.setOwner(userId);
     newCollection.setName("Collection");
     collectionRepository.save(newCollection);
-    return collectionRepository.findById(collectionRepository.save(newCollection).getInternalId()).orElseThrow(IllegalStateException::new);
+    return collectionRepository
+        .findById(collectionRepository.save(newCollection).getInternalId())
+        .orElseThrow(IllegalStateException::new);
   }
 
   public CollectionInfo createCollection(UUID userId, String name) {
@@ -219,11 +222,15 @@ public class CollectionService {
     collection.setName(name);
     collection.setOwner(userId);
     collection = collectionRepository.save(collection);
-    return CollectionInfo.ofCollection(collectionRepository.findById(collection.getInternalId()).orElseThrow(IllegalStateException::new));
+    return CollectionInfo.ofCollection(
+        collectionRepository
+            .findById(collection.getInternalId())
+            .orElseThrow(IllegalStateException::new));
   }
 
   public Optional<CollectionInfo> renameCollection(UUID userId, UUID collectionId, String name) {
-    var collection = collectionRepository.findByPublicIdAndOwnerAndPrimaryIsFalse(collectionId, userId);
+    var collection =
+        collectionRepository.findByPublicIdAndOwnerAndPrimaryIsFalse(collectionId, userId);
     if (collection.isPresent()) {
       collection.get().setName(name);
       return Optional.of(CollectionInfo.ofCollection(collectionRepository.save(collection.get())));
@@ -269,7 +276,8 @@ public class CollectionService {
 
   public Optional<CollectionInfo> setCardAmount(
       UUID userId, UUID collectionId, Long cardId, int amount) {
-    var collection = collectionRepository.findByPublicIdAndOwnerAndPrimaryIsFalse(collectionId, userId);
+    var collection =
+        collectionRepository.findByPublicIdAndOwnerAndPrimaryIsFalse(collectionId, userId);
     if (collection.isPresent()) {
       var cc = collection.get();
       if (cardService.cardExists(cardId)) {
