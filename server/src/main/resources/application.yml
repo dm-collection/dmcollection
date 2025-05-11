@@ -4,14 +4,13 @@ spring:
   datasource:
     url: jdbc:h2:file:./data/db;DB_CLOSE_ON_EXIT=FALSE
     driverClassName: org.h2.Driver
-    username: dev_user
-    password: devpw
+    username: ${dmcollection_db_user:dev_user}
+    password: ${dmcollection_db_password:devpw}
   h2:
     console:
       enabled: false
       path: /h2-console
   liquibase.change-log: classpath:db/changelog/db.changelog-master.yml
-logging.level.net.dmcollection: DEBUG
 dmcollection:
   image-storage-path: ${dmcollection_image_storage_path:${user.home}/dmcollection-images}
   card-page:
