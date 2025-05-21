@@ -83,7 +83,14 @@
 	async function amountChange(card: CardStub, i: number, newAmount: number) {
 		const response = await fetch(`/api/collectionStub`, {
 			method: 'PUT',
-			headers: { 'Content-Type': 'application/json' },
+			headers: {
+				'Content-Type': 'application/json',
+				'X-XSRF-TOKEN':
+					document.cookie
+						.split('; ')
+						.find((row) => row.startsWith('XSRF-TOKEN='))
+						?.split('=')[1] ?? ''
+			},
 			body: JSON.stringify({ cardId: card.id, amount: newAmount })
 		});
 		if (response.ok) {
