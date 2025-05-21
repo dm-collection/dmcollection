@@ -102,7 +102,14 @@
 
 	async function deleteDeck(id: string) {
 		const response = await fetch(`api/deck/${id}`, {
-			method: 'DELETE'
+			method: 'DELETE',
+			headers: {
+				'X-XSRF-TOKEN':
+					document.cookie
+						.split('; ')
+						.find((row) => row.startsWith('XSRF-TOKEN='))
+						?.split('=')[1] ?? ''
+			}
 		});
 		if (response.ok) {
 			invalidate('/api/decks');
