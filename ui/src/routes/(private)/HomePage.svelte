@@ -18,7 +18,7 @@
 <div class="flex items-center">
 	<div class="mx-auto text-center">
 		<h1
-			class="bg-gradient-to-r from-teal-300 via-blue-400 to-purple-600 bg-clip-text text-3xl font-extrabold text-transparent sm:text-5xl"
+			class="bg-linear-to-r from-teal-300 via-blue-400 to-purple-600 bg-clip-text text-3xl font-extrabold text-transparent sm:text-5xl"
 		>
 			Welcome to DM Collection
 		</h1>

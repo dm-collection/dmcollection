@@ -5,7 +5,7 @@
 	let { facet }: { facet: CardFacet } = $props();
 </script>
 
-<div class="flex flex-grow flex-col gap-8 rounded-md bg-white p-4 drop-shadow-md">
+<div class="flex grow flex-col gap-8 rounded-md bg-white p-4 drop-shadow-md">
 	<FacetHeader cost={facet.cost} civilizations={facet.civilizations} />
 	{#if facet.name || facet.type || facet.species}
 		<div class="flex flex-col gap-1">
