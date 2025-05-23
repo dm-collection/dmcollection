@@ -1,44 +1,61 @@
-@import 'tailwindcss/base';
-@import 'tailwindcss/components';
-@import 'tailwindcss/utilities';
+@import 'tailwindcss';
 
-html {
-	background-color: rgba(248, 250, 252);
+/*
+  The default border color has changed to `currentcolor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentcolor);
+  }
 }
 
-@layer components {
-	.btn-primary {
-		@apply inline-flex items-center rounded-md px-3 py-2 text-white enabled:bg-teal-700 enabled:hover:bg-teal-600 disabled:bg-slate-200;
-	}
+@utility btn-primary {
+  @apply inline-flex items-center rounded-md px-3 py-2 text-white enabled:bg-teal-700 enabled:hover:bg-teal-600 disabled:bg-slate-200;
+}
 
-	.btn-secondary {
-		@apply inline-flex items-center rounded-md border bg-white px-3 py-2 enabled:border-teal-700 enabled:text-teal-700 enabled:hover:bg-teal-700 enabled:hover:text-teal-50 disabled:border-slate-300 disabled:text-slate-300;
-	}
+@utility btn-secondary {
+  @apply inline-flex items-center rounded-md border bg-white px-3 py-2 enabled:border-teal-700 enabled:text-teal-700 enabled:hover:bg-teal-700 enabled:hover:text-teal-50 disabled:border-slate-300 disabled:text-slate-300;
+}
 
-	.nav-links {
-		@apply cursor-pointer border-b-2 border-teal-700 border-opacity-0 p-3 duration-200 hover:border-opacity-100 hover:text-teal-700;
-	}
+@utility nav-links {
+  @apply cursor-pointer border-b-2 border-teal-700/0 p-3 duration-200 hover:border-teal-700/100 hover:text-teal-700;
+}
 
-	.select {
-		@apply mt-1.5 rounded-md border border-gray-300 bg-white p-1 text-gray-700 sm:text-sm;
-	}
+@utility select {
+  @apply mt-1.5 rounded-md border border-gray-300 bg-white p-1 text-gray-700 sm:text-sm;
+}
 
-	.txt-h1 {
-		@apply my-2 text-2xl font-bold text-teal-700;
-	}
+@utility txt-h1 {
+  @apply my-2 text-2xl font-bold text-teal-700;
+}
 
-	.tbl-header {
-		@apply whitespace-nowrap border border-l-0 border-r-0 border-solid border-teal-100 bg-teal-50 px-6 py-3 text-left align-middle text-sm font-semibold uppercase text-teal-500;
-	}
+@utility tbl-header {
+  @apply whitespace-nowrap border border-l-0 border-r-0 border-solid border-teal-100 bg-teal-50 px-6 py-3 text-left align-middle text-sm font-semibold uppercase text-teal-500;
+}
 
-	.tbl-row {
-		@apply whitespace-nowrap border-l-0 border-r-0 border-t-0 p-4 px-6 align-middle text-sm;
-	}
+@utility tbl-row {
+  @apply whitespace-nowrap border-l-0 border-r-0 border-t-0 p-4 px-6 align-middle text-sm;
+}
 
-	.full-height-without-header {
-		height: calc(
-			100vh - theme(spacing.8) - theme(spacing.2) - 2px - (2 * theme(spacing.3)) - theme(spacing.7)
-		);
-		/* 100% view height - margin to header - bottom margin - 2px header border - 2* padding around header items - header item line height */
-	}
+@utility full-height-without-header {
+  height: calc(
+    100vh - (--spacing(8)) - (--spacing(2)) - 2px - (2 * (--spacing(3))) -
+      (--spacing(7))
+  );
+  /* 100% view height - margin to header - bottom margin - 2px header border - 2* padding around header items - header item line height */
+}
+
+@layer utilities {
+  html {
+    background-color: rgba(248, 250, 252);
+  }
 }
