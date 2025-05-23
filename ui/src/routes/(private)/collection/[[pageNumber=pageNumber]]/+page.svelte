@@ -110,7 +110,7 @@
 
 <dialog
 	id="importDialog"
-	class="rounded-md px-6 py-6 shadow-lg"
+	class="m-auto rounded-md px-6 py-6 shadow-lg"
 	class:cursor-progress={uploading}
 	bind:this={importDialog}
 	oncancel={handleDialogClose}
@@ -128,6 +128,7 @@
 			<label for="import">Select a collection to import:</label>
 			<input
 				type="file"
+				class="file:rounded-md file:border file:bg-white file:px-3 file:py-2 enabled:cursor-pointer enabled:file:border-teal-700 enabled:file:text-teal-700 enabled:hover:file:bg-teal-700 enabled:hover:file:text-teal-50 disabled:text-slate-300 disabled:file:border-slate-300"
 				id="import"
 				name="import"
 				accept="application/json,text/json,.json"

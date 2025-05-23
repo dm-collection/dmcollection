@@ -84,7 +84,7 @@
 	<title>{data.deck?.getInfo()?.name ?? 'DM Collection'}</title>
 </svelte:head>
 
-<dialog id="editDialog" class="rounded-md px-6 py-6 shadow-lg" bind:this={editDialog}>
+<dialog id="editDialog" class="m-auto rounded-md px-6 py-6 shadow-lg" bind:this={editDialog}>
 	<label for="newName">Enter a new name for this deck:</label>
 	<input
 		id="newName"

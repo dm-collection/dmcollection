@@ -127,7 +127,7 @@
 
 <dialog
 	id="importDialog"
-	class="rounded-md px-6 py-6 shadow-lg"
+	class="m-auto rounded-md px-6 py-6 shadow-lg"
 	class:cursor-progress={uploading}
 	bind:this={importDialog}
 	oncancel={handleDialogClose}
