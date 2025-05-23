@@ -358,14 +358,14 @@ public class CardQueryService {
           excludedCivs,
           includeMono,
           includeRainbow);
+      addFourSidedCardCondition(
+          havingConditions,
+          matchExactRainbowCivs,
+          includedCivs,
+          excludedCivs,
+          includeMono,
+          includeRainbow);
     }
-    addFourSidedCardCondition(
-        havingConditions,
-        matchExactRainbowCivs,
-        includedCivs,
-        excludedCivs,
-        includeMono,
-        includeRainbow);
     query.add(or(havingConditions));
     query.add(")"); // close outer query
   }
