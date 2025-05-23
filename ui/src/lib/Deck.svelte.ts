@@ -41,7 +41,14 @@ export class Deck {
 			try {
 				const response = await fetch(`/api/deck/${this.collection.info.id}/cards/${cardId}`, {
 					method: 'PUT',
-					headers: { 'Content-Type': 'application/json' },
+					headers: {
+						'Content-Type': 'application/json',
+						'X-XSRF-TOKEN':
+							document.cookie
+								.split('; ')
+								.find((row) => row.startsWith('XSRF-TOKEN='))
+								?.split('=')[1] ?? ''
+					 },
 					body: JSON.stringify({ amount: amount })
 				});
 				if (response.ok) {
