@@ -127,7 +127,7 @@
 
 <dialog
 	id="importDialog"
-	class="rounded-md px-6 py-6 shadow-lg"
+	class="m-auto rounded-md px-6 py-6 shadow-lg"
 	class:cursor-progress={uploading}
 	bind:this={importDialog}
 	oncancel={handleDialogClose}
@@ -182,7 +182,7 @@
 {/if}
 
 {#if data.decks && data.decks.length > 0}
-	<div class="shadow-xs relative flex w-full min-w-0 flex-col rounded bg-white">
+	<div class="relative flex w-full min-w-0 flex-col rounded bg-white shadow-xs">
 		<div class="mb-0 flex flex-row items-center justify-between rounded-t border-0 px-4 py-3">
 			<div class="px-4">
 				<h3 class="text-blueGray-700 text-base font-semibold">Decks</h3>
@@ -209,7 +209,7 @@
 							<form method="get" action="/api/decks/export" class="flex flex-row gap-2">
 								<button
 									type="submit"
-									class="inline-flex items-center rounded-md border bg-white py-2 pl-2 pr-3 enabled:border-teal-700 enabled:text-teal-700 enabled:hover:bg-teal-700 enabled:hover:text-teal-50 disabled:border-slate-300 disabled:text-slate-300"
+									class="inline-flex items-center rounded-md border bg-white py-2 pr-3 pl-2 enabled:border-teal-700 enabled:text-teal-700 enabled:hover:bg-teal-700 enabled:hover:text-teal-50 disabled:border-slate-300 disabled:text-slate-300"
 								>
 									<DownloadSimple size="1.5em" class="mr-2"></DownloadSimple>
 									Export All</button
@@ -243,7 +243,7 @@
 									>
 										<button
 											type="submit"
-											class="inline-flex items-center rounded-md border bg-white py-2 pl-2 pr-3 enabled:border-teal-700 enabled:text-teal-700 enabled:hover:bg-teal-700 enabled:hover:text-teal-50 disabled:border-slate-300 disabled:text-slate-300"
+											class="inline-flex items-center rounded-md border bg-white py-2 pr-3 pl-2 enabled:border-teal-700 enabled:text-teal-700 enabled:hover:bg-teal-700 enabled:hover:text-teal-50 disabled:border-slate-300 disabled:text-slate-300"
 										>
 											<DownloadSimple size="1.5em" class="mr-2"></DownloadSimple>
 											Export</button

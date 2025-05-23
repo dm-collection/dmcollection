@@ -26,7 +26,7 @@
 </script>
 
 <form class="mx-auto max-w-xs">
-	<div class="relative flex max-w-[8rem] items-center">
+	<div class="relative flex max-w-32 items-center">
 		<button
 			onclick={decrement}
 			disabled={value <= min}

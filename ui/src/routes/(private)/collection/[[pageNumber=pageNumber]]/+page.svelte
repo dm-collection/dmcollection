@@ -110,7 +110,7 @@
 
 <dialog
 	id="importDialog"
-	class="rounded-md px-6 py-6 shadow-lg"
+	class="m-auto rounded-md px-6 py-6 shadow-lg"
 	class:cursor-progress={uploading}
 	bind:this={importDialog}
 	oncancel={handleDialogClose}
@@ -128,6 +128,7 @@
 			<label for="import">Select a collection to import:</label>
 			<input
 				type="file"
+				class="file:rounded-md file:border file:bg-white file:px-3 file:py-2 enabled:cursor-pointer enabled:file:border-teal-700 enabled:file:text-teal-700 enabled:hover:file:bg-teal-700 enabled:hover:file:text-teal-50 disabled:text-slate-300 disabled:file:border-slate-300"
 				id="import"
 				name="import"
 				accept="application/json,text/json,.json"
@@ -162,14 +163,14 @@
 		<form method="get" action="/api/collection/export" class="flex flex-row gap-2">
 			<button
 				type="submit"
-				class="inline-flex items-center rounded-md border bg-white py-2 pl-2 pr-3 enabled:border-teal-700 enabled:text-teal-700 enabled:hover:bg-teal-700 enabled:hover:text-teal-50 disabled:border-slate-300 disabled:text-slate-300"
+				class="inline-flex items-center rounded-md border bg-white py-2 pr-3 pl-2 enabled:border-teal-700 enabled:text-teal-700 enabled:hover:bg-teal-700 enabled:hover:text-teal-50 disabled:border-slate-300 disabled:text-slate-300"
 			>
 				<DownloadSimple size="1.5em" class="mr-2"></DownloadSimple>
 				Export</button
 			>
 			<button
 				type="button"
-				class="inline-flex items-center rounded-md border bg-white py-2 pl-2 pr-3 enabled:border-teal-700 enabled:text-teal-700 enabled:hover:bg-teal-700 enabled:hover:text-teal-50 disabled:border-slate-300 disabled:text-slate-300"
+				class="inline-flex items-center rounded-md border bg-white py-2 pr-3 pl-2 enabled:border-teal-700 enabled:text-teal-700 enabled:hover:bg-teal-700 enabled:hover:text-teal-50 disabled:border-slate-300 disabled:text-slate-300"
 				onclick={showDialog}
 			>
 				<UploadSimple size="1.5em" class="mr-2"></UploadSimple>
