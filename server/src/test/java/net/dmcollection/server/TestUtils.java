@@ -1,5 +1,9 @@
 package net.dmcollection.server;
 
+import static net.dmcollection.model.card.Civilization.FIRE;
+import static net.dmcollection.model.card.Civilization.NATURE;
+import static net.dmcollection.model.card.Civilization.WATER;
+
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -88,6 +92,25 @@ public class TestUtils {
 
   public Map<Long, CardStub> getTestCards() {
     return this.testCards;
+  }
+
+  /**
+   * Create DMBD13-001, the dreaded four-sided card and add it to the database.
+   *
+   * @return An instance of DMBD13-001
+   */
+  public CardStub createFoursides() {
+    return card(
+        "dmbd13-001",
+        "DMBD13 1/26",
+        false,
+        null,
+        201L,
+        List.of("dmbd13-001a.jpg", "dmbd13-001b.jpg", "dmbd13-001c.jpg", "dmbd13-001d.jpg"),
+        List.of(Set.of(WATER), Set.of(FIRE), Set.of(NATURE), Set.of(WATER, FIRE, NATURE)),
+        List.of(7, 7, 7, 21),
+        List.of(5000, 5000, 7000, 11000),
+        List.of(PSYCHIC_CREATURE, PSYCHIC_CREATURE, PSYCHIC_CREATURE, PSYCHIC_CREATURE));
   }
 
   public CardStub multiCard(String officialId, Civilization... civs) {
