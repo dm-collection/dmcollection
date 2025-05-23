@@ -84,7 +84,7 @@
 	<title>{data.deck?.getInfo()?.name ?? 'DM Collection'}</title>
 </svelte:head>
 
-<dialog id="editDialog" class="rounded-md px-6 py-6 shadow-lg" bind:this={editDialog}>
+<dialog id="editDialog" class="m-auto rounded-md px-6 py-6 shadow-lg" bind:this={editDialog}>
 	<label for="newName">Enter a new name for this deck:</label>
 	<input
 		id="newName"
@@ -110,7 +110,7 @@
 >
 	{#if data.deck?.isLoaded() && collection}
 		<div
-			class="flex flex-col rounded-md bg-white p-2 shadow-md portrait:max-h-[41%] portrait:min-h-[41%] landscape:min-w-[40%] landscape:max-w-[40%]"
+			class="flex flex-col rounded-md bg-white p-2 shadow-md portrait:max-h-[41%] portrait:min-h-[41%] landscape:max-w-[40%] landscape:min-w-[40%]"
 		>
 			<div class="flex flex-row gap-4">
 				<h1 class="txt-h1">Deck: {data.deck.getInfo()!.name}</h1>
@@ -147,7 +147,7 @@
 			</div>
 		</div>
 		<div
-			class="flex flex-col rounded-md bg-white p-2 shadow-md portrait:max-h-[58%] portrait:min-h-[58%] landscape:min-w-[59%] landscape:max-w-[59%]"
+			class="flex flex-col rounded-md bg-white p-2 shadow-md portrait:max-h-[58%] portrait:min-h-[58%] landscape:max-w-[59%] landscape:min-w-[59%]"
 		>
 			<h1 class="txt-h1">Your Collection</h1>
 			{#await getSets() then sets}

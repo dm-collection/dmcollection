@@ -46,7 +46,7 @@
 				<p class="text-lg font-semibold">{card.idText}</p>
 				{#if card.rarity}
 					<span
-						class="p-y-1 inline-flex items-center rounded bg-white px-2 text-xs font-medium text-black ring-1 ring-inset ring-black/10"
+						class="p-y-1 inline-flex items-center rounded bg-white px-2 text-xs font-medium text-black ring-1 ring-black/10 ring-inset"
 						>{card.rarity}</span
 					>
 				{/if}
