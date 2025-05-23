@@ -35,19 +35,19 @@
 		<div class="flex flex-row gap-1">
 			{#if facet.power}
 				<span
-					class="p-y-1 inline-flex items-center rounded bg-neutral-100 px-2 text-xs font-medium text-neutral-700 ring-1 ring-inset ring-neutral-600/10"
+					class="p-y-1 inline-flex items-center rounded bg-neutral-100 px-2 text-xs font-medium text-neutral-700 ring-1 ring-neutral-600/10 ring-inset"
 					>{facet.power}</span
 				>
 			{/if}
 			{#if facet.mana}
 				<span
-					class="p-y-1 inline-flex items-center rounded bg-neutral-100 px-2 text-xs font-medium text-neutral-700 ring-1 ring-inset ring-neutral-600/10"
+					class="p-y-1 inline-flex items-center rounded bg-neutral-100 px-2 text-xs font-medium text-neutral-700 ring-1 ring-neutral-600/10 ring-inset"
 					>{facet.mana}</span
 				>
 			{/if}
 			{#if facet.illustrator}
 				<span
-					class="p-y-1 inline-flex items-center rounded bg-violet-200 px-2 text-xs font-medium text-violet-700 ring-1 ring-inset ring-violet-600/10"
+					class="p-y-1 inline-flex items-center rounded bg-violet-200 px-2 text-xs font-medium text-violet-700 ring-1 ring-violet-600/10 ring-inset"
 					>{facet.illustrator}
 				</span>
 			{/if}

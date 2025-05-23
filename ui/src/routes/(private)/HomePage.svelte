@@ -28,7 +28,7 @@
 		</p>
 		<h2 class="my-2 block text-lg">Here are some example cards:</h2>
 
-		<div class="shadow-xs relative flex w-full min-w-0 flex-col rounded bg-white">
+		<div class="relative flex w-full min-w-0 flex-col rounded bg-white shadow-xs">
 			<div class="mb-0 rounded-t border-0 px-4 py-3">
 				<div class="flex flex-wrap items-center">
 					<h3 class="text-blueGray-700 text-base font-semibold">Examples</h3>
