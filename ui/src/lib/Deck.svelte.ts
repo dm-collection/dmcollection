@@ -48,7 +48,7 @@ export class Deck {
 								.split('; ')
 								.find((row) => row.startsWith('XSRF-TOKEN='))
 								?.split('=')[1] ?? ''
-					 },
+					},
 					body: JSON.stringify({ amount: amount })
 				});
 				if (response.ok) {
