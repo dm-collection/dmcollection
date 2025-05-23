@@ -138,6 +138,7 @@
 			<label for="import">Select a file to import from:</label>
 			<input
 				type="file"
+				class="file:rounded-md file:border file:bg-white file:px-3 file:py-2 enabled:cursor-pointer enabled:file:border-teal-700 enabled:file:text-teal-700 enabled:hover:file:bg-teal-700 enabled:hover:file:text-teal-50 disabled:text-slate-300 disabled:file:border-slate-300"
 				id="import"
 				name="import"
 				accept="application/json,text/json,.json"
