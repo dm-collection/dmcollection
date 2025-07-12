@@ -23,6 +23,7 @@ import org.springframework.security.core.context.SecurityContextHolderStrategy;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.authentication.rememberme.AbstractRememberMeServices;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -39,6 +40,7 @@ public class AuthenticationController {
   private final AuthenticationManager authenticationManager;
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
+  private final AbstractRememberMeServices rememberMeServices;
   private final SecurityContextRepository securityContextRepository =
       new HttpSessionSecurityContextRepository();
   private final SecurityContextHolderStrategy securityContextHolderStrategy =
@@ -59,11 +61,13 @@ public class AuthenticationController {
       AuthenticationManager authenticationManager,
       UserRepository userRepository,
       PasswordEncoder passwordEncoder,
-      AppProperties appProperties) {
+      AppProperties appProperties,
+      AbstractRememberMeServices rememberMeServices) {
     this.authenticationManager = authenticationManager;
     this.userRepository = userRepository;
     this.passwordEncoder = passwordEncoder;
     this.appProperties = appProperties;
+    this.rememberMeServices = rememberMeServices;
   }
 
   @GetMapping("/api/auth/status")
@@ -90,6 +94,10 @@ public class AuthenticationController {
       context.setAuthentication(authentication);
       this.securityContextHolderStrategy.setContext(context);
       securityContextRepository.saveContext(context, request, response);
+
+      if (Boolean.TRUE.equals(loginRequest.rememberMe)) {
+        rememberMeServices.loginSuccess(request, response, authentication);
+      }
 
       return new AuthStatusResponse(true, authentication.getName(), false);
 
@@ -169,7 +177,8 @@ public class AuthenticationController {
 
   public record LoginRequest(
       @NotBlank(message = "Username cannot be blank") String username,
-      @NotBlank(message = "Password cannot be blank") String password) {}
+      @NotBlank(message = "Password cannot be blank") String password,
+      Boolean rememberMe) {}
 
   public record RegistrationRequest(
       @NotBlank(message = "Username cannot be blank")

@@ -4,12 +4,13 @@
 
 	let username = '';
 	let password = '';
+	let rememberMe = false;
 	let error = '';
 
 	async function handleSubmit() {
 		error = '';
 
-		const authState = await login(fetch, { username, password });
+		const authState = await login(fetch, { username, password, rememberMe });
 		if (authState.authenticated) {
 			const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/';
 			sessionStorage.removeItem('redirectAfterLogin');
@@ -56,6 +57,10 @@
 				}}
 			/>
 		</div>
+		<label>
+			<input type="checkbox" bind:checked={rememberMe} />
+			Remember me for 30 days
+		</label>
 	</div>
 
 	{#if error}

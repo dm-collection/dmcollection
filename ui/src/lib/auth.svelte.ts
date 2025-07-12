@@ -39,13 +39,17 @@ interface LoginCredentials {
 	password: string;
 }
 
+interface LoginRequest extends LoginCredentials {
+	rememberMe: boolean;
+}
+
 interface RegistrationRequest extends LoginCredentials {
 	code: string | null;
 }
 
 export async function login(
 	fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>,
-	credentials: LoginCredentials
+	credentials: LoginRequest
 ): Promise<AuthState> {
 	try {
 		const response = await fetch('/api/auth/login', {

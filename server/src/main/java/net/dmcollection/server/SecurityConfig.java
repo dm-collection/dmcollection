@@ -6,6 +6,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.function.Supplier;
+import net.dmcollection.server.user.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -21,12 +22,12 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.annotation.web.configurers.SessionManagementConfigurer.SessionFixationConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.crypto.factory.PasswordEncoderFactories;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.authentication.logout.HttpStatusReturningLogoutSuccessHandler;
+import org.springframework.security.web.authentication.rememberme.TokenBasedRememberMeServices;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
@@ -41,9 +42,22 @@ public class SecurityConfig {
 
   private static final Logger log = LoggerFactory.getLogger(SecurityConfig.class);
 
+  private final AppProperties appProperties;
+  private final UserDetailsService userDetailsService;
+
+  public SecurityConfig(AppProperties appProperties, UserService userDetailsService) {
+    this.appProperties = appProperties;
+    this.userDetailsService = userDetailsService;
+  }
+
   @Bean
-  public PasswordEncoder passwordEncoder() {
-    return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+  public TokenBasedRememberMeServices rememberMeServices() {
+    var rememberMeServices =
+        new TokenBasedRememberMeServices(
+            appProperties.rememberMeKey(), userDetailsService);
+    rememberMeServices.setTokenValiditySeconds(30 * 24 * 60 * 60);
+    rememberMeServices.setAlwaysRemember(true); // would otherwise not work with our login request format
+    return rememberMeServices;
   }
 
   @Bean
@@ -83,6 +97,7 @@ public class SecurityConfig {
                 session
                     .sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                     .sessionFixation(SessionFixationConfigurer::changeSessionId))
+        .rememberMe(remember -> remember.rememberMeServices(rememberMeServices()))
         // Configure Exception Handling (custom entry point for SPA routing)
         .exceptionHandling(
             exceptions ->
@@ -104,7 +119,7 @@ public class SecurityConfig {
                         new HttpStatusReturningLogoutSuccessHandler(
                             HttpStatus.NO_CONTENT)) // Return 204 on success
                     .invalidateHttpSession(true) // Invalidate session
-                    .deleteCookies("JSESSIONID") // Ensure session cookie is deleted
+                    .deleteCookies("JSESSIONID", "remember-me")
                     .permitAll() // Allow anyone to call logout
             );
 

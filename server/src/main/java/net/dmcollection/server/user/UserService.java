@@ -1,7 +1,9 @@
 package net.dmcollection.server.user;
 
+import org.springframework.context.annotation.Bean;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,9 +14,9 @@ public class UserService implements UserDetailsService {
   private final UserRepository userRepository;
   private final PasswordEncoder passwordEncoder;
 
-  public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
+  public UserService(UserRepository userRepository) {
     this.userRepository = userRepository;
-    this.passwordEncoder = passwordEncoder;
+    this.passwordEncoder = passwordEncoder();
   }
 
   @Override
@@ -38,5 +40,10 @@ public class UserService implements UserDetailsService {
 
   public boolean existsByUsername(String username) {
     return userRepository.findByUsername(username).isPresent();
+  }
+
+  @Bean
+  public PasswordEncoder passwordEncoder() {
+    return PasswordEncoderFactories.createDelegatingPasswordEncoder();
   }
 }
