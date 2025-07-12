@@ -43,12 +43,14 @@ public class AuthenticationControllerIntegrationTest {
   private final String testPassword = "password123";
   private final String testCode = "test123";
 
-  private final String CSRF_COOKIE_NAME = "XSRF-TOKEN";
-  private final String SESSION_COOKIE_NAME = "JSESSIONID";
-  private final String CSRF_HEADER = "X-XSRF-TOKEN";
+  private static final String CSRF_COOKIE_NAME = "XSRF-TOKEN";
+  private static final String SESSION_COOKIE_NAME = "JSESSIONID";
+  private static final String CSRF_HEADER = "X-XSRF-TOKEN";
+  private static final String REMEMBER_ME_COOKIE_NAME = "remember-me";
 
   private String csrfToken;
   private String sessionId;
+  private String rememberMeToken;
 
   @LocalServerPort private int port;
 
@@ -74,7 +76,7 @@ public class AuthenticationControllerIntegrationTest {
     expectAuthStatus(false, null);
 
     // frontend shows login form, sends request
-    LoginRequest request = new LoginRequest(USERNAME, PASSWORD);
+    LoginRequest request = new LoginRequest(USERNAME, PASSWORD, false);
 
     EntityExchangeResult<byte[]> loginResponse =
         postJson("/api/auth/login", request)
@@ -100,11 +102,63 @@ public class AuthenticationControllerIntegrationTest {
     getAuthenticated("/api/decks").expectStatus().isOk();
 
     // log out
-    postLogout().expectStatus().isNoContent();
+    postLogout().expectStatus().isNoContent().expectCookie().valueEquals(SESSION_COOKIE_NAME, "");
 
     // cannot access restricted endpoints anymore with previously valid cookies
     getAuthenticated("/api/decks").expectStatus().isUnauthorized();
     expectStatusUnauthenticated();
+  }
+
+  @Test
+  void testLoginRememberMeFlow() {
+    // user requests landing page
+    sendInitialGetRequest();
+    // frontend gets auth status
+    expectStatusUnauthenticated();
+    expectAuthStatus(false, null);
+
+    // frontend shows login form, sends request
+    LoginRequest request = new LoginRequest(USERNAME, PASSWORD, true);
+
+    EntityExchangeResult<byte[]> loginResponse =
+        postJson("/api/auth/login", request)
+            .expectStatus()
+            .isOk()
+            .expectHeader()
+            .contentTypeCompatibleWith(APPLICATION_JSON)
+            .expectCookie()
+            .exists(SESSION_COOKIE_NAME)
+            .expectCookie()
+            .exists(REMEMBER_ME_COOKIE_NAME)
+            .expectCookie()
+            .sameSite(SESSION_COOKIE_NAME, "Lax")
+            .expectBody()
+            .jsonPath("$.authenticated")
+            .isEqualTo(true)
+            .jsonPath("$.username")
+            .isEqualTo(USERNAME)
+            .returnResult();
+    updateCookiesFromResponse(loginResponse);
+
+    // remember me cookie should be sufficient
+    sessionId = null;
+    csrfToken = null;
+    expectStatusAuthenticated(USERNAME);
+
+    // access restricted endpoints
+    getAuthenticated("/api/cards/0").expectStatus().isOk();
+    getAuthenticated("/api/decks").expectStatus().isOk();
+
+    // log out
+    EntityExchangeResult<byte[]> logoutResponse =
+        postLogout()
+            .expectStatus()
+            .isNoContent()
+            .expectCookie()
+            .valueEquals(REMEMBER_ME_COOKIE_NAME, "")
+            .expectBody()
+            .returnResult();
+    updateCookiesFromResponse(logoutResponse);
   }
 
   @Test
@@ -227,11 +281,11 @@ public class AuthenticationControllerIntegrationTest {
   void testLoginWithWrongCredentials() {
     sendInitialGetRequest();
 
-    LoginRequest wrongPasswordRequest = new LoginRequest(USERNAME, "wrongPassword");
+    LoginRequest wrongPasswordRequest = new LoginRequest(USERNAME, "wrongPassword", false);
 
     postJson("/api/auth/login", wrongPasswordRequest).expectStatus().isUnauthorized();
 
-    LoginRequest nonExistentUserRequest = new LoginRequest("nonExistentUser", PASSWORD);
+    LoginRequest nonExistentUserRequest = new LoginRequest("nonExistentUser", PASSWORD, false);
 
     postJson("/api/auth/login", nonExistentUserRequest).expectStatus().isUnauthorized();
   }
@@ -241,7 +295,7 @@ public class AuthenticationControllerIntegrationTest {
     sendInitialGetRequest();
     csrfToken = null;
 
-    LoginRequest request = new LoginRequest(USERNAME, PASSWORD);
+    LoginRequest request = new LoginRequest(USERNAME, PASSWORD, false);
 
     webTestClient
         .post()
@@ -276,7 +330,7 @@ public class AuthenticationControllerIntegrationTest {
   void testLogoutMissingCsrfToken() {
     sendInitialGetRequest();
 
-    LoginRequest loginRequest = new LoginRequest(USERNAME, PASSWORD);
+    LoginRequest loginRequest = new LoginRequest(USERNAME, PASSWORD, false);
     EntityExchangeResult<byte[]> loginResponse =
         postJson("/api/auth/login", loginRequest).expectStatus().isOk().expectBody().returnResult();
     updateCookiesFromResponse(loginResponse);
@@ -360,6 +414,9 @@ public class AuthenticationControllerIntegrationTest {
     if (sessionId != null) {
       cookies.putIfAbsent(SESSION_COOKIE_NAME, new ArrayList<>(List.of(sessionId)));
     }
+    if (rememberMeToken != null) {
+      cookies.putIfAbsent(REMEMBER_ME_COOKIE_NAME, new ArrayList<>(List.of(rememberMeToken)));
+    }
   }
 
   private <T> void updateCookiesFromResponse(EntityExchangeResult<T> response) {
@@ -370,6 +427,10 @@ public class AuthenticationControllerIntegrationTest {
     if (response.getResponseCookies().containsKey(SESSION_COOKIE_NAME)) {
       sessionId = response.getResponseCookies().getFirst(SESSION_COOKIE_NAME).getValue();
       log.info("Got session id {} from cookie", sessionId);
+    }
+    if (response.getResponseCookies().containsKey(REMEMBER_ME_COOKIE_NAME)) {
+      rememberMeToken = response.getResponseCookies().getFirst(REMEMBER_ME_COOKIE_NAME).getValue();
+      log.info("Got remember me token {} from cookie", rememberMeToken);
     }
   }
 }

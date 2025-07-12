@@ -17,7 +17,7 @@ import org.springframework.test.web.servlet.MockMvc;
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-public class SecurityConfigIntegrationTest {
+class SecurityConfigIntegrationTest {
 
   @Autowired private MockMvc mockMvc;
 
@@ -31,12 +31,12 @@ public class SecurityConfigIntegrationTest {
         "/favicon.png",
         "/_app/env.js"
       })
-  public void publicPathsGet(String path) throws Exception {
+  void publicPathsGet(String path) throws Exception {
     mockMvc.perform(get(path)).andExpect(status().isOk());
   }
 
   @Test
-  public void privatePathsGet() throws Exception {
+  void privatePathsGet() throws Exception {
     mockMvc
         .perform(get("/card/dm01-001"))
         .andExpect(status().isOk())
@@ -56,13 +56,13 @@ public class SecurityConfigIntegrationTest {
         "decks/export",
         "cards"
       })
-  public void privateApiPathsGet(String path) throws Exception {
+  void privateApiPathsGet(String path) throws Exception {
     mockMvc.perform(get("/api/" + path)).andExpect(status().isUnauthorized());
   }
 
   @ParameterizedTest
   @ValueSource(strings = {"auth/logout", "decks"})
-  public void privateApiPathsPost(String path) throws Exception {
+  void privateApiPathsPost(String path) throws Exception {
     mockMvc.perform(post("/api/" + path)).andExpect(status().isForbidden());
   }
 }

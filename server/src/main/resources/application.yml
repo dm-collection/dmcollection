@@ -19,6 +19,7 @@ dmcollection:
     default-size: 40
     max-size: 100
   registration-code: ${dmcollection_registration_code:}
+  remember-me-key: ${dmcollection_remember_me_key:devkey}
 server:
   servlet:
     session:
