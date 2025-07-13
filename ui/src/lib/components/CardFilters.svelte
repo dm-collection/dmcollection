@@ -93,10 +93,10 @@
 	{#if sets != undefined}
 		<div>
 			<label for="sets" class="block text-sm font-medium">Set</label>
-			<select class="select" name="sets" bind:value={search.setId} onchange={onChange}>
+			<select class="select max-w-[33vw]" name="sets" bind:value={search.setId} onchange={onChange}>
 				<option value={undefined}>All sets</option>
 				{#each sets as set (set.id)}
-					<option value={set.id}>{set.idText} - {set.name}</option>
+					<option class="truncate" value={set.id}>{set.idText} - {set.name}</option>
 				{/each}
 			</select>
 		</div>
