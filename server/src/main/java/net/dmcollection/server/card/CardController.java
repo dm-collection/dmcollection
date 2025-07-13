@@ -8,8 +8,6 @@ import net.dmcollection.server.card.internal.CardQueryService;
 import net.dmcollection.server.user.CurrentUserId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PagedModel;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -48,12 +46,7 @@ public class CardController {
       pageSize =
           Math.min(appProperties.cardPage().defaultSize(), appProperties.cardPage().maxSize());
     }
-    var request =
-        PageRequest.of(
-            pageNumber,
-            pageSize,
-            Sort.by("RELEASE").descending().and(Sort.by("OFFICIAL_ID").ascending()));
-    var searchFilter = searchParams.toSearchFilter(request);
+    var searchFilter = searchParams.toSearchFilter(pageNumber, pageSize);
     var collectionIds = collectionService.getPrimaryCollectionIds(currentUserId);
     if (collectionIds.isPresent()) {
       searchFilter = searchFilter.withCollectionFilter(collectionIds.get().internalId(), false);

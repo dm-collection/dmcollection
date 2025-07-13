@@ -18,12 +18,10 @@ import net.dmcollection.server.AppProperties;
 import net.dmcollection.server.card.CollectionService.CollectionDto;
 import net.dmcollection.server.card.CollectionService.CollectionExport;
 import net.dmcollection.server.card.CollectionService.CollectionInfo;
+import net.dmcollection.server.card.internal.SearchFilter;
 import net.dmcollection.server.user.CurrentUserId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -93,22 +91,17 @@ public class CollectionController {
       @CurrentUserId UUID currentUserId,
       @PathVariable(required = false) Integer pageNumber,
       @ModelAttribute SearchFilterApi searchParams) {
-    Pageable pageRequest;
+    SearchFilter searchFilter;
     if (pageNumber != null) {
       Integer pageSize = searchParams.pageSize();
       if (pageSize == null) {
         pageSize =
             Math.min(appProperties.cardPage().defaultSize(), appProperties.cardPage().maxSize());
       }
-      pageRequest =
-          PageRequest.of(
-              pageNumber,
-              pageSize,
-              Sort.by("RELEASE").descending().and(Sort.by("OFFICIAL_ID").ascending()));
+      searchFilter = searchParams.toSearchFilter(pageNumber, pageSize);
     } else {
-      pageRequest = Pageable.unpaged();
+     searchFilter = searchParams.toSearchFilter();
     }
-    var searchFilter = searchParams.toSearchFilter(pageRequest);
     return ResponseEntity.ok(collectionService.getPrimaryCollection(currentUserId, searchFilter));
   }
 

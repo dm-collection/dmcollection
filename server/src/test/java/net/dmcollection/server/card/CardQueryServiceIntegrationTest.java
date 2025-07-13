@@ -19,6 +19,10 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import net.dmcollection.model.card.CardEntity;
+import net.dmcollection.model.card.CardFacet;
+import net.dmcollection.model.card.OfficialSet;
+import net.dmcollection.model.card.OfficialSet.Columns;
 import net.dmcollection.model.card.RarityCode;
 import net.dmcollection.server.TestUtils;
 import net.dmcollection.server.card.CardService.CardStub;
@@ -38,6 +42,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.ActiveProfiles;
@@ -386,12 +391,25 @@ class CardQueryServiceIntegrationTest {
         search()
             .setPageable(
                 PageRequest.of(
-                    0, 2, Sort.by("RELEASE").descending().and(Sort.by("OFFICIAL_ID").ascending())))
+                    0,
+                    2,
+                    Sort.by(OfficialSet.Columns.RELEASE)
+                        .descending()
+                        .and(Sort.by(CardEntity.Columns.OFFICIAL_ID).ascending())))
             .build();
 
     Page<CardStub> result = cardQueryService.search(filter).pageOfCards();
     assertPageEquals(result, card1, card2);
-    filter = search().setPageable(PageRequest.of(1, 2, Sort.by("OFFICIAL_ID").ascending())).build();
+    filter =
+        search()
+            .setPageable(
+                PageRequest.of(
+                    1,
+                    2,
+                    Sort.by(Columns.RELEASE)
+                        .descending()
+                        .and(Sort.by(CardEntity.Columns.OFFICIAL_ID).ascending())))
+            .build();
     result = cardQueryService.search(filter).pageOfCards();
     assertPageEquals(result, card3, card4);
   }
@@ -857,8 +875,67 @@ class CardQueryServiceIntegrationTest {
     assertQueryFinds(filter, card);
   }
 
+  @Test
+  void sortsByCost() {
+    var oneCost = utils.monoCard("one", 1, FIRE);
+    var zeroCost = utils.monoCard("zero", 0, DARK);
+    var fiveCost = utils.monoCard("five", 5, WATER);
+
+    SearchFilter filter =
+        search().setPageable(Pageable.unpaged(Sort.by(CardFacet.Columns.COST).ascending())).build();
+    assertQueryFindsInOrder(filter, zeroCost, oneCost, fiveCost);
+    filter =
+        search()
+            .setPageable(Pageable.unpaged(Sort.by(CardFacet.Columns.COST).descending()))
+            .build();
+    assertQueryFindsInOrder(filter, fiveCost, oneCost, zeroCost);
+  }
+
+  @Test
+  void sortsByMaxCost() {
+    var oneCost = utils.monoCard("one", 1, FIRE);
+    var zeroCost = utils.monoCard("zero", 0, DARK);
+    var fiveCost = utils.monoCard("five", 5, WATER);
+    var threeCost = utils.twoSided("three", Set.of(FIRE), Set.of(WATER), 1, 3, 4000, 8000);
+    var fourCost = utils.twinpact("four", Set.of(LIGHT), Set.of(LIGHT), 4, 3, 5500);
+
+    SearchFilter filter =
+        search().setPageable(Pageable.unpaged(Sort.by(CardFacet.Columns.COST).ascending())).build();
+    assertQueryFindsInOrder(filter, zeroCost, oneCost, threeCost, fourCost, fiveCost);
+    filter =
+        search()
+            .setPageable(Pageable.unpaged(Sort.by(CardFacet.Columns.COST).descending()))
+            .build();
+    assertQueryFindsInOrder(filter, fiveCost, fourCost, threeCost, oneCost, zeroCost);
+  }
+
+  @Test
+  void sortsNullCostLast() {
+    var oneCost = utils.monoCard("one", 1, FIRE);
+    var zeroCost = utils.monoCard("zero", 0, DARK);
+    var nullCost = utils.monoCard("null", null, WATER);
+    var fiveCost = utils.monoCard("five", 5, WATER);
+    var threeCost = utils.twoSided("three", Set.of(FIRE), Set.of(WATER), 1, 3, 4000, 8000);
+
+    SearchFilter filter =
+        search().setPageable(Pageable.unpaged(Sort.by(CardFacet.Columns.COST).ascending())).build();
+    assertQueryFindsInOrder(filter, zeroCost, oneCost, threeCost, fiveCost, nullCost);
+    filter =
+        search()
+            .setPageable(Pageable.unpaged(Sort.by(CardFacet.Columns.COST).descending()))
+            .build();
+    assertQueryFindsInOrder(filter, fiveCost, threeCost, oneCost, zeroCost, nullCost);
+  }
+
   private void assertQueryFindsAllCards(SearchFilter filter) {
     assertQueryFinds(filter, utils.getTestCards().values().toArray(new CardStub[0]));
+  }
+
+  private void assertQueryFindsInOrder(SearchFilter filter, CardStub... expectedCards) {
+    Page<CardStub> result = cardQueryService.search(filter).pageOfCards();
+    assertThat(result.getContent())
+        .usingRecursiveComparison()
+        .isEqualTo(Arrays.asList(expectedCards));
   }
 
   private void assertQueryFinds(SearchFilter filter, CardStub... expectedCards) {
