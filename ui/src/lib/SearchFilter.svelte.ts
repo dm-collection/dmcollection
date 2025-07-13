@@ -2,6 +2,7 @@ import { Civ } from './types/card';
 import { CardTypeFilter } from './types/CardTypeFilter';
 import { FilterState } from './types/FilterState';
 import { Range } from './types/rarity';
+import { Direction, SortingCriterion, type Order } from './types/sort';
 
 const keys = {
 	setId: 'setId',
@@ -19,7 +20,8 @@ const keys = {
 	species: 'species',
 	rarity: 'rarity',
 	rarityRange: 'rRange',
-	nameSearch: 'name'
+	nameSearch: 'name',
+	sort: 'sort'
 };
 
 export class SearchFilter {
@@ -44,6 +46,7 @@ export class SearchFilter {
 	#rarity: string | undefined = $state();
 	#rarityRange: Range = $state(Range.EQ);
 	#nameSearch: string | undefined = $state();
+	#order: Order[] | undefined = $state();
 
 	#searchParams: URLSearchParams = $state(new URLSearchParams());
 
@@ -221,6 +224,14 @@ export class SearchFilter {
 		this.#nameSearch = nameSearch;
 	}
 
+	set order(order) {
+		this.#searchParams.delete(keys.sort);
+		if (order != undefined) {
+			this.#searchParams.set(keys.sort, this.#stringifyOrder(order));
+		}
+		this.#order = order;
+	}
+
 	get setId() {
 		return this.#setId;
 	}
@@ -285,6 +296,10 @@ export class SearchFilter {
 		return this.#nameSearch;
 	}
 
+	get order() {
+		return this.#order;
+	}
+
 	get searchParams(): URLSearchParams {
 		return this.#searchParams;
 	}
@@ -306,7 +321,8 @@ export class SearchFilter {
 			this.#species == undefined &&
 			this.#rarity == undefined &&
 			this.#rarityRange == Range.EQ &&
-			this.#nameSearch == undefined
+			this.#nameSearch == undefined &&
+			this.#order == undefined
 		);
 	}
 
@@ -355,6 +371,45 @@ export class SearchFilter {
 			this.#rarityRange = Range.EQ;
 		}
 		this.#nameSearch = searchParams.get(keys.nameSearch) ?? undefined;
+		const orderParam = searchParams.get(keys.sort);
+		if (orderParam != null) {
+			this.#parseOrder(orderParam);
+		}
+	}
+
+	#parseOrder(orderParam: string) {
+		if (!orderParam.trim()) {
+			this.#order = undefined;
+			return;
+		}
+		this.#order = orderParam
+			.split(',')
+			.map((token) => token.trim())
+			.filter((token) => token.length > 0)
+			.map((token) => {
+				const [property, direction] = token.split(':');
+				if (!property || !direction) {
+					return null;
+				}
+				const trimmedProperty = property.trim();
+				const trimmedDirection = direction.trim().toUpperCase();
+
+				if (!Object.values(SortingCriterion).includes(trimmedProperty as SortingCriterion)) {
+					return null;
+				}
+				if (!Object.values(Direction).includes(trimmedDirection as Direction)) {
+					return null;
+				}
+				return {
+					property: trimmedProperty as SortingCriterion,
+					direction: trimmedDirection as Direction
+				};
+			})
+			.filter((order): order is Order => order !== null);
+	}
+
+	#stringifyOrder(orders: Order[]): string {
+		return orders.map((order) => `${order.property}:${order.direction}`).join(',');
 	}
 
 	constructor(searchParams?: URLSearchParams) {
