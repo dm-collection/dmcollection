@@ -382,7 +382,7 @@ export class SearchFilter {
 			this.#order = undefined;
 			return;
 		}
-		this.#order = orderParam
+		const parsed = orderParam
 			.split(',')
 			.map((token) => token.trim())
 			.filter((token) => token.length > 0)
@@ -392,7 +392,7 @@ export class SearchFilter {
 					return null;
 				}
 				const trimmedProperty = property.trim();
-				const trimmedDirection = direction.trim().toUpperCase();
+				const trimmedDirection = direction.trim();
 
 				if (!Object.values(SortingCriterion).includes(trimmedProperty as SortingCriterion)) {
 					return null;
@@ -406,6 +406,11 @@ export class SearchFilter {
 				};
 			})
 			.filter((order): order is Order => order !== null);
+		if (parsed.length < 1) {
+			this.#order = undefined;
+		} else {
+			this.#order = parsed;
+		}
 	}
 
 	#stringifyOrder(orders: Order[]): string {

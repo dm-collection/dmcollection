@@ -4,9 +4,23 @@
 	import { CardTypeFilter } from '$lib/types/CardTypeFilter';
 	import { FilterState } from '$lib/types/FilterState';
 	import { Range, type Rarity } from '$lib/types/rarity';
+	import {
+		AMOUNT_ASC,
+		AMOUNT_DESC,
+		CARD_ID_ASC,
+		CARD_ID_DESC,
+		COST_ASC,
+		COST_DESC,
+		POWER_ASC,
+		POWER_DESC,
+		RELEASE_ASC,
+		RELEASE_DESC,
+		type Order
+	} from '$lib/types/sort';
 	import Civilization from './Civilization.svelte';
 	import CaretDown from 'phosphor-svelte/lib/CaretDown';
 	import CaretUp from 'phosphor-svelte/lib/CaretUp';
+	import ArrowsLeftRight from 'phosphor-svelte/lib/ArrowsLeftRight';
 
 	const {
 		search,
@@ -30,6 +44,28 @@
 	const betweenLabel: string = 'to';
 
 	let filtersVisible: boolean = $state(true);
+	let sortVisible: boolean = $state(false);
+
+	type OrderOption = {
+		order: Order;
+		label: string;
+	};
+
+	const ORDER_OPTIONS = [
+		{ order: RELEASE_DESC, label: 'Newest first' },
+		{ order: RELEASE_ASC, label: 'Oldest first' },
+		{ order: COST_DESC, label: 'Cost (Descending)' },
+		{ order: COST_ASC, label: 'Cost (Ascending)' },
+		{ order: POWER_DESC, label: 'Power (Descending)' },
+		{ order: POWER_ASC, label: 'Power (Ascending)' },
+		{ order: AMOUNT_DESC, label: '# Owned (Descending)' },
+		{ order: AMOUNT_ASC, label: '# Owned (Ascending' },
+		{ order: CARD_ID_DESC, label: 'ID (Descending)' },
+		{ order: CARD_ID_ASC, label: 'ID (Ascending)' }
+	];
+
+	let selectedSort1: OrderOption = $state(getOptionForOrderIndex(0, ORDER_OPTIONS[0]));
+	let selectedSort2: OrderOption = $state(getOptionForOrderIndex(1, ORDER_OPTIONS[9]));
 
 	let costSelectLabel: string | undefined = $state();
 	let powerSelectLabel: string | undefined = $state();
@@ -43,6 +79,35 @@
 		search.searchParams.has('powerRange') && search.searchParams.get('powerRange') !== 'false'
 			? range
 			: eq;
+
+	function getOptionForOrderIndex(orderIndex: number, defaultOption: OrderOption): OrderOption {
+		if (search.order != undefined && search.order.length > orderIndex) {
+			const searchOrder = search.order[orderIndex];
+			const candidate = ORDER_OPTIONS.find(
+				(option) =>
+					option.order.property == searchOrder.property &&
+					option.order.direction == searchOrder.direction
+			);
+			if (candidate) {
+				return candidate;
+			}
+		}
+		return defaultOption;
+	}
+
+	async function changeSort() {
+		if (selectedSort1.order == RELEASE_DESC && selectedSort2.order == CARD_ID_ASC) {
+			search.order = undefined;
+		} else {
+			search.order = [selectedSort1.order, selectedSort2.order];
+		}
+		onChange();
+	}
+
+	async function switchSort() {
+		[selectedSort1, selectedSort2] = [selectedSort2, selectedSort1];
+		onChange();
+	}
 
 	async function changeMinCost() {
 		if (costSelectLabel == eq) {
@@ -84,14 +149,36 @@
 </script>
 
 <div>
-	<button class="btn-secondary" onclick={() => (filtersVisible = !filtersVisible)}>
-		Filter
-		{#if filtersVisible}
-			<CaretUp class="ml-2" weight="bold" size="1.5em"></CaretUp>
-		{:else}
-			<CaretDown class="ml-2" weight="bold" size="1.5em"></CaretDown>
-		{/if}
-	</button>
+	<div class="mb-2 flex flex-row gap-2">
+		<button
+			class="btn-secondary"
+			onclick={() => {
+				filtersVisible = !filtersVisible;
+				sortVisible = filtersVisible ? false : sortVisible;
+			}}
+		>
+			Filter
+			{#if filtersVisible}
+				<CaretUp class="ml-2" weight="bold" size="1.5em"></CaretUp>
+			{:else}
+				<CaretDown class="ml-2" weight="bold" size="1.5em"></CaretDown>
+			{/if}
+		</button>
+		<button
+			class="btn-secondary"
+			onclick={() => {
+				sortVisible = !sortVisible;
+				filtersVisible = sortVisible ? false : sortVisible;
+			}}
+		>
+			Sort
+			{#if sortVisible}
+				<CaretUp class="ml-2" weight="bold" size="1.5em"></CaretUp>
+			{:else}
+				<CaretDown class="ml-2" weight="bold" size="1.5em"></CaretDown>
+			{/if}
+		</button>
+	</div>
 	<div class="flex flex-row flex-wrap items-start gap-4" class:hidden={!filtersVisible}>
 		<div>
 			<label for="nameSearch" class="block text-sm font-medium">Card name</label>
@@ -303,5 +390,34 @@
 				</fieldset>
 			</div>
 		</fieldset>
+	</div>
+	<div class="flex flex-row flex-wrap items-start gap-4" class:hidden={!sortVisible}>
+		<div>
+			<label for="sort1" class="block text-sm font-medium">Sort by</label>
+			<select class="select" name="sort1" onchange={changeSort} bind:value={selectedSort1}>
+				{#each ORDER_OPTIONS as sortOption}
+					<option
+						value={sortOption}
+						disabled={selectedSort2.order.property == sortOption.order.property}
+						>{sortOption.label}</option
+					>
+				{/each}
+			</select>
+		</div>
+		<button class="btn-secondary self-end" aria-label="Switch sorting order" onclick={switchSort}
+			><ArrowsLeftRight weight="bold" size="1em"></ArrowsLeftRight></button
+		>
+		<div>
+			<label for="sort2" class="block text-sm font-medium">Then sort by</label>
+			<select class="select" name="sort2" onchange={changeSort} bind:value={selectedSort2}>
+				{#each ORDER_OPTIONS as sortOption}
+					<option
+						value={sortOption}
+						disabled={selectedSort1.order.property == sortOption.order.property}
+						>{sortOption.label}</option
+					>
+				{/each}
+			</select>
+		</div>
 	</div>
 </div>
