@@ -16,10 +16,15 @@ public record CardEntity(
     AggregateReference<OfficialSet, Long> set,
     Boolean twinpact,
     @Column("RARITY") RarityCode rarityCode) {
-  public static final String ID = "ID";
-  public static final String OFFICIAL_ID = "OFFICIAL_ID";
-  public static final String ID_TEXT = "ID_TEXT";
-  public static final String SET = "SET";
-  public static final String TWINPACT = "TWINPACT";
-  public static final String RARITY = "RARITY";
+
+  public static class Columns {
+    private Columns() {}
+
+    public static final String ID = "ID";
+    public static final String OFFICIAL_ID = "OFFICIAL_ID";
+    public static final String ID_TEXT = "ID_TEXT";
+    public static final String SET = "SET";
+    public static final String TWINPACT = "TWINPACT";
+    public static final String RARITY = "RARITY";
+  }
 }

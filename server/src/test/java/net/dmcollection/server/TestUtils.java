@@ -342,12 +342,12 @@ public class TestUtils {
     String insert =
         "INSERT INTO CARDS (\"%s\", \"%s\", \"%s\", \"%s\", \"%s\", \"%s\") VALUES (?, ?, ?, ?, ?, ?)"
             .formatted(
-                CardEntity.ID,
-                CardEntity.ID_TEXT,
-                CardEntity.OFFICIAL_ID,
-                CardEntity.SET,
-                CardEntity.TWINPACT,
-                CardEntity.RARITY);
+                CardEntity.Columns.ID,
+                CardEntity.Columns.ID_TEXT,
+                CardEntity.Columns.OFFICIAL_ID,
+                CardEntity.Columns.SET,
+                CardEntity.Columns.TWINPACT,
+                CardEntity.Columns.RARITY);
     args.add(cardId);
     args.add(idText);
     args.add(officialId);
@@ -362,9 +362,10 @@ public class TestUtils {
       Long facetId = nextId++;
       String imageFile = imageFiles != null && imageFiles.size() > i ? imageFiles.get(i) : null;
       Integer cost = costs != null && costs.size() > i ? costs.get(i) : null;
+      Integer power = powers != null && i < powers.size() ? powers.get(i) : null;
       insert =
-          "INSERT INTO CARD_FACETS (ID, \"%s\", CARDS, POSITION, IMAGE_FILENAME, COST, CIVS, POWER, TYPE) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-              .formatted(CardFacet.NAME);
+          "INSERT INTO CARD_FACETS (ID, \"%s\", CARDS, POSITION, IMAGE_FILENAME, COST, CIVS, POWER, POWER_SORT, TYPE) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)"
+              .formatted(CardFacet.Columns.NAME);
       args.add(facetId);
       args.add(officialId);
       args.add(cardId);
@@ -372,7 +373,8 @@ public class TestUtils {
       args.add(imageFile);
       args.add(cost);
       args.add(Civilization.toInts(facetCivs.get(i)).toArray());
-      args.add(powers != null && i < powers.size() ? powers.get(i) : null);
+      args.add(power);
+      args.add(power);
       args.add(facetTypes != null && i < facetTypes.size() ? facetTypes.get(i) : null);
       sqlLog.add(new LogEntry(insert, args));
       jdbcTemplate.update(insert, args.toArray());

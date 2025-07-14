@@ -23,7 +23,13 @@ public record CardFacet(
     @MappedCollection(idColumn = "CARD_FACETS", keyColumn = "POSITION") List<FacetSpecies> species,
     String imageFilename) {
 
-  public static final String NAME = "NAME";
+  public static final class Columns {
+    private Columns() {}
+
+    public static final String NAME = "NAME";
+    public static final String POWER_SORT = "POWER_SORT";
+    public static final String COST = "COST";
+  }
 
   public CardFacet {
     if (civilizations != null) {

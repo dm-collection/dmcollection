@@ -15,6 +15,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
+import net.dmcollection.model.card.CardEntity.Columns;
 import net.dmcollection.model.card.CardFacet;
 import net.dmcollection.model.card.Civilization;
 import net.dmcollection.server.card.CardService.CardStub;
@@ -40,7 +41,8 @@ public class CardQueryService {
 
   private static final Logger log = LoggerFactory.getLogger(CardQueryService.class);
   public static final String FACET_NAME_CONDITION =
-      "LOCATE(UPPER(?),UPPER(%s)) > 0".formatted(CardFacet.NAME);
+      "LOCATE(UPPER(?),UPPER(%s)) > 0".formatted(CardFacet.Columns.NAME);
+  public static final String AND = " AND ";
   private final JdbcTemplate db;
   private final ImageService imageService;
   private final SpeciesService speciesService;
@@ -62,27 +64,28 @@ public class CardQueryService {
 
   private static final String CIV_AGG = "CIVS";
   private static final String IMAGE_AGG = "IMAGES";
-  private static final String AMOUNT = "AMOUNT";
+  public static final String AMOUNT = "AMOUNT";
   private static final String UNIQUE_COUNT = "UNIQUE_COUNT";
   private static final String TOTAL_COUNT = "TOTAL_COUNT";
 
-  private static final String queryTemplate =
+  private static final String QUERY_TEMPLATE =
       """
       SELECT c.ID, c.OFFICIAL_ID, c.ID_TEXT,
         ARRAY_AGG(cf.CIVS ORDER BY cf.POSITION ASC) as %s,
         ARRAY_AGG(cf.IMAGE_FILENAME ORDER BY cf.POSITION ASC) as %s,
+        0 AS %s,
         COUNT(*) OVER() as %s
       FROM CARDS_W_RELEASE c
       LEFT JOIN RARITY r ON COALESCE(c.RARITY, 'NONE') = r.CODE
       LEFT JOIN CARD_FACETS cf ON c.ID = cf.CARDS
       """;
 
-  private static final String collectionQueryTemplate =
+  private static final String COLLECTION_QUERY_TEMPLATE =
       """
       SELECT c.ID, c.OFFICIAL_ID, c.ID_TEXT,
         ARRAY_AGG(cf.CIVS ORDER BY cf.POSITION ASC) as %s,
         ARRAY_AGG(cf.IMAGE_FILENAME ORDER BY cf.POSITION ASC) as %s,
-        cc.AMOUNT,
+        COALESCE(cc.AMOUNT,0) AS %s,
         COUNT(*) OVER() as %s,
         SUM(cc.AMOUNT) OVER() as %s
       FROM CARDS_W_RELEASE c
@@ -93,11 +96,12 @@ public class CardQueryService {
 
   private String makeQueryStart(SearchFilter filter, List<Object> parameters) {
     if (filter.collectionFilter() == null) {
-      return queryTemplate.formatted(CIV_AGG, IMAGE_AGG, UNIQUE_COUNT);
+      return QUERY_TEMPLATE.formatted(CIV_AGG, IMAGE_AGG, AMOUNT, UNIQUE_COUNT);
     }
     String join = filter.collectionFilter().searchCollection() ? "INNER" : "LEFT";
     parameters.add(filter.collectionFilter().internalId());
-    return collectionQueryTemplate.formatted(CIV_AGG, IMAGE_AGG, UNIQUE_COUNT, TOTAL_COUNT, join);
+    return COLLECTION_QUERY_TEMPLATE.formatted(
+        CIV_AGG, IMAGE_AGG, AMOUNT, UNIQUE_COUNT, TOTAL_COUNT, join);
   }
 
   public record CardStubWithCount(
@@ -192,7 +196,7 @@ public class CardQueryService {
         .addArgument(() -> Duration.between(start, Instant.now()).toMillis())
         .log();
     if (log.isDebugEnabled()) {
-      log.debug(finalQuery.replaceAll("\\?", "{}"), parameters.toArray());
+      log.debug(finalQuery.replace("?", "{}"), parameters.toArray());
     }
     List<CardStubWithCount> result = List.of();
     try {
@@ -206,7 +210,7 @@ public class CardQueryService {
               parameters.toArray());
     } catch (DataIntegrityViolationException e) {
       log.error("Error executing SQL statement:");
-      log.error(finalQuery.replaceAll("\\?", "{}"), parameters.toArray());
+      log.error(finalQuery.replace("?", "{}"), parameters.toArray());
       log.error("Search parameters: {}", searchFilter);
       log.error("Original exception:", e);
     }
@@ -252,7 +256,7 @@ public class CardQueryService {
       addTwinpactCondition(conditions, filter.twinpact());
     }
     if (!conditions.isEmpty()) {
-      query.add(String.join(" AND ", conditions));
+      query.add(String.join(AND, conditions));
     }
   }
 
@@ -300,7 +304,18 @@ public class CardQueryService {
       conditions.add("ORDER BY");
       List<String> sorts =
           sort.stream()
-              .map(order -> order.getProperty() + " " + order.getDirection().name())
+              .map(
+                  order ->
+                      switch (order.getProperty()) {
+                        case CardFacet.Columns.COST ->
+                            "MAX(cf.COST) FILTER (WHERE cf.COST IS NOT NULL) %s NULLS LAST"
+                                .formatted(order.getDirection().name());
+                        case CardFacet.Columns.POWER_SORT ->
+                            "MAX(cf.POWER_SORT) FILTER (WHERE cf.POWER_SORT IS NOT NULL) %s NULLS LAST"
+                                .formatted(order.getDirection().name());
+                        default ->
+                            "\"%s\" %s".formatted(order.getProperty(), order.getDirection().name());
+                      })
               .toList();
       conditions.add(String.join(",", sorts));
     }
@@ -320,7 +335,7 @@ public class CardQueryService {
     addPowerCondition(conditions, parameters, searchFilter.minPower(), searchFilter.maxPower());
     addCardTypeCondition(conditions, searchFilter.cardType());
     addCardNameCondition(conditions, parameters, searchFilter.nameSearch());
-    query.add(String.join(" AND ", conditions));
+    query.add(String.join(AND, conditions));
     query.add(")");
   }
 
@@ -679,7 +694,7 @@ public class CardQueryService {
       costConds.add("COST <= ?");
       parameters.add(maxCost);
     }
-    String costCondition = String.join(" AND ", costConds);
+    String costCondition = String.join(AND, costConds);
 
     if (Integer.valueOf(0).equals(minCost) || Integer.valueOf(0).equals(maxCost)) {
       costCondition = "(" + costCondition + " OR " + "COST IS NULL)";
@@ -706,7 +721,7 @@ public class CardQueryService {
       powerConds.add("POWER <= ?");
       parameters.add(maxPower);
     }
-    String powerCondition = String.join(" AND ", powerConds);
+    String powerCondition = String.join(AND, powerConds);
 
     powerCondition = "(" + powerCondition + ")";
     conditions.add(powerCondition);
@@ -788,9 +803,9 @@ public class CardQueryService {
         amountSum = rs.getLong(TOTAL_COUNT);
       }
       return new CardStubWithCount(
-          rs.getLong("ID"),
-          rs.getString("OFFICIAL_ID"),
-          rs.getString("ID_TEXT"),
+          rs.getLong(Columns.ID),
+          rs.getString(Columns.OFFICIAL_ID),
+          rs.getString(Columns.ID_TEXT),
           civs,
           images,
           amount,
