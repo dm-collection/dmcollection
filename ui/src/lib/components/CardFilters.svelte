@@ -395,7 +395,7 @@
 		<div>
 			<label for="sort1" class="block text-sm font-medium">Sort by</label>
 			<select class="select" name="sort1" onchange={changeSort} bind:value={selectedSort1}>
-				{#each ORDER_OPTIONS as sortOption}
+				{#each ORDER_OPTIONS as sortOption (sortOption.order)}
 					<option
 						value={sortOption}
 						disabled={selectedSort2.order.property == sortOption.order.property}
@@ -410,7 +410,7 @@
 		<div>
 			<label for="sort2" class="block text-sm font-medium">Then sort by</label>
 			<select class="select" name="sort2" onchange={changeSort} bind:value={selectedSort2}>
-				{#each ORDER_OPTIONS as sortOption}
+				{#each ORDER_OPTIONS as sortOption (sortOption.order)}
 					<option
 						value={sortOption}
 						disabled={selectedSort1.order.property == sortOption.order.property}
