@@ -13,6 +13,8 @@
 		COST_DESC,
 		POWER_ASC,
 		POWER_DESC,
+		RARITY_ASC,
+		RARITY_DESC,
 		RELEASE_ASC,
 		RELEASE_DESC,
 		type Order
@@ -54,6 +56,8 @@
 	const ORDER_OPTIONS = [
 		{ order: RELEASE_DESC, label: 'Newest first' },
 		{ order: RELEASE_ASC, label: 'Oldest first' },
+		{ order: RARITY_DESC, label: 'Rarity (Descending)' },
+		{ order: RARITY_ASC, label: 'Rarity (Ascending)' },
 		{ order: COST_DESC, label: 'Cost (Descending)' },
 		{ order: COST_ASC, label: 'Cost (Ascending)' },
 		{ order: POWER_DESC, label: 'Power (Descending)' },
@@ -65,7 +69,7 @@
 	];
 
 	let selectedSort1: OrderOption = $state(getOptionForOrderIndex(0, ORDER_OPTIONS[0]));
-	let selectedSort2: OrderOption = $state(getOptionForOrderIndex(1, ORDER_OPTIONS[9]));
+	let selectedSort2: OrderOption = $state(getOptionForOrderIndex(1, ORDER_OPTIONS[11]));
 
 	let costSelectLabel: string | undefined = $state();
 	let powerSelectLabel: string | undefined = $state();
