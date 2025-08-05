@@ -24,5 +24,6 @@ public enum RarityCode {
   OR, // OVER_RARE
   SSR, // SPECIAL_SUPER_RARE
   DSR, // DAI_SENSEI_RARE
-  DMR; // DREAM_RARE
+  DMR, // DREAM_RARE
+  SPR; // HEROINE RARE
 }
