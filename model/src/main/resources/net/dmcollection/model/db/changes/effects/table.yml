@@ -1,0 +1,74 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-effects-table
+      author: luk-lo
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: CARD_FACETS
+        - not:
+            - tableExists:
+                tableName: EFFECT
+      changes:
+        - createTable:
+            tableName: EFFECT
+            columns:
+              - column:
+                  name: ID
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_effect
+              - column:
+                  name: TEXT
+                  type: VARCHAR
+        - createTable:
+            tableName: GROUPED_EFFECT
+            columns:
+              - column:
+                  name: PARENT_EFFECT
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_effect_parent
+                    referencedTableName: EFFECT
+                    referencedColumnName: ID
+              - column:
+                  name: CHILD_EFFECT
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_effect_child
+                    referencedTableName: EFFECT
+                    referencedColumnName: ID
+              - column:
+                  name: POSITION
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: FACET_EFFECT
+            columns:
+              - column:
+                  name: CARD_FACETS
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_effect_facets
+                    referencedTableName: CARD_FACETS
+                    referencedColumnNames: ID
+              - column:
+                  name: POSITION
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+              - column:
+                  name: EFFECT
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_facets_effect
+                    referencedTableName: EFFECT
+                    referencedColumnName: ID

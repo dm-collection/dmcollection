@@ -21,6 +21,7 @@ public record CardFacet(
     @Column("POWER_TXT") Power powerText,
     String type,
     @MappedCollection(idColumn = "CARD_FACETS", keyColumn = "POSITION") List<FacetSpecies> species,
+    @MappedCollection(idColumn = "CARD_FACETS", keyColumn = "POSITION") List<FacetEffect> effects,
     String imageFilename) {
 
   public static final class Columns {
