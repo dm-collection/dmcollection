@@ -17,6 +17,12 @@ public record CardEntity(
     Boolean twinpact,
     @Column("RARITY") RarityCode rarityCode) {
 
+  public CardEntity {
+    if (rarityCode == RarityCode.NONE) {
+      rarityCode = null;
+    }
+  }
+
   public static class Columns {
     private Columns() {}
 

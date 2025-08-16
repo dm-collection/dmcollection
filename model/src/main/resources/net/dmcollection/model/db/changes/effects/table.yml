@@ -24,6 +24,8 @@ databaseChangeLog:
               - column:
                   name: TEXT
                   type: VARCHAR
+                  constraints:
+                    unique: true
         - createTable:
             tableName: GROUPED_EFFECT
             columns:

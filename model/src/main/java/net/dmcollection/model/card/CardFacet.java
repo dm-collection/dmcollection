@@ -1,6 +1,8 @@
 package net.dmcollection.model.card;
 
 import jakarta.annotation.Nonnull;
+
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -34,6 +36,7 @@ public record CardFacet(
 
   public CardFacet {
     if (civilizations != null) {
+      civilizations = new ArrayList<>(civilizations);
       Collections.sort(civilizations);
     }
   }
