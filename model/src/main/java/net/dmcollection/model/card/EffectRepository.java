@@ -2,8 +2,8 @@ package net.dmcollection.model.card;
 
 import org.springframework.data.repository.ListCrudRepository;
 
-import java.util.Optional;
+import java.util.List;
 
 public interface EffectRepository extends ListCrudRepository<Effect, Long> {
-  Optional<Effect> findByText(String text);
+  List<Effect> findByText(String text);
 }
