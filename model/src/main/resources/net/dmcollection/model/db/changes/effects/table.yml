@@ -24,28 +24,18 @@ databaseChangeLog:
               - column:
                   name: TEXT
                   type: VARCHAR
-        - createTable:
-            tableName: GROUPED_EFFECT
-            columns:
               - column:
-                  name: PARENT_EFFECT
+                  name: PARENT
                   type: BIGINT
                   constraints:
-                    nullable: false
+                    nullable: true
                     foreignKeyName: fk_effect_parent
-                    referencedTableName: EFFECT
-                    referencedColumnName: ID
-              - column:
-                  name: CHILD_EFFECT
-                  type: BIGINT
-                  constraints:
-                    nullable: false
-                    foreignKeyName: fk_effect_child
                     referencedTableName: EFFECT
                     referencedColumnName: ID
               - column:
                   name: POSITION
                   type: INTEGER
+                  defaultValueNumeric: 0
                   constraints:
                     nullable: false
         - createTable:
@@ -64,6 +54,7 @@ databaseChangeLog:
                   type: INTEGER
                   constraints:
                     nullable: false
+                    defaultValueNumeric: 0
               - column:
                   name: EFFECT
                   type: BIGINT

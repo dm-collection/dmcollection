@@ -165,6 +165,6 @@ class CardRepositoryIntegrationTest {
   }
 
   private Effect makeEffect(String text) {
-    return effectRepository.save(new Effect(null, text, null));
+    return effectRepository.save(new Effect(text));
   }
 }
