@@ -10,12 +10,8 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
-import net.dmcollection.model.card.CardEntity;
-import net.dmcollection.model.card.CardFacet;
-import net.dmcollection.model.card.CardRepository;
-import net.dmcollection.model.card.Civilization;
-import net.dmcollection.model.card.OfficialSet;
-import net.dmcollection.model.card.SpeciesRepository;
+
+import net.dmcollection.model.card.*;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -24,16 +20,19 @@ public class CardService {
   private final SetService setService;
   private final CardRepository cardRepository;
   private final SpeciesRepository speciesRepository;
+  private final EffectRepository effectRepository;
   private final ImageService imageService;
 
   public CardService(
       SetService setService,
       CardRepository cardRepository,
       SpeciesRepository speciesRepository,
+      EffectRepository effectRepository,
       ImageService imageService) {
     this.setService = setService;
     this.cardRepository = cardRepository;
     this.speciesRepository = speciesRepository;
+    this.effectRepository = effectRepository;
     this.imageService = imageService;
   }
 
@@ -64,7 +63,12 @@ public class CardService {
       String power,
       String type,
       List<String> species,
+      List<EffectDto> effects,
       String imagePath) {}
+
+  public record EffectDto(String text, int position, List<ChildEffectDto> children) {}
+
+  public record ChildEffectDto(String text, int position) {}
 
   public List<CardStub> getByIds(List<Long> cardIds) {
     List<CardEntity> cards = cardRepository.findAllById(cardIds);
@@ -134,6 +138,18 @@ public class CardService {
     return Optional.empty();
   }
 
+  private EffectDto fromEffectEntity(Effect effect) {
+    return new EffectDto(
+        htmlEscape(effect.text()),
+        effect.position(),
+        effect.children() != null
+            ? effect.children().stream()
+                .sorted(Comparator.comparingInt(Effect::position))
+                .map(ce -> new ChildEffectDto(htmlEscape(ce.text()), ce.position()))
+                .toList()
+            : null);
+  }
+
   private CardDto fromCardEntity(CardEntity cardEntity, OfficialSet set) {
     SetDto setDto;
     if (set != null) {
@@ -159,6 +175,15 @@ public class CardService {
                         .findAllById(facet.species().stream().map(fs -> fs.id().getId()).toList())
                         .forEach(s -> species.add(htmlEscape(s.species(), "UTF-8")));
                   }
+                  List<EffectDto> effects = new ArrayList<>();
+                  if (facet.effects() != null && !facet.effects().isEmpty()) {
+                    effectRepository
+                        .findAllById(
+                            facet.effects().stream().map(fe -> fe.effect().getId()).toList())
+                        .stream()
+                        .sorted(Comparator.comparingInt(Effect::position))
+                        .forEach(e -> effects.add(fromEffectEntity(e)));
+                  }
                   return new CardFacetDto(
                       facet.position(),
                       facet.name(),
@@ -170,6 +195,7 @@ public class CardService {
                       facet.powerText() == null ? null : facet.powerText().value(),
                       facet.type() == null ? null : htmlEscape(facet.type(), "UTF-8"),
                       species,
+                      effects,
                       imageService.makeImageUrl(facet.imageFilename()));
                 })
             .toList();

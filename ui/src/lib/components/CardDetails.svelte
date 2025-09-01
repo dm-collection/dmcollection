@@ -39,7 +39,7 @@
 	}
 </script>
 
-<div class="grid grid-cols-2 gap-8 xl:grid-cols-4">
+<div class="grid grid-cols-5 gap-8 xl:grid-cols-7">
 	<div class="self-center justify-self-center xl:col-start-2">
 		{#if card.idText || card.rarity}
 			<div class="flex flex-row gap-1">
@@ -57,7 +57,7 @@
 		<AmountButton value={collectionEntry?.amount ?? 0} min={0} {onChange} />
 	</div>
 	{#each cards as facets (facets[0].position)}
-		<div class="col-span-1 self-center justify-self-center xl:col-start-2">
+		<div class="col-span-2 self-center justify-self-center xl:col-start-2">
 			{#if facets[0]?.imagePath}
 				<img
 					src={facets[0].imagePath}
@@ -65,7 +65,7 @@
 				/>
 			{/if}
 		</div>
-		<div class="col-span-1 flex flex-col gap-8">
+		<div class="col-span-3 flex flex-col gap-8">
 			{#each facets as facet (facet.position)}
 				<FacetProps {facet} />
 			{/each}

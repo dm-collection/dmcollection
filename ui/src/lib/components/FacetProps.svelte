@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { CardFacet } from '$lib/types/card';
+	import FacetEffects from './FacetEffects.svelte';
 	import FacetHeader from './FacetHeader.svelte';
 
 	let { facet }: { facet: CardFacet } = $props();
@@ -25,11 +26,11 @@
 			<h1 class="text-lg font-semibold">{facet.name}</h1>
 		</div>
 	{/if}
-	{#if facet.skills || facet.flavor}
-		<div class="flex flex-col">
-			<p class="text-base">{facet.skills}</p>
-			<p class="text-base font-light">{facet.flavor}</p>
-		</div>
+	{#if facet.effects }
+	<FacetEffects effects={facet.effects}/>
+	{/if}
+	{#if facet.flavor}
+	<p class="text-base font-light">{facet.flavor}</p>
 	{/if}
 	{#if facet.power || facet.mana || facet.illustrator}
 		<div class="flex flex-row gap-1">
