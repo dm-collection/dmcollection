@@ -1,0 +1,65 @@
+databaseChangeLog:
+  - changeSet:
+      id: update-effect-table
+      author: luk-lo
+      context: '!test'
+      preConditions:
+        - tableExists:
+            tableName: EFFECT
+      runAlways: true
+      changes:
+        - loadUpdateData:
+            columns:
+              - column:
+                  header: ID
+                  name: ID
+                  type: NUMERIC
+              - column:
+                  header: TEXT
+                  name: TEXT
+                  type: STRING
+              - column:
+                  header: PARENT
+                  name: PARENT
+                  type: NUMERIC
+              - column:
+                  header: POSITION
+                  name: POSITION
+                  type: NUMERIC
+            commentLineStartsWith: '#'
+            encoding: UTF-8
+            file: net/dmcollection/card-data/csv/effect.csv
+            quotchar: '"'
+            separator: ','
+            primaryKey: ID
+            tableName: EFFECT
+  - changeSet:
+      id: update-facet-effect-table
+      author: luk-lo
+      context: '!test'
+      preConditions:
+        - tableExists:
+            tableName: FACET_EFFECT
+      runAlways: true
+      changes:
+        - loadUpdateData:
+            columns:
+              - column:
+                  header: CARD_FACETS
+                  name: CARD_FACETS
+                  type: NUMERIC
+              - column:
+                  header: POSITION
+                  name: POSITION
+                  type: NUMERIC
+              - column:
+                  header: EFFECT
+                  name: EFFECT
+                  type: NUMERIC
+            commentLineStartsWith: '#'
+            encoding: UTF-8
+            file: net/dmcollection/card-data/csv/facet_effect.csv
+            quotchar: '"'
+            separator: ','
+            primaryKey: CARD_FACETS,POSITION,EFFECT
+            tableName: FACET_EFFECT
