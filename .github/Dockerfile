@@ -1,4 +1,4 @@
-FROM gcr.io/distroless/java21-debian12:nonroot@sha256:59c3de3664ddf2a69b2accc04ed4650caa578c14e63863075f5d041fe6961369
+FROM gcr.io/distroless/java21-debian12:nonroot@sha256:fb0d294a2ba6edffc3776a87dd2dce9771801a3fb0aa7319d51300239dd51aeb
 ARG APP_USER_HOME=/home/nonroot
 WORKDIR ${APP_USER_HOME}
 COPY ./target/server-*.jar app.jar
