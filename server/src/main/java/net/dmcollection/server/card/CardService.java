@@ -2,6 +2,7 @@ package net.dmcollection.server.card;
 
 import static org.springframework.web.util.HtmlUtils.htmlEscape;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -9,6 +10,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import net.dmcollection.model.card.*;
@@ -138,10 +140,10 @@ public class CardService {
     return Optional.empty();
   }
 
-  private EffectDto fromEffectEntity(Effect effect) {
+  private EffectDto fromEffectEntity(Effect effect, int position) {
     return new EffectDto(
         htmlEscape(effect.text()),
-        effect.position(),
+        position,
         effect.children() != null
             ? effect.children().stream()
                 .sorted(Comparator.comparingInt(Effect::position))
@@ -173,16 +175,26 @@ public class CardService {
                   if (facet.species() != null && !facet.species().isEmpty()) {
                     speciesRepository
                         .findAllById(facet.species().stream().map(fs -> fs.id().getId()).toList())
-                        .forEach(s -> species.add(htmlEscape(s.species(), "UTF-8")));
+                        .forEach(
+                            s ->
+                                species.add(
+                                    htmlEscape(s.species(), StandardCharsets.UTF_8.name())));
                   }
                   List<EffectDto> effects = new ArrayList<>();
                   if (facet.effects() != null && !facet.effects().isEmpty()) {
-                    effectRepository
-                        .findAllById(
-                            facet.effects().stream().map(fe -> fe.effect().getId()).toList())
-                        .stream()
-                        .sorted(Comparator.comparingInt(Effect::position))
-                        .forEach(e -> effects.add(fromEffectEntity(e)));
+                    Map<Long, Effect> facetEffect =
+                        effectRepository
+                            .findAllById(
+                                facet.effects().stream().map(fe -> fe.effect().getId()).toList())
+                            .stream()
+                            .collect(Collectors.toMap(Effect::id, Function.identity()));
+                    facet.effects().stream()
+                        .sorted(Comparator.comparingInt(FacetEffect::position))
+                        .forEach(
+                            fe ->
+                                effects.add(
+                                    fromEffectEntity(
+                                        facetEffect.get(fe.effect().getId()), fe.position())));
                   }
                   return new CardFacetDto(
                       facet.position(),
@@ -193,7 +205,9 @@ public class CardService {
                           .map(Civilization::toString)
                           .toList(),
                       facet.powerText() == null ? null : facet.powerText().value(),
-                      facet.type() == null ? null : htmlEscape(facet.type(), "UTF-8"),
+                      facet.type() == null
+                          ? null
+                          : htmlEscape(facet.type(), StandardCharsets.UTF_8.name()),
                       species,
                       effects,
                       imageService.makeImageUrl(facet.imageFilename()));
