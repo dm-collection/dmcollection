@@ -1,6 +1,8 @@
 package net.dmcollection.model.card;
 
 import jakarta.annotation.Nonnull;
+
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -21,6 +23,7 @@ public record CardFacet(
     @Column("POWER_TXT") Power powerText,
     String type,
     @MappedCollection(idColumn = "CARD_FACETS", keyColumn = "POSITION") List<FacetSpecies> species,
+    @MappedCollection(idColumn = "CARD_FACETS", keyColumn = "POSITION") List<FacetEffect> effects,
     String imageFilename) {
 
   public static final class Columns {
@@ -33,6 +36,7 @@ public record CardFacet(
 
   public CardFacet {
     if (civilizations != null) {
+      civilizations = new ArrayList<>(civilizations);
       Collections.sort(civilizations);
     }
   }

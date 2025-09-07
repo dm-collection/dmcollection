@@ -6,7 +6,7 @@
 
 You need to have something installed that can run containers.
 
-- Create a directory named `db-data`. The database will be saved there and you can make copies to
+- Create a directory named `db-data`. The database will be saved there, and you can make copies to
   have backups.
 - Create a directory named `dmcollection-images`. If you want to see images for cards, put them
   there.
