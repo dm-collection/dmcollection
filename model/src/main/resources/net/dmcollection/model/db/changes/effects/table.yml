@@ -1,0 +1,65 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-effects-table
+      author: luk-lo
+      preConditions:
+        - onFail: MARK_RAN
+        - tableExists:
+            tableName: CARD_FACETS
+        - not:
+            - tableExists:
+                tableName: EFFECT
+      changes:
+        - createTable:
+            tableName: EFFECT
+            columns:
+              - column:
+                  name: ID
+                  type: BIGINT
+                  autoIncrement: true
+                  constraints:
+                    nullable: false
+                    primaryKey: true
+                    primaryKeyName: pk_effect
+              - column:
+                  name: TEXT
+                  type: VARCHAR
+              - column:
+                  name: PARENT
+                  type: BIGINT
+                  constraints:
+                    nullable: true
+                    foreignKeyName: fk_effect_parent
+                    referencedTableName: EFFECT
+                    referencedColumnName: ID
+              - column:
+                  name: POSITION
+                  type: INTEGER
+                  defaultValueNumeric: 0
+                  constraints:
+                    nullable: false
+        - createTable:
+            tableName: FACET_EFFECT
+            columns:
+              - column:
+                  name: CARD_FACETS
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_effect_facets
+                    referencedTableName: CARD_FACETS
+                    referencedColumnNames: ID
+              - column:
+                  name: POSITION
+                  type: INTEGER
+                  constraints:
+                    nullable: false
+                    defaultValueNumeric: 0
+              - column:
+                  name: EFFECT
+                  type: BIGINT
+                  constraints:
+                    nullable: false
+                    foreignKeyName: fk_facets_effect
+                    referencedTableName: EFFECT
+                    referencedColumnName: ID

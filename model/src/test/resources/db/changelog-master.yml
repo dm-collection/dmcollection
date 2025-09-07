@@ -1,5 +1,4 @@
 databaseChangeLog:
-  # card data tables
   - include:
       file: net/dmcollection/model/db/changes/sets/table.yml
   - include:
@@ -18,21 +17,3 @@ databaseChangeLog:
       file: net/dmcollection/model/db/changes/rarities/table.yml
   - include:
       file: net/dmcollection/model/db/changes/effects/table.yml
-  # server data tables
-  - include:
-      file: db/changelog/changes/00-initial-schema.yml
-  - include:
-      file: db/changelog/changes/01-collections.yml
-  - include:
-      file: db/changelog/changes/02-card-release-view.yml
-  # reload card data
-  - include:
-      file: net/dmcollection/model/db/changes/sets/data.yml
-  - include:
-      file: net/dmcollection/model/db/changes/cards/data.yml
-  - include:
-      file: net/dmcollection/model/db/changes/cards/facets/data.yml
-  - include:
-      file: net/dmcollection/model/db/changes/species/data.yml
-  - include:
-      file: net/dmcollection/model/db/changes/rarities/data.yml
