@@ -1,5 +1,14 @@
 @import 'tailwindcss';
 
+@theme {
+	--color-zero: #ffffff;
+	--color-light: #fceb64;
+	--color-water: #01aadf;
+	--color-dark: #837f7c;
+	--color-fire: #d91626;
+	--color-nature: #32ad4d;
+}
+
 html {
 	background-color: rgba(248, 250, 252);
 }
