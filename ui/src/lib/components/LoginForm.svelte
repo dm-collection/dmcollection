@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { login } from '$lib/auth.svelte';
+	import { resolve } from '$app/paths';
 	import { goto } from '$app/navigation';
 
 	let username = '';
@@ -12,7 +13,7 @@
 
 		const authState = await login(fetch, { username, password, rememberMe });
 		if (authState.authenticated) {
-			const redirectPath = sessionStorage.getItem('redirectAfterLogin') || '/';
+			const redirectPath = resolve(sessionStorage.getItem('redirectAfterLogin') || '/');
 			sessionStorage.removeItem('redirectAfterLogin');
 			await goto(redirectPath);
 		} else {
@@ -72,7 +73,7 @@
 	<p class="self-center">
 		Want to create an account? <a
 			class="cursor-pointer text-inherit text-teal-700 underline visited:text-violet-700 visited:decoration-dashed"
-			href="/register">Register here</a
+			href={resolve('/register')}>Register here</a
 		>
 	</p>
 </div>

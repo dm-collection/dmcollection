@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto, invalidate } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import CardFilters from '$lib/components/CardFilters.svelte';
 	import CountedCardStub from '$lib/components/CountedCardStub.svelte';
 	import PageNav from '$lib/components/PageNav.svelte';
@@ -30,7 +31,7 @@
 	}
 
 	async function runSearch(newParams: URLSearchParams) {
-		await goto(`/collection?${newParams.toString()}`, { replaceState: true });
+		await goto(resolve(`/collection?${newParams.toString()}`), { replaceState: true });
 	}
 
 	async function startImport() {

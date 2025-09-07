@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { resolve } from '$app/paths';
 	import { logout } from '$lib/auth.svelte';
 
 	type Props = {
@@ -32,7 +33,7 @@
 	<nav class="nav text-lg">
 		<div class="flex">
 			<a
-				href="/"
+				href={resolve('/')}
 				class:pointer-events-none={!enabled}
 				class:text-gray-600={!enabled}
 				class:nav-links={enabled}
@@ -40,7 +41,7 @@
 				>Home</a
 			>
 			<a
-				href="/cards"
+				href={resolve('/cards')}
 				class:pointer-events-none={!enabled}
 				class:text-gray-600={!enabled}
 				class:nav-links={enabled}
@@ -51,7 +52,7 @@
 				Cards
 			</a>
 			<a
-				href="/collection"
+				href={resolve('/collection')}
 				class:pointer-events-none={!enabled}
 				class:text-gray-600={!enabled}
 				class:nav-links={enabled}
@@ -62,7 +63,7 @@
 				Collection
 			</a>
 			<a
-				href="/decks"
+				href={resolve('/decks')}
 				class:pointer-events-none={!enabled}
 				class:text-gray-600={!enabled}
 				class:nav-links={enabled}

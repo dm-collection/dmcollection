@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { register, checkUsername } from '$lib/auth.svelte';
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 
 	const { codeRequired } = $props();
 
@@ -26,7 +27,7 @@
 
 		const authState = await register(fetch, { username, password, code });
 		if (authState.authenticated) {
-			await goto('/');
+			await goto(resolve('/'));
 		} else {
 			error = 'Registration failed';
 		}
@@ -173,7 +174,7 @@
 		<p class="self-center">
 			Already have an account? <a
 				class="cursor-pointer text-inherit text-teal-700 underline visited:text-violet-700 visited:decoration-dashed"
-				href="/login">Sign in here</a
+				href={resolve('/login')}>Sign in here</a
 			>
 		</p>
 	</div>
