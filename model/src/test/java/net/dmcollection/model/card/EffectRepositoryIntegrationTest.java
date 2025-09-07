@@ -1,15 +1,12 @@
 package net.dmcollection.model.card;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.data.jdbc.DataJdbcTest;
-import org.springframework.data.jdbc.core.mapping.AggregateReference;
 import org.springframework.test.context.ActiveProfiles;
-
-import java.util.Comparator;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJdbcTest
 @ActiveProfiles("test")
@@ -34,15 +31,18 @@ class EffectRepositoryIntegrationTest {
     var child3 = new Effect(2, "相手のクリーチャーを１体選び、持ち主の手札に戻す。");
 
     var parent = new Effect("次の中から２回選ぶ。（同じものを選んでもよい）", List.of(child1, child2, child3));
-    var saved = repository.findById(repository.save(parent).id()).get();
-    assertThat(saved.id()).isNotNull();
-    assertThat(saved.children()).hasSize(3);
-    assertThat(saved.children().stream().map(Effect::text))
-        .containsExactly(child1.text(), child2.text(), child3.text());
+    assertThat(repository.findById(repository.save(parent).id()))
+        .hasValueSatisfying(
+            saved -> {
+              assertThat(saved.id()).isNotNull();
+              assertThat(saved.children()).hasSize(3);
+              assertThat(saved.children().stream().map(Effect::text))
+                  .containsExactly(child1.text(), child2.text(), child3.text());
+            });
   }
 
   @Test
-  void findByText() {
+  void effectCanBeFoundByText() {
     var effect = new Effect(BLOCKER);
     repository.save(effect);
     var found = repository.findByText(BLOCKER);
