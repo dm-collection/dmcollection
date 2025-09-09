@@ -27,13 +27,13 @@ export type CardSet = {
 export type ChildEffect = {
 	text: string;
 	position: number;
-}
+};
 
 export type CardEffect = {
 	text: string;
 	position: number;
 	children: Array<ChildEffect> | null;
-}
+};
 
 export type CardFacet = {
 	position: number | null;

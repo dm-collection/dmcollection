@@ -26,11 +26,11 @@
 			<h1 class="text-lg font-semibold">{facet.name}</h1>
 		</div>
 	{/if}
-	{#if facet.effects }
-	<FacetEffects effects={facet.effects}/>
+	{#if facet.effects}
+		<FacetEffects effects={facet.effects} class="ml-4" />
 	{/if}
 	{#if facet.flavor}
-	<p class="text-base font-light">{facet.flavor}</p>
+		<p class="text-base font-light">{facet.flavor}</p>
 	{/if}
 	{#if facet.power || facet.mana || facet.illustrator}
 		<div class="flex flex-row gap-1">
