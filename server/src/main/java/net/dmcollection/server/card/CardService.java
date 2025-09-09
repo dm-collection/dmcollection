@@ -12,7 +12,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-
 import net.dmcollection.model.card.*;
 import org.springframework.stereotype.Component;
 
@@ -142,12 +141,12 @@ public class CardService {
 
   private EffectDto fromEffectEntity(Effect effect, int position) {
     return new EffectDto(
-        htmlEscape(effect.text()),
+        effect.text(),
         position,
         effect.children() != null
             ? effect.children().stream()
                 .sorted(Comparator.comparingInt(Effect::position))
-                .map(ce -> new ChildEffectDto(htmlEscape(ce.text()), ce.position()))
+                .map(ce -> new ChildEffectDto(ce.text(), ce.position()))
                 .toList()
             : null);
   }
