@@ -6,8 +6,6 @@ databaseChangeLog:
       preConditions:
         - tableExists:
             tableName: EFFECT
-        - tableIsEmpty:
-            tableName: EFFECT
       runAlways: true
       changes:
         - delete:
@@ -18,6 +16,8 @@ databaseChangeLog:
       context: '!test'
       preConditions:
         - tableExists:
+            tableName: EFFECT
+        - tableIsEmpty:
             tableName: EFFECT
       runAlways: true
       changes:
@@ -53,8 +53,6 @@ databaseChangeLog:
       preConditions:
         - tableExists:
             tableName: FACET_EFFECT
-        - tableIsEmpty:
-            tableName: FACET_EFFECT
       runAlways: true
       changes:
         - delete:
@@ -65,6 +63,8 @@ databaseChangeLog:
       context: '!test'
       preConditions:
         - tableExists:
+            tableName: FACET_EFFECT
+        - tableIsEmpty:
             tableName: FACET_EFFECT
       runAlways: true
       changes:
