@@ -1,6 +1,19 @@
 databaseChangeLog:
   - changeSet:
-      id: update-effect-table
+      id: clear-effect-table
+      author: luk-lo
+      context: '!test'
+      preConditions:
+        - tableExists:
+            tableName: EFFECT
+        - tableIsEmpty:
+            tableName: EFFECT
+      runAlways: true
+      changes:
+        - delete:
+            tableName: EFFECT
+  - changeSet:
+      id: fill-effect-table
       author: luk-lo
       context: '!test'
       preConditions:
@@ -8,7 +21,7 @@ databaseChangeLog:
             tableName: EFFECT
       runAlways: true
       changes:
-        - loadUpdateData:
+        - loadData:
             columns:
               - column:
                   header: ID
@@ -34,7 +47,20 @@ databaseChangeLog:
             primaryKey: ID
             tableName: EFFECT
   - changeSet:
-      id: update-facet-effect-table
+      id: clear-facet-effect-table
+      author: luk-lo
+      context: '!test'
+      preConditions:
+        - tableExists:
+            tableName: FACET_EFFECT
+        - tableIsEmpty:
+            tableName: FACET_EFFECT
+      runAlways: true
+      changes:
+        - delete:
+            tableName: FACET_EFFECT
+  - changeSet:
+      id: fill-facet-effect-table
       author: luk-lo
       context: '!test'
       preConditions:
@@ -42,7 +68,7 @@ databaseChangeLog:
             tableName: FACET_EFFECT
       runAlways: true
       changes:
-        - loadUpdateData:
+        - loadData:
             columns:
               - column:
                   header: CARD_FACETS
