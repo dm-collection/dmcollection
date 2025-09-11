@@ -2,6 +2,7 @@
 	import { Civ } from '$lib/types/card';
 	import type { ClassValue } from 'svelte/elements';
 	import CostIcon from './CostIcon.svelte';
+	import EffectIcon from './EffectIcon.svelte';
 
 	type TextSegment = {
 		type: 'text';
@@ -25,7 +26,6 @@
 	const { text, class: className }: { text: string; class?: ClassValue } = $props();
 
 	const segments = $derived(parseText(text));
-	const startsWithIcon = $derived(segments.length > 0 && segments[0].type === 'icon');
 
 	function parseText(input: string): ParsedSegment[] {
 		const segments: ParsedSegment[] = [];
@@ -126,7 +126,7 @@
 	}
 </script>
 
-<span>
+<span class={className}>
 	{#each segments as segment, i (i)}
 		{#if segment.type === 'text'}
 			{segment.content}
@@ -134,7 +134,7 @@
 			{#if segment.iconType === 'mana' && segment.cost}
 				<CostIcon civs={segment.civs ?? []} cost={segment.cost}></CostIcon>
 			{:else if segment.iconType === 'icon'}
-				<b>[{segment.content}]</b>
+				<EffectIcon keyword={segment.content}></EffectIcon>
 			{/if}
 		{/if}
 	{/each}

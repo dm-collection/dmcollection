@@ -7,14 +7,16 @@
 </script>
 
 <div>
-	<ol class={['list-inside list-disc', props.class]}>
+	<ol class={['list-inside', props.class]}>
 		{#each props.effects as effect (effect.position)}
-			<li class="text-base">
+			<li class={['text-base', !effect.text.startsWith('[[') && 'noIcon']}>
 				<EffectText text={effect.text}></EffectText>
-				{#if effect.children}
+				{#if effect.children && effect.children.length > 0}
 					<ol class="list-inside pl-8">
 						{#each effect.children as child (child.position)}
-							<li class="text-base"><EffectText text={child.text}></EffectText></li>
+							<li class={['text-base', !child.text.startsWith('[[') && 'choice']}>
+								<EffectText text={child.text}></EffectText>
+							</li>
 						{/each}
 					</ol>
 				{/if}
@@ -24,11 +26,11 @@
 </div>
 
 <style>
-	ol > li > ol > li::marker {
+	.choice::marker {
 		content: '▶ ';
 		font-family: 'Segoe UI Symbol', 'Arial Unicode MS', sans-serif;
 	}
-	ol > li::marker {
+	.noIcon::marker {
 		content: '■ ';
 		font-family: 'Segoe UI Symbol', 'Arial Unicode MS', sans-serif;
 	}
