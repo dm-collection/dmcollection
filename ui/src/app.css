@@ -7,7 +7,7 @@
 	--color-dark: #837f7c;
 	--color-fire: #d91626;
 	--color-nature: #32ad4d;
-	--font-herocard: "HumboldtFraktur", serif
+	--font-herocard: 'HumboldtFraktur', serif;
 }
 
 html {
@@ -76,5 +76,5 @@ html {
 @font-face {
 	font-family: 'HumboldtFraktur';
 	font-style: normal;
-	src: url('/fonts/HumboldtFraktur-Initialen.ttf') format("truetype");
+	src: url('/fonts/HumboldtFraktur-Initialen.ttf') format('truetype');
 }

@@ -1,1 +1,1 @@
-<span class="font-herocard font-bold text-lg">H.C.</span>
+<span class="font-herocard text-lg font-bold">H.C.</span>
