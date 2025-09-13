@@ -2,7 +2,6 @@
 	<svg
 		xmlns="http://www.w3.org/2000/svg"
 		xml:space="preserve"
-		title="guard strike icon"
 		viewBox="0 0 256 256"
 		><g style="display:inline"
 			><path

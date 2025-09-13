@@ -3,7 +3,6 @@
 		xmlns="http://www.w3.org/2000/svg"
 		viewBox="0 0 256 256"
 		class="inline"
-		title="strike back icon"
 		style="color: #000"
 	>
 		<path

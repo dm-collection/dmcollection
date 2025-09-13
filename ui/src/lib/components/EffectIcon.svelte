@@ -60,7 +60,7 @@
 		turborush: Fallback,
 		victory: Fallback,
 		wavestrike: Wavestriker,
-		wsoul: Fallback,
+		wsoul: Fallback
 	};
 </script>
 
