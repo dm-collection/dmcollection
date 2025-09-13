@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>net.dmcollection</groupId>
@@ -25,7 +25,7 @@
 
   <properties>
     <revision>0.0.1-SNAPSHOT</revision>
-    <card-data-version>1.4.0</card-data-version>
+    <card-data-version>1.4.2</card-data-version>
     <sonar.organization>dm-collection</sonar.organization>
     <sonar.projectName>DM Collection Server</sonar.projectName>
     <sonar.host.url>https://sonarcloud.io</sonar.host.url>
@@ -63,7 +63,7 @@
               <disable>true</disable>
             </consoleOutputReporter>
             <statelessTestsetInfoReporter
-              implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5StatelessTestsetInfoTreeReporter">
+                implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5StatelessTestsetInfoTreeReporter">
             </statelessTestsetInfoReporter>
             <excludes>
               <exclude>**/*$*,**/*IntegrationTest</exclude>
@@ -86,7 +86,7 @@
               <disable>true</disable>
             </consoleOutputReporter>
             <statelessTestsetInfoReporter
-              implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5StatelessTestsetInfoTreeReporter">
+                implementation="org.apache.maven.plugin.surefire.extensions.junit5.JUnit5StatelessTestsetInfoTreeReporter">
               <printStdoutOnError>true</printStdoutOnError>
               <printStdoutOnFailure>true</printStdoutOnFailure>
             </statelessTestsetInfoReporter>

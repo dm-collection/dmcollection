@@ -35,4 +35,6 @@ databaseChangeLog:
   - include:
       file: net/dmcollection/model/db/changes/species/data.yml
   - include:
+      file: net/dmcollection/model/db/changes/effects/data.yml
+  - include:
       file: net/dmcollection/model/db/changes/rarities/data.yml
