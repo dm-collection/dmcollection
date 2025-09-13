@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto, invalidate } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import type { PageData } from './$types';
 	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
 	import DownloadSimple from 'phosphor-svelte/lib/DownloadSimple';
@@ -96,7 +97,7 @@
 		});
 		if (response.ok) {
 			const newDeckInfo = (await response.json()) as CollectionInfo;
-			goto(`/deck/${newDeckInfo.id}`);
+			goto(resolve('/deck/[id]', { id: newDeckInfo.id }));
 		}
 	}
 
@@ -117,7 +118,7 @@
 	}
 
 	async function gotoDeck(id: string) {
-		await goto(`/deck/${id}`);
+		await goto(resolve('/deck/[id]', { id: id }));
 	}
 </script>
 

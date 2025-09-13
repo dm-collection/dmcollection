@@ -1,5 +1,6 @@
 <script lang="ts">
 	import PageNav from '$lib/components/PageNav.svelte';
+	import { resolve } from '$app/paths';
 	import type { PageData } from './$types';
 	import { goto, invalidate } from '$app/navigation';
 	import { type CardStub } from '$lib/types/card';
@@ -12,7 +13,7 @@
 	let { data }: { data: PageData } = $props();
 
 	async function runSearch(newParams: URLSearchParams) {
-		await goto(`/cards?${newParams.toString()}`, { replaceState: true });
+		await goto(resolve(`/cards?${newParams.toString()}`), { replaceState: true });
 	}
 
 	async function amountChange(card: CardStub, i: number, newAmount: number) {
