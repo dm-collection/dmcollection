@@ -76,5 +76,5 @@ html {
 @font-face {
 	font-family: 'HumboldtFraktur';
 	font-style: normal;
-	src: url('/fonts/HumboldtFraktur-Initialen.ttf') format('truetype');
+	src: url('/fonts/humboldtfraktur-initialen.woff') format('woff');
 }
