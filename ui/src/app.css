@@ -7,6 +7,7 @@
 	--color-dark: #837f7c;
 	--color-fire: #d91626;
 	--color-nature: #32ad4d;
+	--font-herocard: 'HumboldtFraktur', serif;
 }
 
 html {
@@ -70,4 +71,10 @@ html {
 	[role='button']:not(:disabled) {
 		cursor: pointer; /* Set default cursor for enabled buttons to pointer as in tailwindcss v3 */
 	}
+}
+
+@font-face {
+	font-family: 'HumboldtFraktur';
+	font-style: normal;
+	src: url('/fonts/humboldtfraktur-initialen.woff') format('woff');
 }

@@ -51,6 +51,8 @@
 			black 1px 1px 3px;
 		box-shadow: black 0 0 2px;
 		border: solid black 1px;
+		min-width: 1.5em;
+		min-height: 1.5em;
 	}
 	.mana0 {
 		background-color: var(--color-slate-200);

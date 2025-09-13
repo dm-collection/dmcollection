@@ -24,16 +24,27 @@ export type CardSet = {
 	name: string;
 };
 
+export type ChildEffect = {
+	text: string;
+	position: number;
+};
+
+export type CardEffect = {
+	text: string;
+	position: number;
+	children: Array<ChildEffect> | null;
+};
+
 export type CardFacet = {
 	position: number | null;
 	name: string;
 	cost: string | null;
 	civilizations: Array<Civ>;
 	imagePath: string | null;
-	skills: string | null;
 	flavor: string | null;
 	type: string | null;
 	species: Array<string> | null;
+	effects: Array<CardEffect> | null;
 	power: string | null;
 	mana: string | null;
 	illustrator: string | null;
