@@ -1,8 +1,5 @@
 <span class="inline-flex h-[1.2em] w-[1.2em] items-center justify-center">
-	<svg
-		xmlns="http://www.w3.org/2000/svg"
-		xml:space="preserve"
-		viewBox="0 0 256 256"
+	<svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" viewBox="0 0 256 256"
 		><g style="display:inline"
 			><path
 				d="M106 142 78 92l2 26-57-9 28 35-52 37 59 1-16 65 55-46h6l9 50 18-50h7l51 44-28-64 2-4 45-3-61-15-58 25-4-4z"
