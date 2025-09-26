@@ -63,7 +63,7 @@
 				<img
 					src={facets[0].imagePath}
 					alt="Image showing facet #{facets[0].position} of the card {card.dmId}"
-					class="max-h-screen max-w-[min(500px,100%)] min-w-[min(400px,100%)] flex-shrink object-contain"
+					class="max-h-screen max-w-[min(500px,100%)] min-w-[min(400px,100%)] flex-shrink object-scale-down"
 				/>
 			{/if}
 			<div class="max-w-prose flex-[30ch]">
