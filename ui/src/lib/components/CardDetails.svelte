@@ -39,8 +39,8 @@
 	}
 </script>
 
-<div class="grid grid-cols-2 gap-8 xl:grid-cols-4">
-	<div class="self-center justify-self-center xl:col-start-2">
+<div class="flex flex-col gap-4">
+	<div class="flex flex-row items-center justify-evenly gap-8">
 		{#if card.idText || card.rarity}
 			<div class="flex flex-row gap-1">
 				<p class="text-lg font-semibold">{card.idText}</p>
@@ -52,23 +52,27 @@
 				{/if}
 			</div>
 		{/if}
+		<div>
+			<AmountButton value={collectionEntry?.amount ?? 0} min={0} {onChange} />
+		</div>
 	</div>
-	<div class="justify-self-center">
-		<AmountButton value={collectionEntry?.amount ?? 0} min={0} {onChange} />
-	</div>
+
 	{#each cards as facets (facets[0].position)}
-		<div class="col-span-1 self-center justify-self-center xl:col-start-2">
+		<div class="mx-auto flex max-w-fit flex-wrap items-stretch justify-center gap-8">
 			{#if facets[0]?.imagePath}
 				<img
 					src={facets[0].imagePath}
 					alt="Image showing facet #{facets[0].position} of the card {card.dmId}"
+					class="max-h-screen max-w-[min(500px,100%)] min-w-[min(400px,100%)] flex-shrink object-contain"
 				/>
 			{/if}
-		</div>
-		<div class="col-span-1 flex flex-col gap-8">
-			{#each facets as facet (facet.position)}
-				<FacetProps {facet} />
-			{/each}
+			<div class="max-w-prose flex-[30ch]">
+				<div class={['flex', 'h-full', 'flex-col', 'justify-between', 'gap-8']}>
+					{#each facets as facet (facet.position)}
+						<FacetProps {facet} />
+					{/each}
+				</div>
+			</div>
 		</div>
 	{/each}
 </div>
