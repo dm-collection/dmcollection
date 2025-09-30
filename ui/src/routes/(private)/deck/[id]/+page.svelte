@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { invalidate, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
+	import { resolve } from '$app/paths';
+	import { SvelteURL } from 'svelte/reactivity';
 	import CardFilters from '$lib/components/CardFilters.svelte';
 	import CountedCardStub from '$lib/components/CountedCardStub.svelte';
 	import PageNav from '$lib/components/PageNav.svelte';
@@ -57,9 +59,9 @@
 	async function runSearch(newParams: URLSearchParams, newPageNumber?: number) {
 		try {
 			let pageNumber = newPageNumber ?? 0;
-			let url = new URL(page.url);
+			let url = new SvelteURL(page.url);
 			url.hash = newParams.toString();
-			replaceState(url, page.state);
+			replaceState(resolve(url), page.state);
 			const response = await fetch(`/api/collection/${pageNumber}?${newParams.toString()}`);
 			if (response.ok) {
 				let newCollection = (await response.json()) as CollectionData;

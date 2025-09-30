@@ -1,4 +1,5 @@
 import type { LayoutLoad } from './$types';
+import { resolve } from '$app/paths';
 import { checkAuthStatus } from '$lib/auth.svelte';
 import { goto } from '$app/navigation';
 
@@ -7,7 +8,7 @@ export const load: LayoutLoad = async ({ fetch, url }) => {
 
 	if (!authStatus.authenticated) {
 		sessionStorage.setItem('redirectAfterLogin', url.pathname);
-		await goto('/login');
+		await goto(resolve('/login'));
 	}
 	return { authStatus: authStatus };
 };

@@ -1,4 +1,5 @@
 import { goto, invalidate } from '$app/navigation';
+import { resolve } from '$app/paths';
 import type { AuthState, AuthStatus } from './types/auth';
 
 export const authState: AuthState = $state({
@@ -163,7 +164,7 @@ export async function logout(
 		if (response.ok) {
 			invalidateAuth();
 			// Redirect to login page
-			await goto('/');
+			await goto(resolve('/'));
 		} else {
 			console.error('Logout failed');
 		}

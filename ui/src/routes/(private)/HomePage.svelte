@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { resolve } from '$app/paths';
 	let examples = [
 		{ type: 'basic', id: 'dm01-001' },
 		{ type: 'zero civ', id: 'promoy13-006' },
@@ -47,7 +48,9 @@
 							<tr class=" text-left hover:bg-teal-50 active:bg-teal-700 active:text-teal-50">
 								<td class="tbl-row">{card.type}</td>
 								<td class="tbl-row">
-									<a class="hover:underline" href="/card/{card.id}">{card.id}</a>
+									<a class="hover:underline" href={resolve('/card/[id]', { id: card.id })}
+										>{card.id}</a
+									>
 								</td>
 							</tr>
 						{/each}

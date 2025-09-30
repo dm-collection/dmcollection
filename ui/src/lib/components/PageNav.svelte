@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { resolve } from '$app/paths';
 	import type { Page } from '$lib/types/page';
 	import { page } from '$app/stores';
 	import CaretRight from 'phosphor-svelte/lib/CaretRight';
@@ -22,7 +23,9 @@
 			onBack(pageInfo.number - 1);
 		} else {
 			await goto(
-				`${path}/${pageInfo.number - 1}${$page.url.search ? `${$page.url.search.toString()}` : ''}`
+				resolve(
+					`${path}/${pageInfo.number - 1}${$page.url.search ? `${$page.url.search.toString()}` : ''}`
+				)
 			);
 		}
 	}
@@ -32,7 +35,7 @@
 			onForward(pageInfo.number + 1);
 		} else {
 			await goto(
-				`${path}/${pageInfo.number + 1}${$page.url.search ? `${$page.url.search.toString()}` : ''}`
+				resolve(`${path}/${pageInfo.number + 1}${$page.url.search ? `${$page.url.search.toString()}` : ''}`)
 			);
 		}
 	}
