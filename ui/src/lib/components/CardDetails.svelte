@@ -40,7 +40,7 @@
 </script>
 
 <div class="flex flex-col gap-4">
-	<div class="flex flex-row items-center justify-between">
+	<div class="flex flex-row items-center justify-evenly">
 		{#if card.idText || card.rarity}
 			<div class="flex flex-row gap-1">
 				<p class="text-lg font-semibold">{card.idText}</p>
