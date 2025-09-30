@@ -40,7 +40,7 @@
 </script>
 
 <div class="flex flex-col gap-4">
-	<div class="flex flex-row items-center justify-evenly gap-8">
+	<div class="flex flex-row items-center justify-between">
 		{#if card.idText || card.rarity}
 			<div class="flex flex-row gap-1">
 				<p class="text-lg font-semibold">{card.idText}</p>
@@ -61,9 +61,15 @@
 		<div class="mx-auto flex max-w-fit flex-wrap items-stretch justify-center gap-8">
 			{#if facets[0]?.imagePath}
 				<img
+					onload={(event) => {
+						const img = event.target as HTMLImageElement;
+						if (img?.naturalWidth < 400) {
+							img.classList.replace('min-w-[min(400px,100%)]', 'min-w-min');
+						}
+					}}
 					src={facets[0].imagePath}
 					alt="Image showing facet #{facets[0].position} of the card {card.dmId}"
-					class="max-h-screen max-w-[min(500px,100%)] min-w-[min(400px,100%)] flex-shrink object-scale-down"
+					class="max-h-screen w-auto max-w-[min(500px,100%)] min-w-[min(400px,100%)] flex-shrink object-scale-down"
 				/>
 			{/if}
 			<div class="max-w-prose flex-[30ch]">
