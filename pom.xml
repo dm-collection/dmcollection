@@ -25,7 +25,7 @@
 
   <properties>
     <revision>0.0.1-SNAPSHOT</revision>
-    <card-data-version>1.4.2</card-data-version>
+    <card-data-version>1.5.0</card-data-version>
     <sonar.organization>dm-collection</sonar.organization>
     <sonar.projectName>DM Collection Server</sonar.projectName>
     <sonar.host.url>https://sonarcloud.io</sonar.host.url>
