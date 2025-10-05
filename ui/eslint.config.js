@@ -32,6 +32,11 @@ export default ts.config(
 		}
 	},
 	{
+		rules: {
+			'svelte/no-navigation-without-resolve': 'off' // app is served on root path
+		}
+	},
+	{
 		ignores: ['build/', '.svelte-kit/', 'dist/']
 	}
 );
