@@ -8,6 +8,7 @@
 	import { getSets } from '$lib/sets.svelte';
 	import { getSpecies } from '$lib/species.svelte';
 	import type { CollectionData } from '$lib/types/collection';
+	import { SvelteURL } from 'svelte/reactivity';
 	import type { PageProps } from './$types';
 	import PencilSimple from 'phosphor-svelte/lib/PencilSimple';
 
@@ -57,7 +58,7 @@
 	async function runSearch(newParams: URLSearchParams, newPageNumber?: number) {
 		try {
 			let pageNumber = newPageNumber ?? 0;
-			let url = new URL(page.url);
+			let url = new SvelteURL(page.url);
 			url.hash = newParams.toString();
 			replaceState(url, page.state);
 			const response = await fetch(`/api/collection/${pageNumber}?${newParams.toString()}`);
