@@ -1,31 +1,22 @@
 <script lang="ts">
+	import { CIV_COLORS, CIV_ORDER } from '$lib/civColors';
 	import { Civ } from '$lib/types/card';
-	import { SvelteMap } from 'svelte/reactivity';
 
 	const { civs, cost }: { civs: Civ[]; cost: string } = $props();
 
-	const civKeys = new SvelteMap<Civ, string>();
-	civKeys.set(Civ.ZERO, 'zero');
-	civKeys.set(Civ.LIGHT, 'light');
-	civKeys.set(Civ.WATER, 'water');
-	civKeys.set(Civ.DARK, 'dark');
-	civKeys.set(Civ.FIRE, 'fire');
-	civKeys.set(Civ.NATURE, 'nature');
-
 	function makeStyle(civs: Civ[]) {
 		let result = '';
-		const ordered = [Civ.ZERO, Civ.LIGHT, Civ.WATER, Civ.DARK, Civ.FIRE, Civ.NATURE];
 		let present = 0;
-		for (let i = 0; i < ordered.length; i++) {
-			if (civs.includes(ordered[i])) {
-				result = result + makeVar(ordered[i], ++present);
+		for (let i = 0; i < CIV_ORDER.length; i++) {
+			if (civs.includes(CIV_ORDER[i])) {
+				result = result + makeVar(CIV_ORDER[i], ++present);
 			}
 		}
 		return result;
 	}
 
 	function makeVar(civ: Civ, index: number) {
-		return `--c${index}: var(--color-${civKeys.get(civ)}); `;
+		return `--c${index}: var(--color-${CIV_COLORS[civ]}); `;
 	}
 </script>
 
