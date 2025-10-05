@@ -2,6 +2,7 @@
 	import type { CardFacet } from '$lib/types/card';
 	import FacetEffects from './FacetEffects.svelte';
 	import FacetHeader from './FacetHeader.svelte';
+	import TypeTag from './TypeTag.svelte';
 
 	let { facet }: { facet: CardFacet } = $props();
 </script>
@@ -19,9 +20,7 @@
 		</div>
 	{/if}
 	{#if facet.type}
-		<h2 class="mr-auto rounded-r-xl border-1 border-black pr-2 pl-4 text-sm font-semibold">
-			{facet.type}
-		</h2>
+		<TypeTag type={facet.type} civs={facet.civilizations} />
 	{/if}
 	{#if facet.effects}
 		<FacetEffects effects={facet.effects} class="ml-4" />
