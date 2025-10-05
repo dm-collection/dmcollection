@@ -1,3 +1,4 @@
+import { SvelteURLSearchParams } from 'svelte/reactivity';
 import { Civ } from './types/card';
 import { CardTypeFilter } from './types/CardTypeFilter';
 import { FilterState } from './types/FilterState';
@@ -48,7 +49,7 @@ export class SearchFilter {
 	#nameSearch: string | undefined = $state();
 	#order: Order[] | undefined = $state();
 
-	#searchParams: URLSearchParams = $state(new URLSearchParams());
+	#searchParams: URLSearchParams = new SvelteURLSearchParams();
 
 	set setId(setId) {
 		this.#searchParams.delete(keys.setId);
