@@ -49,3 +49,8 @@ docker run -d `
 
 You can also check out the repository or download the [docker-compose.yaml](docker-compose.yaml)
 file and then run it with `docker compose up`.
+
+### Project structure
+`/ui`: contains svelte-based web UI project
+`/server`: contains backend server based on Spring Boot
+`/model`: contains library used by the server to load card data
