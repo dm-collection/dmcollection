@@ -4,3 +4,14 @@ Running `npm run build` builds the project into `/build`. Copy the contents to `
 You can do both at once with `npm run deploy`.
 
 For development, you can start the backend and then use `npm run dev` to serve the UI while changing the code.
+
+## Project Structure
+The UI follows SvelteKit conventions with routes and reusable components:
+
+- **`src/routes/`** - Page routes organized into route groups:
+  - `(public)/` - Unauthenticated pages (login, register)
+  - `(private)/` - Authenticated pages (everything cards-related)
+- **`src/lib/`** - Shared code and components:
+  - `components/` - Reusable UI components
+  - `types/` - TypeScript type definitions
+  - `.svelte.ts` files - Reusable code
