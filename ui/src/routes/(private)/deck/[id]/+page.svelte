@@ -192,6 +192,13 @@
 							{/await}
 						{/each}
 					</div>
+					{#if collection.cardPage.page.totalPages > 1}
+						<Pagination
+							pageInfo={collection.cardPage.page}
+							onForward={changePage}
+							onBack={changePage}
+						/>
+					{/if}
 				{:else if data.search.isDefault()}
 					<h1>Your collection is empty.</h1>
 				{:else}

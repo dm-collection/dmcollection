@@ -208,6 +208,7 @@
 				/>
 			{/each}
 		</div>
+		<Pagination pageInfo={data.collection.cardPage.page} path="/collection" />
 	{:else if data.search.isDefault()}
 		<h1>Your collection is empty.</h1>
 	{:else}
