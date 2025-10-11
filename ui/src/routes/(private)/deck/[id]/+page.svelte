@@ -3,7 +3,7 @@
 	import { page } from '$app/state';
 	import CardFilters from '$lib/components/CardFilters.svelte';
 	import CountedCardStub from '$lib/components/CountedCardStub.svelte';
-	import PageNav from '$lib/components/PageNav.svelte';
+	import Pagination from '$lib/components/Pagination.svelte';
 	import { getRarities } from '$lib/rarity.svelte';
 	import { getSets } from '$lib/sets.svelte';
 	import { getSpecies } from '$lib/species.svelte';
@@ -165,7 +165,11 @@
 				{/await}
 			{/await}
 			{#if collection.cardPage.page.totalPages > 1}
-				<PageNav pageInfo={collection.cardPage.page} onForward={changePage} onBack={changePage} />
+				<Pagination
+					pageInfo={collection.cardPage.page}
+					onForward={changePage}
+					onBack={changePage}
+				/>
 			{/if}
 			<div class="overflow-y-auto landscape:max-h-full">
 				{#if collection.cardPage.content.length > 0}

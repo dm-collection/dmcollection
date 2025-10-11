@@ -20,6 +20,7 @@
 		"@tailwindcss/vite": "^4.1.7",
 		"@types/eslint": "9.6.1",
 		"autoprefixer": "10.4.21",
+		"bits-ui": "2.11.4",
 		"date-fns": "4.1.0",
 		"eslint": "9.36.0",
 		"eslint-config-prettier": "10.1.8",
