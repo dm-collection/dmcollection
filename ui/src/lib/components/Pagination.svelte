@@ -2,7 +2,7 @@
 	import { Pagination as PaginationPrimitive } from 'bits-ui';
 	import { goto } from '$app/navigation';
 	import type { Page } from '$lib/types/page';
-	import { page } from '$app/stores';
+	import { page } from '$app/state';
 	import CaretRight from 'phosphor-svelte/lib/CaretRight';
 	import CaretLeft from 'phosphor-svelte/lib/CaretLeft';
 
@@ -31,7 +31,7 @@
 		}
 		// URL mode - navigate using path
 		else if (path) {
-			await goto(`${path}/${newPage}${$page.url.search ? `${$page.url.search.toString()}` : ''}`);
+			await goto(`${path}/${newPage}${page.url.search ? `${page.url.search.toString()}` : ''}`);
 		}
 	}
 </script>
