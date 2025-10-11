@@ -1,5 +1,5 @@
 <script lang="ts">
-	import PageNav from '$lib/components/PageNav.svelte';
+	import Pagination from '$lib/components/Pagination.svelte';
 	import type { PageData } from './$types';
 	import { goto, invalidate } from '$app/navigation';
 	import { type CardStub } from '$lib/types/card';
@@ -57,7 +57,7 @@
 {/await}
 {#if data.cardPage != undefined}
 	{#if data.cardPage.content.length > 0}
-		<PageNav pageInfo={data.cardPage.page} path="/cards" />
+		<Pagination pageInfo={data.cardPage.page} path="/cards" />
 		<div class="grid gap-8 lg:grid-cols-5 xl:grid-cols-8">
 			{#each data.cardPage.content as card, i (card.id)}
 				<CountedCardStub
@@ -69,7 +69,7 @@
 				/>
 			{/each}
 		</div>
-		<PageNav pageInfo={data.cardPage.page} path="/cards" />
+		<Pagination pageInfo={data.cardPage.page} path="/cards" />
 	{:else}
 		<p class="text-center">No results. Try adjusting the filters.</p>
 	{/if}
