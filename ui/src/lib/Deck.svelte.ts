@@ -22,17 +22,14 @@ export class Deck {
 	}
 
 	async loadCollection(fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>) {
-		try {
 			const response = await fetch(`/api/deck/${this.id}`);
 			if (response.ok) {
 				this.collection = (await response.json()) as CollectionData;
 			} else if (response.status === 401 || response.status === 403) {
 				throw new Error('unauthorized');
+			} else {
+				console.error(response.statusText);
 			}
-		} catch (error) {
-			console.error(error);
-			throw error;
-		}
 	}
 
 	async getAmount(cardId: number): Promise<number> {
@@ -41,7 +38,6 @@ export class Deck {
 
 	async setCardAmount(cardId: number, amount: number) {
 		if (this.collection) {
-			try {
 				const response = await fetch(`/api/deck/${this.collection.info.id}/cards/${cardId}`, {
 					method: 'PUT',
 					headers: {
@@ -73,11 +69,9 @@ export class Deck {
 					}
 				} else if (response.status === 401 || response.status === 403) {
 					throw new Error('unauthorized');
+				} else {
+					console.log(response.statusText);
 				}
-			} catch (error) {
-				console.error(error);
-				throw error;
-			}
 		}
 	}
 }
