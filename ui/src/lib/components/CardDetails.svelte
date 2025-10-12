@@ -2,6 +2,8 @@
 	import type { Card, CardFacet } from '$lib/types/card';
 	import AmountButton from './AmountButton.svelte';
 	import FacetProps from './FacetProps.svelte';
+	import { goto } from '$app/navigation';
+	import { invalidateAuth } from '$lib/auth.svelte';
 	let {
 		card,
 		collectionEntry
@@ -32,6 +34,9 @@
 			});
 			if (response.ok) {
 				collectionEntry = (await response.json()) as { cardId: number; amount: number };
+			} else if (response.status === 401 || response.status === 403) {
+				invalidateAuth();
+				goto('/login');
 			}
 		} catch (error) {
 			console.error(error);

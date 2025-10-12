@@ -26,9 +26,12 @@ export class Deck {
 			const response = await fetch(`/api/deck/${this.id}`);
 			if (response.ok) {
 				this.collection = (await response.json()) as CollectionData;
+			} else if (response.status === 401 || response.status === 403) {
+				throw new Error('unauthorized');
 			}
 		} catch (error) {
 			console.error(error);
+			throw error;
 		}
 	}
 
@@ -68,9 +71,12 @@ export class Deck {
 							await this.loadCollection(fetch);
 						}
 					}
+				} else if (response.status === 401 || response.status === 403) {
+					throw new Error('unauthorized');
 				}
 			} catch (error) {
 				console.error(error);
+				throw error;
 			}
 		}
 	}

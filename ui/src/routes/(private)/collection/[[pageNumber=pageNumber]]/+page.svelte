@@ -12,6 +12,7 @@
 	import UploadSimple from 'phosphor-svelte/lib/UploadSimple';
 	import Warning from 'phosphor-svelte/lib/Warning';
 	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
+	import { invalidateAuth } from '$lib/auth.svelte';
 	let { data = $bindable() }: PageProps = $props();
 
 	let editingEnabled: boolean = $state(false);
@@ -72,6 +73,11 @@
 					},
 					body: fileBytes
 				});
+				if (response.status === 401 || response.status === 403) {
+					invalidateAuth();
+					goto('/login');
+					return false;
+				}
 				return response.ok;
 			} catch (error) {
 				console.error('Error importing collection', error);
@@ -100,6 +106,9 @@
 				data = data;
 				invalidate((url) => url.pathname.startsWith('/api/cards'));
 			}
+		} else if (response.status === 401 || response.status === 403) {
+			invalidateAuth();
+			goto('/login');
 		}
 	}
 </script>
