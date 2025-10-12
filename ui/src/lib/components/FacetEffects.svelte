@@ -26,11 +26,17 @@
 </div>
 
 <style>
-	.choice::marker {
+	.choice,
+	.noIcon {
+		list-style-type: none;
+	}
+
+	.choice::before {
 		content: '▶ ';
 		font-family: 'Segoe UI Symbol', 'Arial Unicode MS', sans-serif;
 	}
-	.noIcon::marker {
+
+	.noIcon::before {
 		content: '■ ';
 		font-family: 'Segoe UI Symbol', 'Arial Unicode MS', sans-serif;
 	}
