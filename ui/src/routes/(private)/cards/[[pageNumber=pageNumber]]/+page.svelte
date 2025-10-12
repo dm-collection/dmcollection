@@ -8,6 +8,7 @@
 	import { getSets } from '$lib/sets.svelte';
 	import { getSpecies } from '$lib/species.svelte';
 	import { getRarities } from '$lib/rarity.svelte';
+	import { invalidateAuth } from '$lib/auth.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -36,6 +37,9 @@
 					data = data;
 					invalidate((url) => url.pathname.startsWith('/api/cards'));
 				}
+			} else if (response.status === 401 || response.status === 403) {
+				invalidateAuth();
+				goto('/login');
 			}
 		} catch (error) {
 			console.error(error);

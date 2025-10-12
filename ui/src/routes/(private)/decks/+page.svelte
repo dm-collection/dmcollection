@@ -8,6 +8,7 @@
 	import UploadSimple from 'phosphor-svelte/lib/UploadSimple';
 	import { formatDistanceToNow, formatRFC3339 } from 'date-fns';
 	import type { CollectionInfo } from '$lib/types/collection';
+	import { invalidateAuth } from '$lib/auth.svelte';
 
 	let { data }: { data: PageData } = $props();
 
@@ -57,6 +58,11 @@
 					},
 					body: fileBytes
 				});
+				if (response.status === 401 || response.status === 403) {
+					invalidateAuth();
+					goto('/login');
+					return false;
+				}
 				return response.ok;
 			} catch (error) {
 				console.error('Error importing from file', error);
@@ -97,6 +103,9 @@
 		if (response.ok) {
 			const newDeckInfo = (await response.json()) as CollectionInfo;
 			goto(`/deck/${newDeckInfo.id}`);
+		} else if (response.status === 401 || response.status === 403) {
+			invalidateAuth();
+			goto('/login');
 		}
 	}
 
@@ -113,6 +122,9 @@
 		});
 		if (response.ok) {
 			invalidate('/api/decks');
+		} else if (response.status === 401 || response.status === 403) {
+			invalidateAuth();
+			goto('/login');
 		}
 	}
 

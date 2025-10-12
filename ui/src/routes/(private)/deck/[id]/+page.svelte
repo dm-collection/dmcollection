@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { invalidate, replaceState } from '$app/navigation';
+	import { goto, invalidate, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import CardFilters from '$lib/components/CardFilters.svelte';
 	import CountedCardStub from '$lib/components/CountedCardStub.svelte';
@@ -11,6 +11,7 @@
 	import { SvelteURL } from 'svelte/reactivity';
 	import type { PageProps } from './$types';
 	import PencilSimple from 'phosphor-svelte/lib/PencilSimple';
+	import { invalidateAuth } from '$lib/auth.svelte';
 
 	let { data }: PageProps = $props();
 
@@ -47,6 +48,9 @@
 				invalidate(`/api/deck/${data.deck.id}`);
 				newName = '';
 				closeDialog();
+			} else if (response.status === 401 || response.status === 403) {
+				invalidateAuth();
+				goto('/login');
 			} else {
 				const input = document.getElementById('newName') as HTMLInputElement;
 				input.classList.add('invalid:border-red-700');
@@ -66,6 +70,9 @@
 				let newCollection = (await response.json()) as CollectionData;
 				newCollection.cardPage.page.number += 1;
 				collection = newCollection;
+			} else if (response.status === 401 || response.status === 403) {
+				invalidateAuth();
+				goto('/login');
 			}
 		} catch (error) {
 			console.error(error);
@@ -77,7 +84,14 @@
 	}
 
 	async function amountChange(cardId: number, newAmount: number) {
-		await data.deck?.setCardAmount(cardId, newAmount);
+		try {
+			await data.deck?.setCardAmount(cardId, newAmount);
+		} catch (err) {
+			if (err instanceof Error && err.message === 'unauthorized') {
+				invalidateAuth();
+				goto('/login');
+			}
+		}
 	}
 </script>
 
