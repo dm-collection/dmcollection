@@ -70,7 +70,7 @@ export class Deck {
 			} else if (response.status === 401 || response.status === 403) {
 				throw new Error('unauthorized');
 			} else {
-				console.log(response.statusText);
+				console.error(response.statusText);
 			}
 		}
 	}
