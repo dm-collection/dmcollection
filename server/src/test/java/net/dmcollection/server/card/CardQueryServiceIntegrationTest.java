@@ -19,11 +19,8 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import net.dmcollection.model.card.CardEntity;
-import net.dmcollection.model.card.CardFacet;
-import net.dmcollection.model.card.OfficialSet;
+import net.dmcollection.model.card.*;
 import net.dmcollection.model.card.OfficialSet.Columns;
-import net.dmcollection.model.card.RarityCode;
 import net.dmcollection.server.TestUtils;
 import net.dmcollection.server.card.CardService.CardStub;
 import net.dmcollection.server.card.internal.CardQueryService;
@@ -58,7 +55,7 @@ class CardQueryServiceIntegrationTest {
   CardQueryService cardQueryService;
 
   @Autowired JdbcTemplate jdbcTemplate;
-  @Autowired SpeciesService speciesService;
+  @Autowired SpeciesRepository speciesRepository;
 
   TestUtils utils;
 
@@ -71,12 +68,16 @@ class CardQueryServiceIntegrationTest {
     jdbcTemplate.update("DELETE FROM SPECIES");
     jdbcTemplate.update("DELETE FROM FACET_SPECIES");
     jdbcTemplate.update("DELETE FROM RARITY");
+    jdbcTemplate.update("DELETE FROM FACET_EFFECT");
+    jdbcTemplate.update("DELETE FROM EFFECT");
     ImageService imageService = mock(ImageService.class);
     when(imageService.makeImageUrl(anyString()))
         .thenAnswer(i -> i.getArgument(0) != null ? "/image/" + i.getArgument(0) : null);
     RarityService rarityService = mock(RarityService.class);
     when(rarityService.getOrder(any(RarityCode.class)))
         .thenAnswer(invocation -> TestUtils.rarityOrder.get(invocation.getArgument(0)));
+    var speciesService = new SpeciesService(jdbcTemplate, speciesRepository);
+    speciesService.initialize();
     cardQueryService =
         new CardQueryService(jdbcTemplate, imageService, speciesService, rarityService);
   }
@@ -897,17 +898,89 @@ class CardQueryServiceIntegrationTest {
     var underscoreCard = utils.monoCard("underscore-card", 5, 6000, FIRE, "test_effect");
     var normalCard = utils.monoCard("normal-card", 2, 2000, WATER, "通常の効果");
 
-    // Search for literal "%" - should only find the percent card
     SearchFilter filter = search().setEffectSearch("%").build();
     assertQueryFinds(filter, percentCard);
 
-    // Search for literal "_" - should only find the underscore card
     filter = search().setEffectSearch("_").build();
     assertQueryFinds(filter, underscoreCard);
 
-    // Search for "+" should work normally
     filter = search().setEffectSearch("+").build();
     assertQueryFinds(filter, percentCard);
+  }
+
+  @Test
+  void findsCardsByChildEffectText() {
+    var cardWithChildren =
+        utils.monoCard(
+            "modal-effect-card",
+            5,
+            7000,
+            FIRE,
+            List.of(
+                List.of(
+                    "このクリーチャーが出た時、次の中から２回選ぶ。(同じものを選んでもよい)",
+                    "相手のクリーチャーを１体選ぶ。このターン、そのクリーチャーのパワーを－4000する。",
+                    "自分の山札の上から４枚を墓地に置く。",
+                    "コスト４以下のクリーチャーを１体、自分の墓地から出す。")));
+
+    var differentCard = utils.monoCard("different-card", 4, 5000, WATER, "このクリーチャーが出た時、カードを２枚引く。");
+
+    SearchFilter filter = search().setEffectSearch("墓地に置く").build();
+    assertQueryFinds(filter, cardWithChildren);
+
+    filter = search().setEffectSearch("パワーを－4000する").build();
+    assertQueryFinds(filter, cardWithChildren);
+
+    filter = search().setEffectSearch("次の中から").build();
+    assertQueryFinds(filter, cardWithChildren);
+  }
+
+  @Test
+  void combinesEffectSearchWithNameFilter() {
+    var dragonBlocker = utils.monoCard("ボルシャック・ドラゴン", 6, 9000, FIRE, "ブロッカー");
+    var dragonBreaker = utils.monoCard("ボルシャック・大剣", 7, 11000, FIRE, "W・ブレイカー");
+    var otherBlocker = utils.monoCard("光の守護者", 5, 7000, LIGHT, "ブロッカー");
+
+    SearchFilter filter = search().setEffectSearch("ブロッカー").setNameSearch("ボルシャック").build();
+    assertQueryFinds(filter, dragonBlocker);
+
+    filter = search().setEffectSearch("ブレイカー").setNameSearch("ボルシャック").build();
+    assertQueryFinds(filter, dragonBreaker);
+
+    filter = search().setEffectSearch("ブレイカー").setNameSearch("ドラゴン").build();
+    assertQueryFindsNothing(filter);
+  }
+
+  @Test
+  void combinesEffectSearchWithSpeciesFilter() {
+    var dragonWithBlocker = utils.monoCard("test-dragon-1", 6, 8000, FIRE, "ブロッカー");
+    utils.addSpeciesToFacet(dragonWithBlocker.id() + 1, 0, "アーマード・ドラゴン");
+
+    var dragonWithBreaker = utils.monoCard("test-dragon-2", 7, 10000, FIRE, "W・ブレイカー");
+    utils.addSpeciesToFacet(dragonWithBreaker.id() + 1, 0, "アーマード・ドラゴン");
+
+    var guardianWithBlocker = utils.monoCard("test-guardian", 5, 6000, LIGHT, "ブロッカー");
+    utils.addSpeciesToFacet(guardianWithBlocker.id() + 1, 0, "ガーディアン");
+
+    SearchFilter filter = search().setEffectSearch("ブロッカー").setSpeciesSearch("ドラゴン").build();
+    assertQueryFinds(filter, dragonWithBlocker);
+
+    filter = search().setEffectSearch("ブレイカー").setSpeciesSearch("アーマード・ドラゴン").build();
+    assertQueryFinds(filter, dragonWithBreaker);
+  }
+
+  @Test
+  void combinesEffectSearchWithNameAndCivilizationFilters() {
+    var lightCard = utils.monoCard("聖なる守護者", 5, 7000, LIGHT, "ブロッカー");
+    var fireCard = utils.monoCard("聖なる炎", 6, 8000, FIRE, "ブロッカー");
+    var waterCard = utils.monoCard("水の守護者", 4, 6000, WATER, "ブロッカー");
+
+    SearchFilter filter =
+        search().setEffectSearch("ブロッカー").setNameSearch("守護者").addIncludedCivs(LIGHT).build();
+    assertQueryFinds(filter, lightCard);
+
+    filter = search().setEffectSearch("ブロッカー").setNameSearch("聖なる").addIncludedCivs(FIRE).build();
+    assertQueryFinds(filter, fireCard);
   }
 
   @Test

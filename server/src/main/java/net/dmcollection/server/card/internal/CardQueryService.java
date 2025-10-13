@@ -762,10 +762,9 @@ public class CardQueryService {
   }
 
   /**
-   * Retrieves facet IDs for cards whose effects contain the search text.
-   * Searches all effects including child effects. Since child effects are only
-   * associated with their parent effects (not directly with card facets), we
-   * need to join through the parent effect to reach the facet.
+   * Retrieves facet IDs for cards whose effects contain the search text. Searches all effects
+   * including child effects. Since child effects are only associated with their parent effects (not
+   * directly with card facets), we need to join through the parent effect to reach the facet.
    *
    * @param effectSearch The text to search for in effect texts
    * @return Set of facet IDs that have matching effects
