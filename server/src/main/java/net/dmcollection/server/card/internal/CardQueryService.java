@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -132,6 +133,23 @@ public class CardQueryService {
       if (facetFilter.isEmpty()) {
         return new SearchResult(new PageImpl<>(List.of(), searchFilter.pageable(), 0), 0);
       }
+    }
+
+    // Effect text search
+    if (searchFilter.effectSearch() != null && !searchFilter.effectSearch().isBlank()) {
+      Set<Long> effectFacetIds = getEffectFacetIds(searchFilter.effectSearch());
+      if (effectFacetIds.isEmpty()) {
+        return new SearchResult(new PageImpl<>(List.of(), searchFilter.pageable(), 0), 0);
+      }
+
+      // Intersect with existing facet filter if present
+      if (!facetFilter.isEmpty()) {
+        effectFacetIds.retainAll(facetFilter);
+        if (effectFacetIds.isEmpty()) {
+          return new SearchResult(new PageImpl<>(List.of(), searchFilter.pageable(), 0), 0);
+        }
+      }
+      facetFilter = effectFacetIds;
     }
 
     List<String> query = new ArrayList<>();
@@ -741,6 +759,31 @@ public class CardQueryService {
     }
     conditions.add(FACET_NAME_CONDITION);
     parameters.add(nameSearch);
+  }
+
+  /**
+   * Retrieves facet IDs for cards whose effects contain the search text.
+   * Searches all effects including child effects. Since child effects are only
+   * associated with their parent effects (not directly with card facets), we
+   * need to join through the parent effect to reach the facet.
+   *
+   * @param effectSearch The text to search for in effect texts
+   * @return Set of facet IDs that have matching effects
+   */
+  private Set<Long> getEffectFacetIds(String effectSearch) {
+    String sql =
+        """
+        SELECT DISTINCT fe.CARD_FACETS
+        FROM EFFECT e
+        LEFT JOIN EFFECT parent ON e.PARENT = parent.ID
+        JOIN FACET_EFFECT fe ON COALESCE(parent.ID, e.ID) = fe.EFFECT
+        WHERE LOCATE(?, e.TEXT) > 0
+        """;
+
+    List<Long> results = db.queryForList(sql, Long.class, effectSearch.toUpperCase());
+
+    log.debug("Effect search '{}' found {} matching facets", effectSearch, results.size());
+    return new HashSet<>(results);
   }
 
   private static String and(List<String> conditions) {
