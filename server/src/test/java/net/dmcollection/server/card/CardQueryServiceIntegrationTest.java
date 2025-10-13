@@ -876,6 +876,22 @@ class CardQueryServiceIntegrationTest {
   }
 
   @Test
+  void findsCardsByEffectText() {
+    var blocker = utils.monoCard("blocker-card", 3, 3000, LIGHT, "ブロッカー");
+    var wBreaker = utils.monoCard("w-breaker-card", 5, 6000, FIRE, "W・ブレイカー");
+    var unrelated = utils.monoCard("unrelated-card", 2, 2000, WATER, "このクリーチャーが攻撃する時、カードを1枚引く。");
+
+    SearchFilter filter = search().setEffectSearch("ブロッカー").build();
+    assertQueryFinds(filter, blocker);
+
+    filter = search().setEffectSearch("ブレイカー").build();
+    assertQueryFinds(filter, wBreaker);
+
+    filter = search().setEffectSearch("W").build();
+    assertQueryFinds(filter, wBreaker);
+  }
+
+  @Test
   void sortsByCost() {
     var oneCost = utils.monoCard("one", 1, FIRE);
     var zeroCost = utils.monoCard("zero", 0, DARK);

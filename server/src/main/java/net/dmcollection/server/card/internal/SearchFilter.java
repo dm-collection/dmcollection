@@ -40,6 +40,10 @@ import org.springframework.lang.NonNull;
  * @param rarityFilter Include only cards matching the rarity filter.
  * @param speciesSearch A string contained in one or more species. Only cards of those will be
  *     included.
+ * @param nameSearch A string contained in the card name. Only cards with matching names will be
+ *     included.
+ * @param effectSearch A string contained in the effect text. Only cards with matching effects will
+ *     be included. Searches both parent and child effects.
  * @param pageable Spring pageable object for pagination and sorting. If null, no paging is used.
  */
 public record SearchFilter(
@@ -58,6 +62,7 @@ public record SearchFilter(
     RarityFilter rarityFilter,
     String speciesSearch,
     String nameSearch,
+    String effectSearch,
     CollectionFilter collectionFilter,
     Pageable pageable) {
 
@@ -201,6 +206,7 @@ public record SearchFilter(
         this.rarityFilter,
         this.speciesSearch,
         this.nameSearch,
+        this.effectSearch,
         new CollectionFilter(internalId, searchCollection),
         this.pageable);
   }

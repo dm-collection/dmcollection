@@ -69,6 +69,7 @@ public record SearchFilterApi(
         rarityFilter,
         species,
         name,
+        null, // TODO: effect search query
         null,
         pageable);
   }

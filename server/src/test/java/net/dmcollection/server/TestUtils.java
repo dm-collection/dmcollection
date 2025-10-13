@@ -46,6 +46,7 @@ public class TestUtils {
   private final Map<Long, OfficialSet> testSets = new HashMap<>();
   private final Map<String, Long> testSpecies = new HashMap<>();
   private final Map<RarityCode, Rarity> testRarities = new HashMap<>();
+  private final Map<String, Long> testEffects = new HashMap<>();
   private final JdbcTemplate jdbcTemplate;
   private long nextId = 1;
 
@@ -171,6 +172,51 @@ public class TestUtils {
         cost != null ? List.of(cost) : null,
         Collections.singletonList(power),
         power != null ? List.of(CREATURE) : List.of(SPELL));
+  }
+
+  /**
+   * Create a mono-civilization card with a single effect (no children).
+   *
+   * @param officialId The official card ID
+   * @param cost The cost
+   * @param power The power (null for spells)
+   * @param civ The civilization
+   * @param effect Single effect text
+   * @return The created CardStub
+   */
+  public CardStub monoCard(
+      String officialId, Integer cost, Integer power, Civilization civ, String effect) {
+    return monoCard(officialId, cost, power, civ, List.of(List.of(effect)));
+  }
+
+  /**
+   * Create a mono-civilization card with effects.
+   *
+   * @param officialId The official card ID
+   * @param cost The cost
+   * @param power The power (null for spells)
+   * @param civ The civilization
+   * @param effects Effects for the card. Each inner list represents: [parent, child1, child2, ...]
+   * @return The created CardStub
+   */
+  public CardStub monoCard(
+      String officialId,
+      Integer cost,
+      Integer power,
+      Civilization civ,
+      List<List<String>> effects) {
+    return card(
+        officialId,
+        officialId,
+        false,
+        RarityCode.C,
+        1L,
+        List.of(officialId + ".jpg"),
+        List.of(Set.of(civ)),
+        cost != null ? List.of(cost) : null,
+        Collections.singletonList(power),
+        power != null ? List.of(CREATURE) : List.of(SPELL),
+        List.of(effects));
   }
 
   public CardStub twoSided(String officialId, Set<Civilization> civs1, Set<Civilization> civs2) {
@@ -303,6 +349,74 @@ public class TestUtils {
         facetTypes);
   }
 
+  /**
+   * Create a card with effects. Effects are specified as a list of lists where each inner list
+   * represents one parent effect followed by its child effects.
+   *
+   * @param officialId The official card ID
+   * @param idText The ID text
+   * @param twinpact Whether this is a twinpact card
+   * @param rarity The rarity code
+   * @param setId The set ID
+   * @param imageFiles Image filenames for each facet
+   * @param facetCivs Civilizations for each facet
+   * @param costs Costs for each facet
+   * @param powers Powers for each facet
+   * @param facetTypes Types for each facet
+   * @param facetEffects Effects for each facet. Each inner list represents: [parent, child1,
+   *     child2, ...]. Use null for facets without effects.
+   * @return The created CardStub
+   */
+  public CardStub card(
+      String officialId,
+      String idText,
+      boolean twinpact,
+      RarityCode rarity,
+      Long setId,
+      List<String> imageFiles,
+      List<Set<Civilization>> facetCivs,
+      List<Integer> costs,
+      List<Integer> powers,
+      List<String> facetTypes,
+      List<List<List<String>>> facetEffects) {
+    // Create the card without effects first
+    CardStub card =
+        card(
+            officialId,
+            idText,
+            twinpact,
+            rarity,
+            setId,
+            imageFiles,
+            facetCivs,
+            costs,
+            powers,
+            facetTypes);
+
+    // Add effects to each facet
+    if (facetEffects != null) {
+      for (int facetIndex = 0; facetIndex < facetEffects.size(); facetIndex++) {
+        List<List<String>> effectGroups = facetEffects.get(facetIndex);
+        if (effectGroups != null) {
+          long facetId = card.id() + 1 + facetIndex;
+          for (int effectPos = 0; effectPos < effectGroups.size(); effectPos++) {
+            List<String> effectGroup = effectGroups.get(effectPos);
+            if (effectGroup != null && !effectGroup.isEmpty()) {
+              // First element is parent effect
+              long parentId = addEffectToFacet(facetId, effectPos, effectGroup.get(0));
+              // Remaining elements are child effects
+              for (int childIndex = 1; childIndex < effectGroup.size(); childIndex++) {
+                addEffectToFacet(facetId, childIndex - 1, effectGroup.get(childIndex), parentId);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    return card;
+  }
+
   public CardStub card(
       String officialId,
       String idText,
@@ -411,6 +525,55 @@ public class TestUtils {
         "INSERT INTO FACET_SPECIES (CARD_FACETS, POSITION, SPECIES) VALUES (?, ?, ?)", values);
   }
 
+  /**
+   * Adds an effect to a facet. Supports parent-child hierarchy. Reuses existing effects if the
+   * effect text already exists in the database.
+   *
+   * @param facetId The facet ID to add the effect to
+   * @param position The position of the effect on the facet
+   * @param effectText The effect text
+   * @param parentEffectId Optional parent effect ID for child effects (null for parent effects)
+   * @return The ID of the effect (existing or newly created)
+   */
+  public long addEffectToFacet(
+      long facetId, int position, String effectText, Long parentEffectId) {
+    // Create a unique key for the effect (text + parent combination)
+    String effectKey = effectText + "|" + (parentEffectId != null ? parentEffectId : "root");
+
+    // Check if effect already exists
+    Long effectId = testEffects.get(effectKey);
+    if (effectId == null) {
+      effectId = nextId++;
+      // Insert into EFFECT table
+      Object[] effectValues = {effectId, effectText, parentEffectId, 0};
+      jdbcTemplate.update(
+          "INSERT INTO EFFECT (ID, TEXT, PARENT, \"POSITION\") VALUES (?, ?, ?, ?)", effectValues);
+      testEffects.put(effectKey, effectId);
+    }
+
+    // Only parent effects are linked to facets via FACET_EFFECT
+    if (parentEffectId == null) {
+      Object[] facetEffectValues = {facetId, position, effectId};
+      jdbcTemplate.update(
+          "INSERT INTO FACET_EFFECT (CARD_FACETS, \"POSITION\", EFFECT) VALUES (?, ?, ?)",
+          facetEffectValues);
+    }
+
+    return effectId;
+  }
+
+  /**
+   * Convenience method to add a parent effect without children.
+   *
+   * @param facetId The facet ID to add the effect to
+   * @param position The position of the effect on the facet
+   * @param effectText The effect text
+   * @return The ID of the created effect
+   */
+  public long addEffectToFacet(long facetId, int position, String effectText) {
+    return addEffectToFacet(facetId, position, effectText, null);
+  }
+
   public static class SearchBuilder {
     private Long setId;
     private Set<Civilization> includedCivs;
@@ -425,6 +588,7 @@ public class TestUtils {
     private FilterState twinpact = FilterState.IN;
     private CardType cardType = null;
     private String speciesSearch = null;
+    private String effectSearch = null;
     private RarityFilter rarity = null;
     private String nameSearch = null;
     private Pageable pageable = null;
@@ -455,6 +619,11 @@ public class TestUtils {
 
     public SearchBuilder setSpeciesSearch(String speciesSearch) {
       this.speciesSearch = speciesSearch;
+      return this;
+    }
+
+    public SearchBuilder setEffectSearch(String effectSearch) {
+      this.effectSearch = effectSearch;
       return this;
     }
 
@@ -542,6 +711,7 @@ public class TestUtils {
           rarity,
           speciesSearch,
           nameSearch,
+          effectSearch,
           null,
           pageable);
     }
