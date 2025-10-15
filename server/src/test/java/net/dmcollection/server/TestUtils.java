@@ -407,7 +407,7 @@ public class TestUtils {
             List<String> effectGroup = effectGroups.get(effectPos);
             if (effectGroup != null && !effectGroup.isEmpty()) {
               // First element is parent effect
-              long parentId = addEffectToFacet(facetId, effectPos, effectGroup.get(0));
+              long parentId = addEffectToFacet(facetId, effectPos, effectGroup.getFirst());
               // Remaining elements are child effects
               for (int childIndex = 1; childIndex < effectGroup.size(); childIndex++) {
                 addEffectToFacet(facetId, childIndex - 1, effectGroup.get(childIndex), parentId);
