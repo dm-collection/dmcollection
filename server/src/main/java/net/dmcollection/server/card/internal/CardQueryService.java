@@ -776,7 +776,7 @@ public class CardQueryService {
         FROM EFFECT e
         LEFT JOIN EFFECT parent ON e.PARENT = parent.ID
         JOIN FACET_EFFECT fe ON COALESCE(parent.ID, e.ID) = fe.EFFECT
-        WHERE LOCATE(?, e.TEXT) > 0
+        WHERE LOCATE(?, UPPER(e.TEXT)) > 0
         """;
 
     List<Long> results = db.queryForList(sql, Long.class, effectSearch.toUpperCase());

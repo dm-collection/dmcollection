@@ -122,6 +122,10 @@ public class TestUtils {
     return card(officialId, List.of(officialId + ".jpg"), List.of(Set.of(civ)));
   }
 
+  public CardStub monoCard(String officialId, String effectText) {
+    return monoCard(officialId, 7, 6500, Civilization.ZERO, effectText);
+  }
+
   public CardStub multiCard(String officialId, Integer cost, Civilization... civs) {
     return card(
         officialId,
@@ -535,9 +539,7 @@ public class TestUtils {
    * @param parentEffectId Optional parent effect ID for child effects (null for parent effects)
    * @return The ID of the effect (existing or newly created)
    */
-  public long addEffectToFacet(
-      long facetId, int position, String effectText, Long parentEffectId) {
-    // Create a unique key for the effect (text + parent combination)
+  public long addEffectToFacet(long facetId, int position, String effectText, Long parentEffectId) {
     String effectKey = effectText + "|" + (parentEffectId != null ? parentEffectId : "root");
 
     // Check if effect already exists

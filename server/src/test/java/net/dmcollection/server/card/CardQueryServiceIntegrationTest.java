@@ -878,9 +878,9 @@ class CardQueryServiceIntegrationTest {
 
   @Test
   void findsCardsByEffectText() {
-    var blocker = utils.monoCard("blocker", 3, 3000, LIGHT, "ブロッカー");
-    var wBreaker = utils.monoCard("double-breaker", 5, 6000, FIRE, "W・ブレイカー");
-    var unrelated = utils.monoCard("unrelated", 2, 2000, WATER, "このクリーチャーが攻撃する時、カードを1枚引く。");
+    var blocker = utils.monoCard("blocker", "ブロッカー");
+    var wBreaker = utils.monoCard("double-breaker", "W・ブレイカー");
+    utils.monoCard("unrelated", "このクリーチャーが攻撃する時、カードを1枚引く。");
 
     SearchFilter filter = search().setEffectSearch("ブロッカー").build();
     assertQueryFinds(filter, blocker);
@@ -894,9 +894,9 @@ class CardQueryServiceIntegrationTest {
 
   @Test
   void findsCardsByEffectTextWithSpecialCharacters() {
-    var percentCard = utils.monoCard("percent-card", 3, 3000, LIGHT, "パワー+50%");
-    var underscoreCard = utils.monoCard("underscore-card", 5, 6000, FIRE, "test_effect");
-    var normalCard = utils.monoCard("normal-card", 2, 2000, WATER, "通常の効果");
+    var percentCard = utils.monoCard("percent-card", "パワー+50%");
+    var underscoreCard = utils.monoCard("underscore-card", "test_effect");
+    utils.monoCard("normal-card", "通常の効果");
 
     SearchFilter filter = search().setEffectSearch("%").build();
     assertQueryFinds(filter, percentCard);
@@ -923,7 +923,7 @@ class CardQueryServiceIntegrationTest {
                     "自分の山札の上から４枚を墓地に置く。",
                     "コスト４以下のクリーチャーを１体、自分の墓地から出す。")));
 
-    var differentCard = utils.monoCard("different-card", 4, 5000, WATER, "このクリーチャーが出た時、カードを２枚引く。");
+    utils.monoCard("different-card", 4, 5000, WATER, "このクリーチャーが出た時、カードを２枚引く。");
 
     SearchFilter filter = search().setEffectSearch("墓地に置く").build();
     assertQueryFinds(filter, cardWithChildren);
@@ -939,7 +939,7 @@ class CardQueryServiceIntegrationTest {
   void combinesEffectSearchWithNameFilter() {
     var dragonBlocker = utils.monoCard("ボルシャック・ドラゴン", 6, 9000, FIRE, "ブロッカー");
     var dragonBreaker = utils.monoCard("ボルシャック・大剣", 7, 11000, FIRE, "W・ブレイカー");
-    var otherBlocker = utils.monoCard("光の守護者", 5, 7000, LIGHT, "ブロッカー");
+    utils.monoCard("光の守護者", 5, 7000, LIGHT, "ブロッカー");
 
     SearchFilter filter = search().setEffectSearch("ブロッカー").setNameSearch("ボルシャック").build();
     assertQueryFinds(filter, dragonBlocker);
@@ -973,7 +973,7 @@ class CardQueryServiceIntegrationTest {
   void combinesEffectSearchWithNameAndCivilizationFilters() {
     var lightCard = utils.monoCard("聖なる守護者", 5, 7000, LIGHT, "ブロッカー");
     var fireCard = utils.monoCard("聖なる炎", 6, 8000, FIRE, "ブロッカー");
-    var waterCard = utils.monoCard("水の守護者", 4, 6000, WATER, "ブロッカー");
+    utils.monoCard("水の守護者", 4, 6000, WATER, "ブロッカー");
 
     SearchFilter filter =
         search().setEffectSearch("ブロッカー").setNameSearch("守護者").addIncludedCivs(LIGHT).build();
@@ -981,6 +981,57 @@ class CardQueryServiceIntegrationTest {
 
     filter = search().setEffectSearch("ブロッカー").setNameSearch("聖なる").addIncludedCivs(FIRE).build();
     assertQueryFinds(filter, fireCard);
+  }
+
+  @Test
+  void findsEffectsCaseInsensitive() {
+    var doubleBreaker = utils.monoCard("w-breaker", "W・ブレイカー");
+
+    var filter = search().setEffectSearch("w");
+    assertQueryFinds(filter, doubleBreaker);
+
+    var exLife = utils.monoCard("exLife", "EXライフ");
+
+    filter = search().setEffectSearch("ex");
+    assertQueryFinds(filter, exLife);
+
+    var over = utils.monoCard("over", "OVERハイパー化：自分の他のクリーチャーを２体タップする。");
+    assertQueryFinds(search().setEffectSearch("over"), over);
+
+    var dlsys = utils.monoCard("dlsys", "DL-Sys：これを付けたクリーチャーの攻撃の終わりに、相手の...");
+    assertQueryFinds(search().setEffectSearch("dl-sys"), dlsys);
+
+    var code =
+        utils.monoCard(
+            "code", "S-MAX進化：自分がゲームに負ける時、かわりにこのクリーチャーを破壊するか、自分の手札から《Code:-MAX》を１枚捨てる...）");
+    assertQueryFinds(search().setEffectSearch("code"), code);
+    assertQueryFinds(search().setEffectSearch("max"), code);
+    assertQueryFinds(search().setEffectSearch("s-max"), code);
+
+    var artifact =
+        utils.monoCard(
+            "artifact", "このArtifactが出た時、封印を３つ付ける。（カードを封印するには、自分の山札の上から１枚目を裏向きのままそのカードの上に置く）");
+    assertQueryFinds(search().setEffectSearch("artifact"), artifact);
+
+    var revo = utils.monoCard("revo", "キリフダReVo：このクリーチャーが「キリフダッシュ」能力によってバトルゾーンに出たターンの間、...");
+    assertQueryFinds(search().setEffectSearch("revo"), revo);
+
+    var mt =
+        utils.monoCard("mt", "バトルゾーンに自分の他の《Mt.富士山ックス》があれば、このクリーチャーのパワーを+11000し、「T・ブレイカー」を与える。");
+    assertQueryFinds(search().setEffectSearch("mt"), mt);
+
+    var shigenobu =
+        utils.monoCard(
+            "shigenobu-m",
+            "自分の、イラストレーター名がShigenobu Matsumotoのクリーチャーの召喚コストを１少なくしてもよい。ただし、コストは０以下にならない。");
+    assertQueryFinds(search().setEffectSearch("shigenobu"), shigenobu);
+    assertQueryFinds(search().setEffectSearch("matsumoto"), shigenobu);
+
+    var second =
+        utils.monoCard(
+            "second",
+            "G・ゼロ―このターン、カードを６枚以上引いていて、自分の 《天災超邪 クロスファイア ２nd》がバトルゾーンになければ、このクリーチャーをコストを支払わずに召喚してもよい。");
+    assertQueryFinds(search().setEffectSearch("nd"), second);
   }
 
   @Test
@@ -1044,6 +1095,10 @@ class CardQueryServiceIntegrationTest {
     assertThat(result.getContent())
         .usingRecursiveComparison()
         .isEqualTo(Arrays.asList(expectedCards));
+  }
+
+  private void assertQueryFinds(TestUtils.SearchBuilder builder, CardStub... expectedCards) {
+    assertQueryFinds(builder.build(), expectedCards);
   }
 
   private void assertQueryFinds(SearchFilter filter, CardStub... expectedCards) {
