@@ -38,6 +38,7 @@ public record SearchFilterApi(
     RarityCode rarity,
     String species,
     String name,
+    String effect,
     Integer pageSize,
     String sort) {
 
@@ -69,7 +70,7 @@ public record SearchFilterApi(
         rarityFilter,
         species,
         name,
-        null, // TODO: effect search query
+        effect,
         null,
         pageable);
   }
