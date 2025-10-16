@@ -22,6 +22,7 @@ const keys = {
 	rarity: 'rarity',
 	rarityRange: 'rRange',
 	nameSearch: 'name',
+	effectSearch: 'effect',
 	sort: 'sort'
 };
 
@@ -47,6 +48,7 @@ export class SearchFilter {
 	#rarity: string | undefined = $state();
 	#rarityRange: Range = $state(Range.EQ);
 	#nameSearch: string | undefined = $state();
+	#effectSearch: string | undefined = $state();
 	#order: Order[] | undefined = $state();
 
 	#searchParams: URLSearchParams = new SvelteURLSearchParams();
@@ -225,6 +227,14 @@ export class SearchFilter {
 		this.#nameSearch = nameSearch;
 	}
 
+	set effectSearch(effectSearch) {
+		this.#searchParams.delete(keys.effectSearch);
+		if (effectSearch != undefined && effectSearch.trim() !== '') {
+			this.#searchParams.set(keys.effectSearch, effectSearch);
+		}
+		this.#effectSearch = effectSearch;
+	}
+
 	set order(order) {
 		this.#searchParams.delete(keys.sort);
 		if (order != undefined) {
@@ -297,6 +307,10 @@ export class SearchFilter {
 		return this.#nameSearch;
 	}
 
+	get effectSearch() {
+		return this.#effectSearch;
+	}
+
 	get order() {
 		return this.#order;
 	}
@@ -323,6 +337,7 @@ export class SearchFilter {
 			this.#rarity == undefined &&
 			this.#rarityRange == Range.EQ &&
 			this.#nameSearch == undefined &&
+			this.#effectSearch == undefined &&
 			this.#order == undefined
 		);
 	}
@@ -372,6 +387,7 @@ export class SearchFilter {
 			this.#rarityRange = Range.EQ;
 		}
 		this.#nameSearch = searchParams.get(keys.nameSearch) ?? undefined;
+		this.#effectSearch = searchParams.get(keys.effectSearch) ?? undefined;
 		const orderParam = searchParams.get(keys.sort);
 		if (orderParam != null) {
 			this.#parseOrder(orderParam);

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { SearchFilter } from '$lib/SearchFilter.svelte';
+	import { EFFECT_SEARCH_SUGGESTIONS } from '$lib/effectKeywords';
 	import { Civ, type CardSet } from '$lib/types/card';
 	import { CardTypeFilter } from '$lib/types/CardTypeFilter';
 	import { FilterState } from '$lib/types/FilterState';
@@ -267,6 +268,23 @@
 					{/each}
 				</datalist>
 			{/if}
+		</div>
+		<div>
+			<label for="effectSearch" class="block text-sm font-medium">効果</label>
+			<input
+				id="effectSearch"
+				type="search"
+				class="select"
+				list="effectKeywordList"
+				name="effectSearch"
+				bind:value={search.effectSearch}
+				onchange={onChange}
+			/>
+			<datalist id="effectKeywordList">
+				{#each EFFECT_SEARCH_SUGGESTIONS as keyword (keyword)}
+					<option value={keyword}></option>
+				{/each}
+			</datalist>
 		</div>
 		<fieldset class="flex-col items-start gap-2">
 			<legend class="text-sm font-medium">数</legend>

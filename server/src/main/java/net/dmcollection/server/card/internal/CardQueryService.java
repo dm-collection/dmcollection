@@ -134,13 +134,16 @@ public class CardQueryService {
       }
     }
 
+    boolean hasEffectSearch = searchFilter.effectSearch() != null && !searchFilter.effectSearch().isBlank();
+
     List<String> query = new ArrayList<>();
     List<Object> parameters = new ArrayList<>();
     query.add(makeQueryStart(searchFilter, parameters));
     if (searchFilter.needsCivFilter()
         || searchFilter.needsFacetColumnFilter()
         || searchFilter.needsCardColumnsFilter()
-        || !facetFilter.isEmpty()) {
+        || !facetFilter.isEmpty()
+        || hasEffectSearch) {
       query.add("WHERE");
       List<String> andConditions = new ArrayList<>();
 
@@ -155,6 +158,11 @@ public class CardQueryService {
                 .formatted(questionMarks(facetFilter.size()));
         parameters.addAll(facetFilter);
         andConditions.add(subqueryCondition);
+      }
+
+      // if there is an effect search, add the effect search subquery
+      if (hasEffectSearch) {
+        addEffectSearchSubquery(andConditions, parameters, searchFilter.effectSearch());
       }
 
       // if there are filters on civilizations, add the civs subquery
@@ -741,6 +749,23 @@ public class CardQueryService {
     }
     conditions.add(FACET_NAME_CONDITION);
     parameters.add(nameSearch);
+  }
+
+  private void addEffectSearchSubquery(
+      List<String> conditions, List<Object> parameters, String effectSearch) {
+    String subqueryCondition =
+        """
+        c.ID IN (
+          SELECT DISTINCT cf.CARDS
+          FROM EFFECT e
+          LEFT JOIN EFFECT parent ON e.PARENT = parent.ID
+          JOIN FACET_EFFECT fe ON COALESCE(parent.ID, e.ID) = fe.EFFECT
+          JOIN CARD_FACETS cf ON cf.ID = fe.CARD_FACETS
+          WHERE LOCATE(?, UPPER(e.TEXT)) > 0
+        )
+        """;
+    conditions.add(subqueryCondition);
+    parameters.add(effectSearch.toUpperCase());
   }
 
   private static String and(List<String> conditions) {

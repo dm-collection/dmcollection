@@ -1,0 +1,15 @@
+databaseChangeLog:
+  - changeSet:
+      id: create-effect-indices
+      author: luk-lo
+      preConditions:
+        - tableExists:
+            tableName: EFFECT
+      failOnError: false
+      changes:
+        - createIndex:
+            tableName: EFFECT
+            indexName: IDX_EFFECT_TEXT
+            columns:
+              - column:
+                  name: TEXT 

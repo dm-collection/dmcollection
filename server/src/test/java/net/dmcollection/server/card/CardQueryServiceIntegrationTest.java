@@ -19,11 +19,8 @@ import static org.mockito.Mockito.when;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import net.dmcollection.model.card.CardEntity;
-import net.dmcollection.model.card.CardFacet;
-import net.dmcollection.model.card.OfficialSet;
+import net.dmcollection.model.card.*;
 import net.dmcollection.model.card.OfficialSet.Columns;
-import net.dmcollection.model.card.RarityCode;
 import net.dmcollection.server.TestUtils;
 import net.dmcollection.server.card.CardService.CardStub;
 import net.dmcollection.server.card.internal.CardQueryService;
@@ -58,7 +55,7 @@ class CardQueryServiceIntegrationTest {
   CardQueryService cardQueryService;
 
   @Autowired JdbcTemplate jdbcTemplate;
-  @Autowired SpeciesService speciesService;
+  @Autowired SpeciesRepository speciesRepository;
 
   TestUtils utils;
 
@@ -71,12 +68,16 @@ class CardQueryServiceIntegrationTest {
     jdbcTemplate.update("DELETE FROM SPECIES");
     jdbcTemplate.update("DELETE FROM FACET_SPECIES");
     jdbcTemplate.update("DELETE FROM RARITY");
+    jdbcTemplate.update("DELETE FROM FACET_EFFECT");
+    jdbcTemplate.update("DELETE FROM EFFECT");
     ImageService imageService = mock(ImageService.class);
     when(imageService.makeImageUrl(anyString()))
         .thenAnswer(i -> i.getArgument(0) != null ? "/image/" + i.getArgument(0) : null);
     RarityService rarityService = mock(RarityService.class);
     when(rarityService.getOrder(any(RarityCode.class)))
         .thenAnswer(invocation -> TestUtils.rarityOrder.get(invocation.getArgument(0)));
+    var speciesService = new SpeciesService(jdbcTemplate, speciesRepository);
+    speciesService.initialize();
     cardQueryService =
         new CardQueryService(jdbcTemplate, imageService, speciesService, rarityService);
   }
@@ -876,6 +877,164 @@ class CardQueryServiceIntegrationTest {
   }
 
   @Test
+  void findsCardsByEffectText() {
+    var blocker = utils.monoCard("blocker", "ブロッカー");
+    var wBreaker = utils.monoCard("double-breaker", "W・ブレイカー");
+    utils.monoCard("unrelated", "このクリーチャーが攻撃する時、カードを1枚引く。");
+
+    SearchFilter filter = search().setEffectSearch("ブロッカー").build();
+    assertQueryFinds(filter, blocker);
+
+    filter = search().setEffectSearch("ブレイカー").build();
+    assertQueryFinds(filter, wBreaker);
+
+    filter = search().setEffectSearch("W").build();
+    assertQueryFinds(filter, wBreaker);
+  }
+
+  @Test
+  void findsCardsByEffectTextWithSpecialCharacters() {
+    var percentCard = utils.monoCard("percent-card", "パワー+50%");
+    var underscoreCard = utils.monoCard("underscore-card", "test_effect");
+    utils.monoCard("normal-card", "通常の効果");
+
+    SearchFilter filter = search().setEffectSearch("%").build();
+    assertQueryFinds(filter, percentCard);
+
+    filter = search().setEffectSearch("_").build();
+    assertQueryFinds(filter, underscoreCard);
+
+    filter = search().setEffectSearch("+").build();
+    assertQueryFinds(filter, percentCard);
+  }
+
+  @Test
+  void findsCardsByChildEffectText() {
+    var cardWithChildren =
+        utils.monoCard(
+            "modal-effect-card",
+            5,
+            7000,
+            FIRE,
+            List.of(
+                List.of(
+                    "このクリーチャーが出た時、次の中から２回選ぶ。(同じものを選んでもよい)",
+                    "相手のクリーチャーを１体選ぶ。このターン、そのクリーチャーのパワーを－4000する。",
+                    "自分の山札の上から４枚を墓地に置く。",
+                    "コスト４以下のクリーチャーを１体、自分の墓地から出す。")));
+
+    utils.monoCard("different-card", 4, 5000, WATER, "このクリーチャーが出た時、カードを２枚引く。");
+
+    SearchFilter filter = search().setEffectSearch("墓地に置く").build();
+    assertQueryFinds(filter, cardWithChildren);
+
+    filter = search().setEffectSearch("パワーを－4000する").build();
+    assertQueryFinds(filter, cardWithChildren);
+
+    filter = search().setEffectSearch("次の中から").build();
+    assertQueryFinds(filter, cardWithChildren);
+  }
+
+  @Test
+  void combinesEffectSearchWithNameFilter() {
+    var dragonBlocker = utils.monoCard("ボルシャック・ドラゴン", 6, 9000, FIRE, "ブロッカー");
+    var dragonBreaker = utils.monoCard("ボルシャック・大剣", 7, 11000, FIRE, "W・ブレイカー");
+    utils.monoCard("光の守護者", 5, 7000, LIGHT, "ブロッカー");
+
+    SearchFilter filter = search().setEffectSearch("ブロッカー").setNameSearch("ボルシャック").build();
+    assertQueryFinds(filter, dragonBlocker);
+
+    filter = search().setEffectSearch("ブレイカー").setNameSearch("ボルシャック").build();
+    assertQueryFinds(filter, dragonBreaker);
+
+    filter = search().setEffectSearch("ブレイカー").setNameSearch("ドラゴン").build();
+    assertQueryFindsNothing(filter);
+  }
+
+  @Test
+  void combinesEffectSearchWithSpeciesFilter() {
+    var dragonWithBlocker = utils.monoCard("test-dragon-1", 6, 8000, FIRE, "ブロッカー");
+    utils.addSpeciesToFacet(dragonWithBlocker.id() + 1, 0, "アーマード・ドラゴン");
+
+    var dragonWithBreaker = utils.monoCard("test-dragon-2", 7, 10000, FIRE, "W・ブレイカー");
+    utils.addSpeciesToFacet(dragonWithBreaker.id() + 1, 0, "アーマード・ドラゴン");
+
+    var guardianWithBlocker = utils.monoCard("test-guardian", 5, 6000, LIGHT, "ブロッカー");
+    utils.addSpeciesToFacet(guardianWithBlocker.id() + 1, 0, "ガーディアン");
+
+    SearchFilter filter = search().setEffectSearch("ブロッカー").setSpeciesSearch("ドラゴン").build();
+    assertQueryFinds(filter, dragonWithBlocker);
+
+    filter = search().setEffectSearch("ブレイカー").setSpeciesSearch("アーマード・ドラゴン").build();
+    assertQueryFinds(filter, dragonWithBreaker);
+  }
+
+  @Test
+  void combinesEffectSearchWithNameAndCivilizationFilters() {
+    var lightCard = utils.monoCard("聖なる守護者", 5, 7000, LIGHT, "ブロッカー");
+    var fireCard = utils.monoCard("聖なる炎", 6, 8000, FIRE, "ブロッカー");
+    utils.monoCard("水の守護者", 4, 6000, WATER, "ブロッカー");
+
+    SearchFilter filter =
+        search().setEffectSearch("ブロッカー").setNameSearch("守護者").addIncludedCivs(LIGHT).build();
+    assertQueryFinds(filter, lightCard);
+
+    filter = search().setEffectSearch("ブロッカー").setNameSearch("聖なる").addIncludedCivs(FIRE).build();
+    assertQueryFinds(filter, fireCard);
+  }
+
+  @Test
+  void findsEffectsCaseInsensitive() {
+    var doubleBreaker = utils.monoCard("w-breaker", "W・ブレイカー");
+
+    var filter = search().setEffectSearch("w");
+    assertQueryFinds(filter, doubleBreaker);
+
+    var exLife = utils.monoCard("exLife", "EXライフ");
+
+    filter = search().setEffectSearch("ex");
+    assertQueryFinds(filter, exLife);
+
+    var over = utils.monoCard("over", "OVERハイパー化：自分の他のクリーチャーを２体タップする。");
+    assertQueryFinds(search().setEffectSearch("over"), over);
+
+    var dlsys = utils.monoCard("dlsys", "DL-Sys：これを付けたクリーチャーの攻撃の終わりに、相手の...");
+    assertQueryFinds(search().setEffectSearch("dl-sys"), dlsys);
+
+    var code =
+        utils.monoCard(
+            "code", "S-MAX進化：自分がゲームに負ける時、かわりにこのクリーチャーを破壊するか、自分の手札から《Code:-MAX》を１枚捨てる...）");
+    assertQueryFinds(search().setEffectSearch("code"), code);
+    assertQueryFinds(search().setEffectSearch("max"), code);
+    assertQueryFinds(search().setEffectSearch("s-max"), code);
+
+    var artifact =
+        utils.monoCard(
+            "artifact", "このArtifactが出た時、封印を３つ付ける。（カードを封印するには、自分の山札の上から１枚目を裏向きのままそのカードの上に置く）");
+    assertQueryFinds(search().setEffectSearch("artifact"), artifact);
+
+    var revo = utils.monoCard("revo", "キリフダReVo：このクリーチャーが「キリフダッシュ」能力によってバトルゾーンに出たターンの間、...");
+    assertQueryFinds(search().setEffectSearch("revo"), revo);
+
+    var mt =
+        utils.monoCard("mt", "バトルゾーンに自分の他の《Mt.富士山ックス》があれば、このクリーチャーのパワーを+11000し、「T・ブレイカー」を与える。");
+    assertQueryFinds(search().setEffectSearch("mt"), mt);
+
+    var shigenobu =
+        utils.monoCard(
+            "shigenobu-m",
+            "自分の、イラストレーター名がShigenobu Matsumotoのクリーチャーの召喚コストを１少なくしてもよい。ただし、コストは０以下にならない。");
+    assertQueryFinds(search().setEffectSearch("shigenobu"), shigenobu);
+    assertQueryFinds(search().setEffectSearch("matsumoto"), shigenobu);
+
+    var second =
+        utils.monoCard(
+            "second",
+            "G・ゼロ―このターン、カードを６枚以上引いていて、自分の 《天災超邪 クロスファイア ２nd》がバトルゾーンになければ、このクリーチャーをコストを支払わずに召喚してもよい。");
+    assertQueryFinds(search().setEffectSearch("nd"), second);
+  }
+
+  @Test
   void sortsByCost() {
     var oneCost = utils.monoCard("one", 1, FIRE);
     var zeroCost = utils.monoCard("zero", 0, DARK);
@@ -936,6 +1095,10 @@ class CardQueryServiceIntegrationTest {
     assertThat(result.getContent())
         .usingRecursiveComparison()
         .isEqualTo(Arrays.asList(expectedCards));
+  }
+
+  private void assertQueryFinds(TestUtils.SearchBuilder builder, CardStub... expectedCards) {
+    assertQueryFinds(builder.build(), expectedCards);
   }
 
   private void assertQueryFinds(SearchFilter filter, CardStub... expectedCards) {
