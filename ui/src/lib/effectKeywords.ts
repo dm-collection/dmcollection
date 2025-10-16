@@ -139,4 +139,4 @@ export const EFFECT_SEARCH_SUGGESTIONS = [
 	'シャッフル',
 	'離れた時',
 	'すべてのバトルに勝つ'
-].sort();
+].sort((a, b) => a.localeCompare(b));
