@@ -131,7 +131,6 @@ export const EFFECT_SEARCH_SUGGESTIONS = [
 	'このクリーチャーがバトルゾーンに出た時',
 	// on attack
 	'このクリーチャーが攻撃する時',
-	'',
 	// other fragments
 	'ブロックされない',
 	'マナゾーンに置く',
