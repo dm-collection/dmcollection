@@ -18,6 +18,8 @@ databaseChangeLog:
       file: net/dmcollection/model/db/changes/rarities/table.yml
   - include:
       file: net/dmcollection/model/db/changes/effects/table.yml
+  - include:
+      file: net/dmcollection/model/db/changes/effects/indices.yml
   # server data tables
   - include:
       file: db/changelog/changes/00-initial-schema.yml
