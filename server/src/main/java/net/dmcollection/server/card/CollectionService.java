@@ -138,7 +138,7 @@ public class CollectionService {
   public Optional<CollectionDto> getCollection(UUID userId, UUID collectionId) {
     var collection =
         collectionRepository.findByPublicIdAndOwnerAndPrimaryIsFalse(collectionId, userId);
-    return collection.map(this::forTransfer);
+    return collection.map(c -> forTransfer(c, userId));
   }
 
   public CollectionDto getPrimaryCollection(UUID userId, SearchFilter searchFilter) {
@@ -284,6 +284,15 @@ public class CollectionService {
 
   private CollectionDto forTransfer(@NonNull CardCollection collection) {
     List<CardStub> cardStubs = cardService.fromCollectionCards(collection.cards);
+    return new CollectionDto(
+        CollectionInfo.ofCollection(collection),
+        new PagedModel<>(new PageImpl<>(cardStubs, Pageable.unpaged(), cardStubs.size())));
+  }
+
+  private CollectionDto forTransfer(@NonNull CardCollection collection, UUID userId) {
+    Map<Long, Integer> primaryCollectionAmounts = getPrimaryStub(userId);
+    List<CardStub> cardStubs =
+        cardService.fromCollectionCards(collection.cards, primaryCollectionAmounts);
     return new CollectionDto(
         CollectionInfo.ofCollection(collection),
         new PagedModel<>(new PageImpl<>(cardStubs, Pageable.unpaged(), cardStubs.size())));

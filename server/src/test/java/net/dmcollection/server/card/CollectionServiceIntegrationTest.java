@@ -170,6 +170,55 @@ class CollectionServiceIntegrationTest {
             });
   }
 
+  @Test
+  void deckResponseIncludesCollectionAmounts() {
+    var userId = user.getId();
+
+    List<CardIdAndAmount> collectionCards =
+        Arrays.asList(
+            new CardIdAndAmount("dm01-001", 10),
+            new CardIdAndAmount("dm24ex2-040", 3),
+            new CardIdAndAmount("dmc36-003", 7));
+    addToCollection(userId, collectionCards);
+
+    var deckInfo = collectionService.createCollection(userId, "Test Deck");
+    List<CardIdAndAmount> deckCards =
+        Arrays.asList(
+            new CardIdAndAmount("dm01-001", 4),
+            new CardIdAndAmount("dm24ex2-040", 2),
+            new CardIdAndAmount("dmr08-021", 1)); // Not in collection
+    addToDeck(deckInfo, deckCards);
+
+    // Retrieve the deck
+    var result = collectionService.getCollection(userId, deckInfo.id());
+    assertThat(result).isNotEmpty();
+    var deck = result.get();
+
+    // Verify each card has the correct deck amount and collection amount
+    assertThat(deck.cardPage().getContent()).hasSize(3);
+    deck.cardPage()
+        .getContent()
+        .forEach(
+            cardStub -> {
+              switch (cardStub.dmId()) {
+                case "dm01-001":
+                  assertThat(cardStub.amount()).isEqualTo(4);
+                  assertThat(cardStub.collectionAmount()).isEqualTo(10);
+                  break;
+                case "dm24ex2-040":
+                  assertThat(cardStub.amount()).isEqualTo(2);
+                  assertThat(cardStub.collectionAmount()).isEqualTo(3);
+                  break;
+                case "dmr08-021":
+                  assertThat(cardStub.amount()).isEqualTo(1);
+                  assertThat(cardStub.collectionAmount()).isZero();
+                  break;
+                default:
+                  throw new AssertionError("Unexpected card: " + cardStub.dmId());
+              }
+            });
+  }
+
   private void addToDeck(CollectionInfo info, CardIdAndAmount card) {
     if (cardRepository.existsByOfficialId(card.cardId())) {
       long id = cardRepository.findByOfficialId(card.cardId()).get().id();

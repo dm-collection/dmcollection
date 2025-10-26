@@ -166,11 +166,12 @@
 						landscape:min-w-full landscape:lg:grid-cols-5 landscape:xl:grid-cols-6"
 					>
 						{#each data.deck.getCards() as card (card.id)}
-							{@const inCollection = cardPage.content.find((c) => c.id == card.id)?.amount}
 							<CountedCardStub
 								{card}
 								amount={card.amount}
-								max={inCollection}
+								max={card.collectionAmount}
+								showMax={true}
+								enforceMax={false}
 								onChange={(newAmount: number) => {
 									amountChange(card.id, newAmount);
 								}}

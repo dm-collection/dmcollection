@@ -11,19 +11,22 @@
 		onChange: (value: number) => void;
 	};
 
+	const MAX_INT = 2 ** 31 - 1;
+
 	const {
 		value,
 		min = -(2 ** 31),
-		max = 2 ** 31 - 1,
+		max = MAX_INT,
 		showMax = false,
 		enforceMax = true,
 		onChange
 	}: Props = $props();
 
 	async function increment() {
-		if (!enforceMax || value < max) {
-			onChange(value + 1);
+		if (value > MAX_INT || (enforceMax && value > max)) {
+			return;
 		}
+		onChange(value + 1);
 	}
 
 	async function decrement() {
