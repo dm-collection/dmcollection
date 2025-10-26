@@ -95,7 +95,8 @@
 				<NavigationMenu.Trigger>
 					<span
 						><UserCircle class="inline" size="1.7em" weight="duotone" color="var(--color-teal-700)"
-						></UserCircle><span class="hidden align-middle text-teal-700 sm:inline sm:ml-2">{username}</span
+						></UserCircle><span class="hidden align-middle text-teal-700 sm:ml-2 sm:inline"
+							>{username}</span
 						></span
 					>
 				</NavigationMenu.Trigger>
