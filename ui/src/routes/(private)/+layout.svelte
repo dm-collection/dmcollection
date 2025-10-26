@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { authState } from '$lib/auth.svelte';
-	import HeaderNav from '$lib/components/HeaderNav.svelte';
+	import NavigationMenu from '$lib/components/NavigationMenu.svelte';
 	let { children } = $props();
 </script>
 
@@ -8,7 +8,9 @@
 	<title>DM Collection</title>
 </svelte:head>
 
-<HeaderNav enabled={true} username={authState.username ?? undefined} />
+<header>
+	<NavigationMenu enabled={true} username={authState.username} />
+</header>
 <main class="sticky m-8 mb-2">
 	{@render children()}
 </main>

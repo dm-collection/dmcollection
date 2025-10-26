@@ -24,7 +24,7 @@ html {
 	}
 
 	.nav-links {
-		@apply cursor-pointer border-b-2 border-teal-700/0 p-3 duration-200 hover:border-teal-700 hover:text-teal-700;
+		@apply cursor-pointer hover:border-b-2 hover:border-teal-700 hover:text-teal-700;
 	}
 
 	.select {
@@ -36,11 +36,11 @@ html {
 	}
 
 	.tbl-header {
-		@apply border border-r-0 border-l-0 border-solid border-teal-100 bg-teal-50 px-6 py-3 text-left align-middle text-sm font-semibold whitespace-nowrap text-teal-500 uppercase;
+		@apply border border-r-0 border-l-0 border-solid border-teal-100 bg-teal-50 px-6 py-3 text-left align-middle text-sm font-semibold text-teal-500 uppercase;
 	}
 
 	.tbl-row {
-		@apply border-t-0 border-r-0 border-l-0 p-4 px-6 align-middle text-sm whitespace-nowrap;
+		@apply border-t-0 border-r-0 border-l-0 p-4 px-6 align-middle text-sm;
 	}
 
 	.full-height-without-header {

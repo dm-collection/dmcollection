@@ -23,7 +23,7 @@
 			Welcome to DM Collection
 		</h1>
 
-		<p class="mx-auto mt-4 max-w-xl sm:text-xl/relaxed">
+		<p class="mx-auto mt-4 sm:text-xl/relaxed">
 			The place to track your Duel Masters Card Collection
 		</p>
 		<h2 class="my-2 block text-lg">Here are some example cards:</h2>
