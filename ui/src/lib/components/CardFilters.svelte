@@ -25,18 +25,22 @@
 	import CaretUp from 'phosphor-svelte/lib/CaretUp';
 	import ArrowsLeftRight from 'phosphor-svelte/lib/ArrowsLeftRight';
 
-	const {
+	let {
 		search,
 		sets,
 		species,
 		rarities,
-		changeCallback
+		changeCallback,
+		showOwnedOnlyToggle = false,
+		ownedOnly = $bindable(false)
 	}: {
 		search: SearchFilter;
 		sets: Array<CardSet> | undefined;
 		species: Array<string> | undefined;
 		rarities: Array<Rarity> | undefined;
-		changeCallback: (newParams: URLSearchParams) => void;
+		changeCallback: (newParams: URLSearchParams, ownedOnly?: boolean) => void;
+		showOwnedOnlyToggle?: boolean;
+		ownedOnly?: boolean;
 	} = $props();
 
 	const MAX_ROUNDED: number = 2147490000;
@@ -149,7 +153,7 @@
 	}
 
 	async function onChange() {
-		changeCallback(search.searchParams);
+		changeCallback(search.searchParams, ownedOnly);
 	}
 </script>
 
@@ -185,6 +189,12 @@
 		</button>
 	</div>
 	<div class="flex flex-row flex-wrap items-start gap-4" class:hidden={!filtersVisible}>
+		<div class:hidden={!showOwnedOnlyToggle} class="self-end">
+			<label class="flex items-center gap-2">
+				<input type="checkbox" bind:checked={ownedOnly} onchange={onChange} />
+				<span class="text-sm font-medium">Owned only</span>
+			</label>
+		</div>
 		<div>
 			<label for="nameSearch" class="block text-sm font-medium">Card name</label>
 			<input

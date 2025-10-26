@@ -7,15 +7,17 @@
 	import { getRarities } from '$lib/rarity.svelte';
 	import { getSets } from '$lib/sets.svelte';
 	import { getSpecies } from '$lib/species.svelte';
-	import type { CollectionData } from '$lib/types/collection';
-	import { SvelteURL } from 'svelte/reactivity';
+	import type { CardStub } from '$lib/types/card';
+	import type { PagedResult } from '$lib/types/page';
+	import { SvelteURL, SvelteURLSearchParams } from 'svelte/reactivity';
 	import type { PageProps } from './$types';
 	import PencilSimple from 'phosphor-svelte/lib/PencilSimple';
 	import { invalidateAuth } from '$lib/auth.svelte';
 
 	let { data }: PageProps = $props();
 
-	let collection = $state(data.collection);
+	let cardPage = $state(data.cardPage);
+	let ownedOnly = $state(data.ownedOnly ?? false);
 
 	let editDialog: HTMLDialogElement;
 
@@ -59,17 +61,38 @@
 		}
 	}
 
-	async function runSearch(newParams: URLSearchParams, newPageNumber?: number) {
+	async function runSearch(
+		newParams: URLSearchParams,
+		showOwnedOnly?: boolean,
+		newPageNumber?: number
+	) {
 		try {
 			let pageNumber = newPageNumber ?? 0;
 			let url = new SvelteURL(page.url);
-			url.hash = newParams.toString();
+			const hashParams = new SvelteURLSearchParams(newParams);
+			if (showOwnedOnly) {
+				hashParams.set('ownedOnly', 'true');
+			}
+			url.hash = hashParams.toString();
 			replaceState(url, page.state);
-			const response = await fetch(`/api/collection/${pageNumber}?${newParams.toString()}`);
+
+			const endpoint = showOwnedOnly ? 'collection' : 'cards';
+			const response = await fetch(`/api/${endpoint}/${pageNumber}?${newParams.toString()}`);
+
 			if (response.ok) {
-				let newCollection = (await response.json()) as CollectionData;
-				newCollection.cardPage.page.number += 1;
-				collection = newCollection;
+				let result = await response.json();
+				let newCardPage: PagedResult<CardStub>;
+
+				if (showOwnedOnly) {
+					// /api/collection returns CollectionData
+					newCardPage = result.cardPage;
+				} else {
+					// /api/cards returns PagedResult directly
+					newCardPage = result;
+				}
+
+				newCardPage.page.number += 1;
+				cardPage = newCardPage;
 			} else if (response.status === 401 || response.status === 403) {
 				invalidateAuth();
 				goto('/login');
@@ -80,7 +103,7 @@
 	}
 
 	async function changePage(newPageNum: number) {
-		runSearch(data.search?.searchParams ?? new URLSearchParams(), newPageNum - 1);
+		runSearch(data.search?.searchParams ?? new URLSearchParams(), ownedOnly, newPageNum - 1);
 	}
 
 	async function amountChange(cardId: number, newAmount: number) {
@@ -123,7 +146,7 @@
 <div
 	class="full-height-without-header flex min-h-full gap-4 overflow-hidden portrait:flex-col landscape:flex-row"
 >
-	{#if data.deck?.isLoaded() && collection}
+	{#if data.deck?.isLoaded() && cardPage}
 		<div
 			class="flex flex-col rounded-md bg-white p-2 shadow-md portrait:max-h-[41%] portrait:min-h-[41%] landscape:max-w-[40%] landscape:min-w-[40%]"
 		>
@@ -143,9 +166,7 @@
 						landscape:min-w-full landscape:lg:grid-cols-5 landscape:xl:grid-cols-6"
 					>
 						{#each data.deck.getCards() as card (card.id)}
-							{@const inCollection = collection.cardPage.content.find(
-								(c) => c.id == card.id
-							)?.amount}
+							{@const inCollection = cardPage.content.find((c) => c.id == card.id)?.amount}
 							<CountedCardStub
 								{card}
 								amount={card.amount}
@@ -164,7 +185,7 @@
 		<div
 			class="flex flex-col rounded-md bg-white p-2 shadow-md portrait:max-h-[58%] portrait:min-h-[58%] landscape:max-w-[59%] landscape:min-w-[59%]"
 		>
-			<h1 class="txt-h1">Your Collection</h1>
+			<h1 class="txt-h1">{ownedOnly ? 'Your Collection' : 'All Cards'}</h1>
 			{#await getSets() then sets}
 				{#await getSpecies() then species}
 					{#await getRarities() then rarities}
@@ -174,31 +195,30 @@
 							{species}
 							{rarities}
 							changeCallback={runSearch}
+							showOwnedOnlyToggle={true}
+							bind:ownedOnly
 						/>
 					{/await}
 				{/await}
 			{/await}
-			{#if collection.cardPage.page.totalPages > 1}
-				<Pagination
-					pageInfo={collection.cardPage.page}
-					onForward={changePage}
-					onBack={changePage}
-				/>
+			{#if cardPage.page.totalPages > 1}
+				<Pagination pageInfo={cardPage.page} onForward={changePage} onBack={changePage} />
 			{/if}
 			<div class="overflow-y-auto landscape:max-h-full">
-				{#if collection.cardPage.content.length > 0}
+				{#if cardPage.content.length > 0}
 					<div
 						class="grid gap-4 shadow-inner
 						portrait:md:grid-cols-4 portrait:lg:grid-cols-5 portrait:xl:grid-cols-6
 					    landscape:lg:grid-cols-4 landscape:xl:grid-cols-8"
 					>
-						{#each collection.cardPage.content as card (card.id)}
+						{#each cardPage.content as card (card.id)}
 							{#await data.deck.getAmount(card.id) then inDeck}
 								<CountedCardStub
 									{card}
 									amount={inDeck}
 									max={card.amount}
 									showMax={true}
+									enforceMax={false}
 									onChange={(newAmount: number) => {
 										amountChange(card.id, newAmount);
 									}}
@@ -206,17 +226,17 @@
 							{/await}
 						{/each}
 					</div>
-					{#if collection.cardPage.page.totalPages > 1}
-						<Pagination
-							pageInfo={collection.cardPage.page}
-							onForward={changePage}
-							onBack={changePage}
-						/>
+					{#if cardPage.page.totalPages > 1}
+						<Pagination pageInfo={cardPage.page} onForward={changePage} onBack={changePage} />
 					{/if}
 				{:else if data.search.isDefault()}
-					<h1>Your collection is empty.</h1>
+					<h1>{ownedOnly ? 'Your collection is empty.' : 'No cards found.'}</h1>
 				{:else}
-					<h1>No results. Try adjusting the filters or collect matching cards.</h1>
+					<h1>
+						{ownedOnly
+							? 'No results. Try adjusting the filters or collect matching cards.'
+							: 'No results. Try adjusting the filters.'}
+					</h1>
 				{/if}
 			</div>
 		</div>
