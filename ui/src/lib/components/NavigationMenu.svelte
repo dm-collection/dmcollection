@@ -84,7 +84,7 @@
 					'py-3',
 					'px-2',
 					'sm:px-3',
-					isActive('/decks') && 'border-b-2 border-teal-700 font-bold text-teal-700'
+					isActive('/deck') && 'border-b-2 border-teal-700 font-bold text-teal-700'
 				]}
 			>
 				<span>Decks</span>

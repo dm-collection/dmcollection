@@ -8,6 +8,7 @@
 		max = 2 ** 31 - 1,
 		showMax = false,
 		enableEdit = true,
+		enforceMax = true,
 		onChange
 	}: {
 		card: CardStub;
@@ -15,6 +16,7 @@
 		max?: number;
 		enableEdit?: boolean;
 		showMax?: boolean;
+		enforceMax?: boolean;
 		onChange: (newAmount: number) => void;
 	} = $props();
 </script>
@@ -33,7 +35,7 @@
 		<p class="text-base">{card.idText}</p>
 	</a>
 	{#if enableEdit}
-		<AmountButton value={amount} min={0} {max} {showMax} {onChange} />
+		<AmountButton value={amount} min={0} {max} {showMax} {enforceMax} {onChange} />
 	{:else}
 		<span
 			class="inline-flex h-8 w-8 items-center justify-center rounded-md bg-slate-50 text-lg font-medium ring-1 ring-slate-300 ring-inset"

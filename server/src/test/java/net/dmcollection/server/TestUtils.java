@@ -512,6 +512,7 @@ public class TestUtils {
                     .map(image -> "/image/" + image)
                     .toList()
                 : Collections.emptyList(),
+            0,
             0);
     testCards.put(cardId, stub);
     return stub;

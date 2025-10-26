@@ -56,4 +56,5 @@ export type CardStub = {
 	idText: string;
 	imagePaths: Array<string>;
 	amount: number;
+	collectionAmount: number;
 };

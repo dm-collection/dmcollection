@@ -55,7 +55,8 @@
 				{/if}
 			</div>
 		{/if}
-		<div>
+		<div class="flex flex-row items-center gap-2">
+			<p>Owned:</p>
 			<AmountButton value={collectionEntry?.amount ?? 0} min={0} {onChange} />
 		</div>
 	</div>

@@ -43,7 +43,8 @@ public class CardService {
       String idText,
       Set<Civilization> civilizations,
       List<String> imagePaths,
-      int amount) {}
+      int amount,
+      int collectionAmount) {}
 
   public record CardDto(
       Long id,
@@ -77,13 +78,21 @@ public class CardService {
   }
 
   public List<CardStub> fromCollectionCards(Set<CollectionCards> cards) {
+    return fromCollectionCards(cards, Map.of());
+  }
+
+  public List<CardStub> fromCollectionCards(
+      Set<CollectionCards> cards, Map<Long, Integer> collectionAmounts) {
     Map<Long, Integer> amountById =
         cards.stream()
             .filter(card -> card.id().getId() != null)
             .collect(Collectors.toMap(card -> card.id().getId(), CollectionCards::amount));
 
     return cardRepository.findAllById(amountById.keySet()).stream()
-        .map(card -> fromCardEntity(card, amountById.get(card.id())))
+        .map(
+            card ->
+                fromCardEntity(
+                    card, amountById.get(card.id()), collectionAmounts.getOrDefault(card.id(), 0)))
         .toList();
   }
 
@@ -101,10 +110,10 @@ public class CardService {
   }
 
   private CardStub fromCardEntity(CardEntity card) {
-    return this.fromCardEntity(card, 0);
+    return this.fromCardEntity(card, 0, 0);
   }
 
-  private CardStub fromCardEntity(CardEntity card, int amount) {
+  private CardStub fromCardEntity(CardEntity card, int amount, int collectionAmount) {
     List<String> images = null;
     Set<Civilization> civilizations = null;
     if (card.facets() != null) {
@@ -119,7 +128,14 @@ public class CardService {
               .flatMap(f -> f.getCivs().stream())
               .collect(Collectors.toUnmodifiableSet());
     }
-    return new CardStub(card.id(), card.officialId(), card.idText(), civilizations, images, amount);
+    return new CardStub(
+        card.id(),
+        card.officialId(),
+        card.idText(),
+        civilizations,
+        images,
+        amount,
+        collectionAmount);
   }
 
   public boolean cardExists(Long id) {

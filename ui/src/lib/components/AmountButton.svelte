@@ -7,15 +7,26 @@
 		min?: number;
 		max?: number;
 		showMax?: boolean;
+		enforceMax?: boolean;
 		onChange: (value: number) => void;
 	};
 
-	const { value, min = -(2 ** 31), max = 2 ** 31 - 1, showMax = false, onChange }: Props = $props();
+	const MAX_INT = 2 ** 31 - 1;
+
+	const {
+		value,
+		min = -(2 ** 31),
+		max = MAX_INT,
+		showMax = false,
+		enforceMax = true,
+		onChange
+	}: Props = $props();
 
 	async function increment() {
-		if (value < max) {
-			onChange(value + 1);
+		if (value > MAX_INT || (enforceMax && value > max)) {
+			return;
 		}
+		onChange(value + 1);
 	}
 
 	async function decrement() {
@@ -41,7 +52,10 @@
 		<input
 			id="quantity-input"
 			data-input-counter
-			class="block h-11 w-full border-x-0 py-2.5 text-center text-lg text-gray-900"
+			class={[
+				'block h-11 w-full border-x-0 py-2.5 text-center text-lg text-gray-900',
+				value > max && 'text-red-500'
+			]}
 			placeholder="0"
 			value={showMax ? `${value}/${max}` : value}
 			required
@@ -49,7 +63,7 @@
 			disabled
 		/>
 		<button
-			disabled={value >= max}
+			disabled={enforceMax && value >= max}
 			onclick={increment}
 			aria-label="increase"
 			type="button"

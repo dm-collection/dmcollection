@@ -134,7 +134,8 @@ public class CardQueryService {
       }
     }
 
-    boolean hasEffectSearch = searchFilter.effectSearch() != null && !searchFilter.effectSearch().isBlank();
+    boolean hasEffectSearch =
+        searchFilter.effectSearch() != null && !searchFilter.effectSearch().isBlank();
 
     List<String> query = new ArrayList<>();
     List<Object> parameters = new ArrayList<>();
@@ -245,6 +246,7 @@ public class CardQueryService {
                             .map(imageService::makeImageUrl)
                             .filter(Objects::nonNull)
                             .toList(),
+                        sc.amount(),
                         sc.amount()))
             .toList();
     return new SearchResult(
