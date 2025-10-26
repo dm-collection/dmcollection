@@ -22,7 +22,7 @@
 		"autoprefixer": "10.4.21",
 		"bits-ui": "2.11.5",
 		"date-fns": "4.1.0",
-		"eslint": "9.37.0",
+		"eslint": "9.38.0",
 		"eslint-config-prettier": "10.1.8",
 		"eslint-plugin-svelte": "3.12.5",
 		"globals": "16.4.0",
