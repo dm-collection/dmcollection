@@ -20,6 +20,8 @@ dmcollection:
     max-size: 100
   registration-code: ${dmcollection_registration_code:}
   remember-me-key: ${dmcollection_remember_me_key:devkey}
+  imagor:
+    base-url: ${dmcollection_imagor_base_url:http://localhost:8000}
 server:
   servlet:
     session:

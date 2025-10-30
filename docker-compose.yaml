@@ -12,3 +12,16 @@ services:
       - type: bind
         source: ./dmcollection-images
         target: /images
+
+  imagor:
+    image: shumc/imagor:latest
+    ports:
+      - "8000:8000"
+    environment:
+      FILE_LOADER_BASE_DIR: /images
+      IMAGOR_UNSAFE: "1"
+    volumes:
+      - type: bind
+        source: ./dmcollection-images
+        target: /images
+        read_only: true
