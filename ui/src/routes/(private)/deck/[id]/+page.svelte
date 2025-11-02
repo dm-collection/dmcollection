@@ -73,6 +73,11 @@
 			if (showOwnedOnly) {
 				hashParams.set('ownedOnly', 'true');
 			}
+			// Preserve UI state (filter/sort visibility) from current hash
+			const currentHash = new SvelteURLSearchParams(page.url.hash.substring(1));
+			if (currentHash.has('_ui')) {
+				hashParams.set('_ui', currentHash.get('_ui')!);
+			}
 			url.hash = hashParams.toString();
 			replaceState(url, page.state);
 
@@ -150,7 +155,7 @@
 		<div
 			class="flex flex-col rounded-md bg-white p-2 shadow-md portrait:max-h-[41%] portrait:min-h-[41%] landscape:max-w-[40%] landscape:min-w-[40%]"
 		>
-			<div class="flex flex-row gap-4">
+			<div class="flex flex-row items-center gap-4">
 				<h1 class="txt-h1">Deck: {data.deck.getInfo()!.name}</h1>
 				<button class="btn-secondary" onclick={showDialog}>
 					<PencilSimple class="mr-1"></PencilSimple>Rename
@@ -162,8 +167,8 @@
 				{#if data.deck.getCards().length > 0}
 					<div
 						class="grid gap-4 shadow-inner
-						portrait:min-w-full portrait:md:grid-cols-5 portrait:lg:grid-cols-6 portrait:xl:grid-cols-7
-						landscape:min-w-full landscape:lg:grid-cols-5 landscape:xl:grid-cols-6"
+						portrait:min-w-full portrait:grid-cols-2 portrait:md:grid-cols-5 portrait:lg:grid-cols-6 portrait:xl:grid-cols-7
+						landscape:min-w-full landscape:grid-cols-2 landscape:lg:grid-cols-5 landscape:xl:grid-cols-6"
 					>
 						{#each data.deck.getCards() as card (card.id)}
 							<CountedCardStub
@@ -209,8 +214,8 @@
 				{#if cardPage.content.length > 0}
 					<div
 						class="grid gap-4 shadow-inner
-						portrait:md:grid-cols-4 portrait:lg:grid-cols-5 portrait:xl:grid-cols-6
-					    landscape:lg:grid-cols-4 landscape:xl:grid-cols-8"
+						portrait:grid-cols-2 portrait:md:grid-cols-4 portrait:lg:grid-cols-5 portrait:xl:grid-cols-6
+					    landscape:grid-cols-2 landscape:lg:grid-cols-4 landscape:xl:grid-cols-8"
 					>
 						{#each cardPage.content as card (card.id)}
 							{#await data.deck.getAmount(card.id) then inDeck}

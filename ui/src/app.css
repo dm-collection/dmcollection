@@ -16,11 +16,11 @@ html {
 
 @layer components {
 	.btn-primary {
-		@apply inline-flex items-center rounded-md px-3 py-2 text-white enabled:bg-teal-700 enabled:hover:bg-teal-600 disabled:bg-slate-200;
+		@apply inline-flex items-center rounded-md px-2 py-1 text-white enabled:bg-teal-700 enabled:hover:bg-teal-600 disabled:bg-slate-200 md:px-3 md:py-2;
 	}
 
 	.btn-secondary {
-		@apply inline-flex items-center rounded-md border bg-white px-3 py-2 enabled:border-teal-700 enabled:text-teal-700 enabled:hover:bg-teal-700 enabled:hover:text-teal-50 disabled:border-slate-300 disabled:text-slate-300;
+		@apply inline-flex items-center rounded-md border bg-white px-2 py-1 enabled:border-teal-700 enabled:text-teal-700 enabled:hover:bg-teal-700 enabled:hover:text-teal-50 disabled:border-slate-300 disabled:text-slate-300 md:px-3 md:py-2;
 	}
 
 	.nav-links {

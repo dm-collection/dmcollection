@@ -9,11 +9,13 @@
 	import { getSpecies } from '$lib/species.svelte';
 	import { getRarities } from '$lib/rarity.svelte';
 	import { invalidateAuth } from '$lib/auth.svelte';
+	import { page } from '$app/state';
 
 	let { data }: { data: PageData } = $props();
 
 	async function runSearch(newParams: URLSearchParams) {
-		await goto(`/cards?${newParams.toString()}`, { replaceState: true });
+		const hash = page.url.hash; // Preserve the current hash
+		await goto(`/cards?${newParams.toString()}${hash}`, { replaceState: true });
 	}
 
 	async function amountChange(card: CardStub, i: number, newAmount: number) {
@@ -62,7 +64,9 @@
 {#if data.cardPage != undefined}
 	{#if data.cardPage.content.length > 0}
 		<Pagination pageInfo={data.cardPage.page} path="/cards" />
-		<div class="grid gap-8 lg:grid-cols-5 xl:grid-cols-8">
+		<div
+			class="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-4 lg:grid-cols-5 lg:gap-8 xl:grid-cols-8"
+		>
 			{#each data.cardPage.content as card, i (card.id)}
 				<CountedCardStub
 					{card}

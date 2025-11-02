@@ -50,7 +50,7 @@
 	const range: string = 'from';
 	const betweenLabel: string = 'to';
 
-	let filtersVisible: boolean = $state(true);
+	let filtersVisible: boolean = $state(window.matchMedia('(min-width: 48rem').matches);
 	let sortVisible: boolean = $state(false);
 
 	type OrderOption = {

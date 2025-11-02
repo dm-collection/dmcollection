@@ -169,7 +169,7 @@
 {#if data.collection}
 	<div class="flex flex-row justify-between">
 		<h1 class="txt-h1">Collection</h1>
-		<form method="get" action="/api/collection/export" class="flex flex-row gap-2">
+		<form method="get" action="/api/collection/export" class="flex flex-row items-center gap-2">
 			<button
 				type="submit"
 				class="inline-flex items-center rounded-md border bg-white py-2 pr-3 pl-2 enabled:border-teal-700 enabled:text-teal-700 enabled:hover:bg-teal-700 enabled:hover:text-teal-50 disabled:border-slate-300 disabled:text-slate-300"
@@ -205,7 +205,9 @@
 	{/await}
 	{#if data.collection && data.collection.cardPage.content.length > 0}
 		<Pagination pageInfo={data.collection.cardPage.page} path="/collection" />
-		<div class="grid gap-8 lg:grid-cols-5 xl:grid-cols-8">
+		<div
+			class="grid grid-cols-2 gap-2 md:grid-cols-4 md:gap-4 lg:grid-cols-5 lg:gap-8 xl:grid-cols-8"
+		>
 			{#each data.collection.cardPage.content as card, i (card.id)}
 				<CountedCardStub
 					{card}
