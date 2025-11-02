@@ -36,8 +36,8 @@
 	}
 </script>
 
-<form class="mx-auto max-w-xs">
-	<div class="relative flex max-w-32 items-center">
+<form class="mx-auto">
+	<div class="flex flex-row items-center justify-center">
 		<button
 			onclick={decrement}
 			disabled={value <= min}
@@ -45,23 +45,16 @@
 			type="button"
 			id="decrement-button"
 			data-input-counter-decrement="quantity-input"
-			class="btn-secondary px-2 py-2"
+			class="btn-secondary px-1.5 py-1.5 md:px-2 md:py-2"
 		>
 			<Minus weight="bold"><title>Subtract</title></Minus>
 		</button>
-		<input
-			id="quantity-input"
-			data-input-counter
+		<span
 			class={[
-				'block h-11 w-full border-x-0 py-2.5 text-center text-lg text-gray-900',
+				'mx-2 min-w-[4ch] shrink text-center text-lg text-gray-900',
 				value > max && 'text-red-500'
-			]}
-			placeholder="0"
-			value={showMax ? `${value}/${max}` : value}
-			required
-			readonly
-			disabled
-		/>
+			]}>{showMax ? `${value}/${max}` : value}</span
+		>
 		<button
 			disabled={enforceMax && value >= max}
 			onclick={increment}
@@ -69,7 +62,7 @@
 			type="button"
 			id="increment-button"
 			data-input-counter-increment="quantity-input"
-			class="btn-secondary px-2 py-2"
+			class="btn-secondary px-1.5 py-1.5 md:px-2 md:py-2"
 		>
 			<Plus weight="bold"><title>Add</title></Plus>
 		</button>
