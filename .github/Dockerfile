@@ -1,5 +1,6 @@
-FROM gcr.io/distroless/java21-debian12:nonroot@sha256:2491db610eb845917845285aa7bac120aa8a16d85435d03c8452d5ab24c1bf79
+FROM gcr.io/distroless/java25-debian13:nonroot@sha256:4e9260c5005f9f0722b11e64e608ddd787d743342e80c068bab7d9c5c7204a90
 ARG APP_USER_HOME=/home/nonroot
 WORKDIR ${APP_USER_HOME}
+ENV JDK_JAVA_OPTIONS="-XX:+UseCompactObjectHeaders"
 COPY ./target/server-*.jar app.jar
 CMD ["app.jar"]
