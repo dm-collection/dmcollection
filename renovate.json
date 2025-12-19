@@ -3,6 +3,20 @@
   "extends": [
     "config:recommended"
   ],
-  "ignoreDeps": ["net.dmcollection:card-data", "net.dmcollection:parent", "net.dmcollection:model"],
-  "lockFileMaintenance": { "enabled": true }
+  "ignoreDeps": [
+    "net.dmcollection:card-data",
+    "net.dmcollection:parent",
+    "net.dmcollection:model"
+  ],
+  "lockFileMaintenance": {
+    "enabled": true
+  },
+  "packageRules": [
+    {
+      "matchDatasources": [
+        "npm"
+      ],
+      "minimumReleaseAge": "7 days"
+    }
+  ]
 }
