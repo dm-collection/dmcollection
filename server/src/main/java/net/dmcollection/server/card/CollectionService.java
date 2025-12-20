@@ -1,7 +1,12 @@
 package net.dmcollection.server.card;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import net.dmcollection.model.card.Civilization;
 import net.dmcollection.server.card.CardCollection.CollectionIds;
@@ -305,11 +310,10 @@ public class CollectionService {
   }
 
   private int compareCivs(Set<Civilization> c1, Set<Civilization> c2) {
-    if (c1.size() == 1 || c2.size() == 1) {
-      if (c1.size() != c2.size()) {
-        return Integer.compare(c1.size(), c2.size());
-      }
+    if ((c1.size() == 1 || c2.size() == 1) && c1.size() != c2.size()) {
+      return Integer.compare(c1.size(), c2.size());
     }
+
     String civString1 =
         Civilization.toInts(c1).stream().map(Objects::toString).collect(Collectors.joining());
     String civString2 =
