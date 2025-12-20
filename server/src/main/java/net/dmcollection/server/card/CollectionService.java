@@ -5,8 +5,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import net.dmcollection.model.card.Civilization;
 import net.dmcollection.server.card.CardCollection.CollectionIds;
 import net.dmcollection.server.card.CardService.CardDto;
 import net.dmcollection.server.card.CardService.CardFacetDto;
@@ -292,9 +294,30 @@ public class CollectionService {
   private CollectionDto forTransfer(@NonNull CardCollection collection, UUID userId) {
     Map<Long, Integer> primaryCollectionAmounts = getPrimaryStub(userId);
     List<CardStub> cardStubs =
-        cardService.fromCollectionCards(collection.cards, primaryCollectionAmounts);
+        cardService.fromCollectionCards(collection.cards, primaryCollectionAmounts).stream()
+            .sorted(
+                (c1, c2) -> {
+                  int civComparison = compareCivs(c1.civilizations(), c2.civilizations());
+                  if (civComparison != 0) {
+                    return civComparison;
+                  }
+                  return c1.dmId().compareTo(c2.dmId());
+                })
+            .toList();
     return new CollectionDto(
         CollectionInfo.ofCollection(collection),
         new PagedModel<>(new PageImpl<>(cardStubs, Pageable.unpaged(), cardStubs.size())));
+  }
+
+  private int compareCivs(Set<Civilization> c1, Set<Civilization> c2) {
+    if ((c1.size() == 1 || c2.size() == 1) && c1.size() != c2.size()) {
+      return Integer.compare(c1.size(), c2.size());
+    }
+
+    String civString1 =
+        Civilization.toInts(c1).stream().map(Objects::toString).collect(Collectors.joining());
+    String civString2 =
+        Civilization.toInts(c2).stream().map(Objects::toString).collect(Collectors.joining());
+    return civString1.compareTo(civString2);
   }
 }
