@@ -1,4 +1,4 @@
-FROM gcr.io/distroless/java25-debian13:nonroot@sha256:4e9260c5005f9f0722b11e64e608ddd787d743342e80c068bab7d9c5c7204a90
+FROM gcr.io/distroless/java25-debian13:nonroot@sha256:4e917e064be1472cb05551ef106210d5c527e4de30151e97e07f8cb7a19d089f
 ARG APP_USER_HOME=/home/nonroot
 WORKDIR ${APP_USER_HOME}
 ENV JDK_JAVA_OPTIONS="-XX:+UseCompactObjectHeaders"
