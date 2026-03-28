@@ -12,6 +12,8 @@ spring:
     console:
       enabled: false
       path: /h2-console
+  flyway:
+    enabled: false
   liquibase.change-log: classpath:db/changelog/db.changelog-master.yml
 dmcollection:
   image-storage-path: ${dmcollection_image_storage_path:${user.home}/dmcollection-images}
