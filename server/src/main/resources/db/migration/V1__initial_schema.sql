@@ -8,15 +8,29 @@
 -- ---------------------------------------------------------------------------
 -- Civilization constants (resolved to display names by the application)
 -- ---------------------------------------------------------------------------
--- Civilizations are a fixed, closed set.  The integer value doubles as
--- both identifier and canonical sort order, so no lookup table is needed.
+-- The five civilizations are a fixed, closed set.  The integer value
+-- doubles as both identifier and canonical sort order, so no lookup
+-- table is needed.
 --
---   0 = 無色 (Colorless/Zero)
 --   1 = 光   (Light)
 --   2 = 水   (Water)
 --   3 = 闇   (Darkness)
 --   4 = 火   (Fire)
 --   5 = 自然 (Nature)
+--
+-- Colorless (無色 / ゼロ文明) is NOT a civilization — it is the absence
+-- of civilization.  In the game rules "ゼロ文明" does not exist as a
+-- declarable civilization; cards without a civilization are simply called
+-- 無色.  Therefore colorless is represented as an empty civilization_ids
+-- array ('{}''), not as a sixth ID.  The application maps display label
+-- "ゼロ" / "無色" to the empty-array case.
+--
+-- Mono vs multi vs colorless (game-rule definitions):
+--   colorless  = 0 civilizations (empty array)
+--   mono-color = exactly 1 civilization
+--   multicolor = 2+ civilizations (rainbow / レインボー)
+-- These three categories are mutually exclusive; colorless is not the
+-- opposite of multicolor.
 -- ---------------------------------------------------------------------------
 
 -- ---------------------------------------------------------------------------
@@ -105,7 +119,7 @@ CREATE TABLE card (
     sort_cost            integer,    -- first side's cost_sort (null = no cost)
     sort_power           integer,    -- first side's power_sort
     sort_power_modifier  smallint,   -- first side's power_modifier_sort
-    sort_civilization    smallint[] NOT NULL DEFAULT '{}', -- civilization_ids for sorting (from card_civ_group)
+    sort_civilization    smallint[] NOT NULL DEFAULT '{}', -- civ IDs 1–5 for sorting (from card_civ_group); empty = colorless
     deck_zone text NOT NULL DEFAULT 'main'
                        CHECK (deck_zone IN ('main', 'hyperspatial', 'gr')) -- game start zone classification
 );
@@ -134,7 +148,7 @@ CREATE TABLE card_side (
     power_modifier  text        NOT NULL DEFAULT 'none'
                     CHECK (power_modifier IN ('none', 'leading_plus',
                                                'trailing_plus', 'trailing_minus')),
-    civilization_ids smallint[]  NOT NULL DEFAULT '{}',  -- sorted integer civ IDs (0–5), inlined from junction table
+    civilization_ids smallint[]  NOT NULL DEFAULT '{}',  -- sorted civ IDs (1–5); empty = colorless side
     side_type       text,                           -- nice-to-have label: 'base', 'hyper', etc.
     -- Derived filter columns (generated, no app maintenance needed).
     -- Merge infinity into a single comparable integer for range queries.
@@ -183,18 +197,30 @@ CREATE INDEX idx_card_side_card_type_type_id ON card_side_card_type (card_type_i
 --
 -- Maintained by the application during card upserts (same pattern as
 -- ability.search_text). Source of truth remains card_side.civilization_ids.
+--
+-- Colorless-side handling:
+--   Because colorless = empty array, the union of a colorless side with a
+--   colored side loses the colorless information.  For example:
+--     ブータンPUNK (colorless creature + 闇 spell) → union = {3}, civ_count = 1
+--     カラーレス・レインボー (colorless creature + 5色 spell) → union = {1,2,3,4,5}, civ_count = 5
+--   Both are correctly mono/multicolored at the card level (per game rules),
+--   but a "colorless" filter (civ_count = 0) would miss them entirely.
+--   The includes_colorless_side flag is the ONLY mechanism to surface these
+--   cards in colorless-oriented queries.
 
 CREATE TABLE card_civ_group (
     id                      integer     GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     card_id                 integer     NOT NULL REFERENCES card (id) ON DELETE CASCADE,
-    civilization_ids        smallint[]  NOT NULL DEFAULT '{}',  -- sorted by civilization value (= sort order)
+    civilization_ids        smallint[]  NOT NULL DEFAULT '{}',  -- sorted civ IDs 1–5; empty = purely colorless card
     civ_count               smallint    NOT NULL
                             GENERATED ALWAYS AS (cardinality(civilization_ids)) STORED,
     includes_colorless_side boolean     NOT NULL DEFAULT false
-    -- true when any constituent side has zero civilizations;
-    -- needed for twinpacts whose union is non-empty but one side is colorless
-    -- (e.g. カラーレス・レインボー: colorless creature + 5-civ spell → union is
-    -- {1,2,3,4,5} but should still match "colorless" queries)
+    -- True when any constituent side has an empty civilization_ids array.
+    -- This is load-bearing for colorless queries: without it, cards like
+    -- ブータンPUNK (colorless + 闇 → union {3}) and カラーレス・レインボー
+    -- (colorless + 5色 → union {1,2,3,4,5}) would be invisible to any
+    -- colorless filter, since their civ_count > 0 and their civilization_ids
+    -- contain only real civilizations.
 );
 
 CREATE INDEX idx_card_civ_group_card_id ON card_civ_group (card_id);
