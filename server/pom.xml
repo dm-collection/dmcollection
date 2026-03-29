@@ -159,7 +159,7 @@
             <containerImage>postgres:18-alpine</containerImage>
           </database>
           <flyway>
-            <locations>filesystem:src/main/resources/db/migration</locations>
+            <locations>filesystem:${project.basedir}/src/main/resources/db/migration</locations>
           </flyway>
           <jooq>
             <generator>
