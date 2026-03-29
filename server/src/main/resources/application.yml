@@ -22,6 +22,7 @@ dmcollection:
     max-size: 100
   registration-code: ${dmcollection_registration_code:}
   remember-me-key: ${dmcollection_remember_me_key:devkey}
+  card-data-path: ${dmcollection_card_data_path:./data/card-data.json}
 server:
   servlet:
     session:
