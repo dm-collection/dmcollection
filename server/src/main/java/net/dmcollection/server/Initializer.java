@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import net.dmcollection.model.card.Civilization;
-import net.dmcollection.server.card.internal.SpeciesService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Profile;
@@ -29,22 +28,17 @@ public class Initializer {
   private static final Logger log = LoggerFactory.getLogger(Initializer.class);
   private final AppProperties properties;
   private final JdbcTemplate jdbcTemplate;
-  private final SpeciesService speciesService;
 
-  public Initializer(
-      AppProperties properties, JdbcTemplate jdbcTemplate, SpeciesService speciesService) {
+  public Initializer(AppProperties properties, JdbcTemplate jdbcTemplate) {
     this.properties = properties;
     this.jdbcTemplate = jdbcTemplate;
-    this.speciesService = speciesService;
   }
 
   @EventListener
   public void initialize(ContextRefreshedEvent event) {
     Thread civLoading = Thread.ofVirtual().start(this::loadFacetCivs);
-    Thread facetFilterInit = Thread.ofVirtual().start(speciesService::initialize);
     try {
       civLoading.join();
-      facetFilterInit.join();
     } catch (InterruptedException e) {
       log.error("Error while waiting for initialization to finish", e);
     }

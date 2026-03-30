@@ -1,9 +1,11 @@
 package net.dmcollection.server.user;
 
+import static net.dmcollection.server.jooq.generated.tables.AppUser.APP_USER;
 import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import java.util.ArrayList;
 import java.util.List;
+import net.dmcollection.server.PostgresTestBase;
 import net.dmcollection.server.user.AuthenticationController.LoginRequest;
 import net.dmcollection.server.user.AuthenticationController.RegistrationRequest;
 import net.dmcollection.server.user.AuthenticationController.UsernameRequest;
@@ -17,24 +19,19 @@ import org.springframework.boot.test.context.SpringBootTest.WebEnvironment;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.reactive.server.EntityExchangeResult;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import org.springframework.util.MultiValueMap;
 
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("test")
-@ContextConfiguration
 @TestPropertySource(properties = {"dmcollection.registrationCode=test123"})
-public class AuthenticationControllerIntegrationTest {
+public class AuthenticationControllerIntegrationTest extends PostgresTestBase {
 
   public static final String USERNAME = "existingUser";
   public static final String PASSWORD = "thatUsersSecretPassword";
   private static final Logger log =
       LoggerFactory.getLogger(AuthenticationControllerIntegrationTest.class);
-  @Autowired UserRepository userRepository;
   @Autowired PasswordEncoder passwordEncoder;
 
   WebTestClient webTestClient;
@@ -60,11 +57,12 @@ public class AuthenticationControllerIntegrationTest {
     this.webTestClient = WebTestClient.bindToServer().baseUrl(baseUrl).build();
     csrfToken = null;
     sessionId = null;
-    userRepository.deleteAll();
-    User user = new User(null, USERNAME);
-    user.setPassword(passwordEncoder.encode(PASSWORD));
-    user.setEnabled(true);
-    userRepository.save(user);
+    dsl.deleteFrom(APP_USER).execute();
+    dsl.insertInto(APP_USER)
+        .set(APP_USER.USERNAME, USERNAME)
+        .set(APP_USER.PASSWORD_HASH, passwordEncoder.encode(PASSWORD))
+        .set(APP_USER.DISPLAY_NAME, USERNAME)
+        .execute();
   }
 
   @Test

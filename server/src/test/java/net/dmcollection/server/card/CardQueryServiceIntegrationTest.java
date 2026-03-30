@@ -6,85 +6,43 @@ import static net.dmcollection.model.card.Civilization.LIGHT;
 import static net.dmcollection.model.card.Civilization.NATURE;
 import static net.dmcollection.model.card.Civilization.WATER;
 import static net.dmcollection.model.card.Civilization.ZERO;
-import static net.dmcollection.server.TestUtils.CREATURE;
-import static net.dmcollection.server.TestUtils.PSYCHIC_CREATURE;
-import static net.dmcollection.server.TestUtils.SPELL;
-import static net.dmcollection.server.TestUtils.search;
+import static net.dmcollection.server.TestFixtureBuilder.CREATURE;
+import static net.dmcollection.server.TestFixtureBuilder.PSYCHIC_CREATURE;
+import static net.dmcollection.server.TestFixtureBuilder.SPELL;
+import static net.dmcollection.server.TestFixtureBuilder.search;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import net.dmcollection.model.card.*;
-import net.dmcollection.model.card.OfficialSet.Columns;
-import net.dmcollection.server.TestUtils;
+import net.dmcollection.model.card.RarityCode;
+import net.dmcollection.server.PostgresTestBase;
+import net.dmcollection.server.TestFixtureBuilder;
 import net.dmcollection.server.card.CardService.CardStub;
 import net.dmcollection.server.card.internal.CardQueryService;
-import net.dmcollection.server.card.internal.RarityService;
 import net.dmcollection.server.card.internal.SearchFilter;
 import net.dmcollection.server.card.internal.SearchFilter.CardType;
 import net.dmcollection.server.card.internal.SearchFilter.FilterState;
 import net.dmcollection.server.card.internal.SearchFilter.Range;
-import net.dmcollection.server.card.internal.SpeciesService;
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
-@SpringBootTest
 @Transactional
-@ActiveProfiles("test")
-class CardQueryServiceIntegrationTest {
+class CardQueryServiceIntegrationTest extends PostgresTestBase {
 
-  private static final Logger log = LoggerFactory.getLogger(CardQueryServiceIntegrationTest.class);
+  @Autowired CardQueryService cardQueryService;
 
-  CardQueryService cardQueryService;
-
-  @Autowired JdbcTemplate jdbcTemplate;
-  @Autowired SpeciesRepository speciesRepository;
-
-  TestUtils utils;
+  TestFixtureBuilder utils;
 
   @BeforeEach
   void setup() {
-    utils = new TestUtils(jdbcTemplate);
-    jdbcTemplate.update("DELETE FROM CARD_FACETS");
-    jdbcTemplate.update("DELETE FROM CARDS");
-    jdbcTemplate.update("DELETE FROM CARD_SET");
-    jdbcTemplate.update("DELETE FROM SPECIES");
-    jdbcTemplate.update("DELETE FROM FACET_SPECIES");
-    jdbcTemplate.update("DELETE FROM RARITY");
-    jdbcTemplate.update("DELETE FROM FACET_EFFECT");
-    jdbcTemplate.update("DELETE FROM EFFECT");
-    ImageService imageService = mock(ImageService.class);
-    when(imageService.makeImageUrl(anyString()))
-        .thenAnswer(i -> i.getArgument(0) != null ? "/image/" + i.getArgument(0) : null);
-    RarityService rarityService = mock(RarityService.class);
-    when(rarityService.getOrder(any(RarityCode.class)))
-        .thenAnswer(invocation -> TestUtils.rarityOrder.get(invocation.getArgument(0)));
-    var speciesService = new SpeciesService(jdbcTemplate, speciesRepository);
-    speciesService.initialize();
-    cardQueryService =
-        new CardQueryService(jdbcTemplate, imageService, speciesService, rarityService);
-  }
-
-  @AfterEach
-  void printLog() {
-    utils.printLog();
+    utils = new TestFixtureBuilder(dsl);
   }
 
   @Test
@@ -310,7 +268,7 @@ class CardQueryServiceIntegrationTest {
             "DM1 1/110",
             false,
             RarityCode.VR,
-            1L,
+            1,
             List.of("dm01-001.jpg"),
             List.of(Set.of(LIGHT)),
             List.of(6),
@@ -332,7 +290,7 @@ class CardQueryServiceIntegrationTest {
             "CARD-3",
             false,
             RarityCode.R,
-            2L,
+            2,
             List.of("card3.jpg", "card3b.jpg"),
             List.of(Set.of(FIRE), Set.of(WATER)),
             List.of(1, 2),
@@ -344,7 +302,7 @@ class CardQueryServiceIntegrationTest {
             "CARD-4",
             false,
             RarityCode.VIC,
-            2L,
+            2,
             List.of("card4.jpg"),
             List.of(Set.of(ZERO)),
             List.of(4),
@@ -369,7 +327,7 @@ class CardQueryServiceIntegrationTest {
             "CARD-3",
             false,
             RarityCode.R,
-            2L,
+            2,
             List.of("card3.jpg", "card3b.jpg"),
             List.of(Set.of(FIRE), Set.of(WATER)),
             List.of(1, 2),
@@ -381,7 +339,7 @@ class CardQueryServiceIntegrationTest {
             "CARD-4",
             false,
             RarityCode.VIC,
-            2L,
+            2,
             List.of("card4.jpg"),
             List.of(Set.of(ZERO)),
             List.of(4),
@@ -394,9 +352,9 @@ class CardQueryServiceIntegrationTest {
                 PageRequest.of(
                     0,
                     2,
-                    Sort.by(OfficialSet.Columns.RELEASE)
+                    Sort.by("release_date")
                         .descending()
-                        .and(Sort.by(CardEntity.Columns.OFFICIAL_ID).ascending())))
+                        .and(Sort.by("official_site_id").ascending())))
             .build();
 
     Page<CardStub> result = cardQueryService.search(filter).pageOfCards();
@@ -407,9 +365,9 @@ class CardQueryServiceIntegrationTest {
                 PageRequest.of(
                     1,
                     2,
-                    Sort.by(Columns.RELEASE)
+                    Sort.by("release_date")
                         .descending()
-                        .and(Sort.by(CardEntity.Columns.OFFICIAL_ID).ascending())))
+                        .and(Sort.by("official_site_id").ascending())))
             .build();
     result = cardQueryService.search(filter).pageOfCards();
     assertPageEquals(result, card3, card4);
@@ -424,14 +382,14 @@ class CardQueryServiceIntegrationTest {
             "CARD-2",
             false,
             RarityCode.R,
-            2L,
+            2,
             List.of("card2.jpg", "card2b.jpg"),
             List.of(Set.of(WATER), Set.of(WATER)),
             List.of(4, 13),
             List.of(4000, 13000),
             List.of(PSYCHIC_CREATURE, PSYCHIC_CREATURE));
 
-    SearchFilter filter = search().setSetId(2L).build();
+    SearchFilter filter = search().setSetId((long) utils.getCardSetId(2)).build();
 
     Page<CardStub> result = cardQueryService.search(filter).pageOfCards();
     assertPageEquals(result, expected);
@@ -457,7 +415,7 @@ class CardQueryServiceIntegrationTest {
     var card2 = utils.multiCard("CARD-2", LIGHT, DARK, WATER);
     var card3 = utils.multiCard("CARD-3", FIRE, WATER);
 
-    utils.monoCard("MONO-2", WATER);
+    utils.monoCard("MONO-4", WATER);
     utils.monoCard("MONO-3", NATURE);
     utils.monoCard("CARD-4", ZERO);
     utils.multiCard("foo", DARK, NATURE);
@@ -474,7 +432,7 @@ class CardQueryServiceIntegrationTest {
     var card2 = utils.multiCard("CARD-2", LIGHT, DARK, WATER);
     var card3 = utils.multiCard("CARD-3", FIRE, WATER);
 
-    utils.monoCard("MONO-2", WATER);
+    utils.monoCard("MONO-4", WATER);
     utils.monoCard("MONO-3", NATURE);
     utils.monoCard("CARD-4", ZERO);
     utils.multiCard("foo", DARK, NATURE);
@@ -554,11 +512,11 @@ class CardQueryServiceIntegrationTest {
     utils.twinpact("unrelatedMonoTwinpact", Set.of(WATER), Set.of(WATER));
 
     // included via both sides
-    var twoSides = utils.twoSided("twoSided", Set.of(LIGHT), Set.of(DARK));
+    var twoSides = utils.twoSided("twoSided1", Set.of(LIGHT), Set.of(DARK));
     // included because of monochrome light side
-    var twoSides2 = utils.twoSided("twoSided", Set.of(LIGHT), Set.of(FIRE));
+    var twoSides2 = utils.twoSided("twoSided2", Set.of(LIGHT), Set.of(FIRE));
     // included because of monochrome dark side
-    var twoSides3 = utils.twoSided("twoSided2", Set.of(LIGHT, FIRE), Set.of(DARK));
+    var twoSides3 = utils.twoSided("twoSided3", Set.of(LIGHT, FIRE), Set.of(DARK));
     // excluded because no monochrome light or dark side
     utils.twoSided("exclude", Set.of(WATER), Set.of(NATURE, LIGHT));
 
@@ -783,9 +741,9 @@ class CardQueryServiceIntegrationTest {
     var card2 = utils.monoCard("test-2", 6, 6000, LIGHT);
     var card3 = utils.monoCard("test-3", 6, 6000, LIGHT);
 
-    utils.addSpeciesToFacet(card1.id() + 1, 0, "アーマード・ドラゴン");
-    utils.addSpeciesToFacet(card2.id() + 1, 0, "アーマード・ドラゴン");
-    utils.addSpeciesToFacet(card3.id() + 1, 0, "ガーディアン");
+    utils.addSpecies(card1, "アーマード・ドラゴン");
+    utils.addSpecies(card2, "アーマード・ドラゴン");
+    utils.addSpecies(card3, "ガーディアン");
 
     SearchFilter filter = search().setSpeciesSearch("アーマード・ドラゴン").build();
     assertQueryFinds(filter, card1, card2);
@@ -797,9 +755,9 @@ class CardQueryServiceIntegrationTest {
     var card2 = utils.monoCard("test-2", 6, 6000, LIGHT);
     var card3 = utils.monoCard("test-3", 6, 6000, LIGHT);
 
-    utils.addSpeciesToFacet(card1.id() + 1, 0, "アーマード・ドラゴン");
-    utils.addSpeciesToFacet(card2.id() + 1, 0, "アーマード・ドラゴン");
-    utils.addSpeciesToFacet(card3.id() + 1, 0, "ガーディアン");
+    utils.addSpecies(card1, "アーマード・ドラゴン");
+    utils.addSpecies(card2, "アーマード・ドラゴン");
+    utils.addSpecies(card3, "ガーディアン");
 
     SearchFilter filter = search().setSpeciesSearch("マード").build();
     assertQueryFinds(filter, card1, card2);
@@ -840,7 +798,7 @@ class CardQueryServiceIntegrationTest {
             "DM23RP2X TF2/TF10",
             false,
             RarityCode.NONE,
-            1L,
+            1,
             List.of("dm23rp2x-TF02.jpg"),
             List.of(Set.of(WATER, FIRE, NATURE)),
             List.of(3),
@@ -953,14 +911,11 @@ class CardQueryServiceIntegrationTest {
 
   @Test
   void combinesEffectSearchWithSpeciesFilter() {
-    var dragonWithBlocker = utils.monoCard("test-dragon-1", 6, 8000, FIRE, "ブロッカー");
-    utils.addSpeciesToFacet(dragonWithBlocker.id() + 1, 0, "アーマード・ドラゴン");
+    var dragonWithBlocker = utils.monoCard("test-dragon-1", 6, 8000, FIRE, "ブロッカー", "アーマード・ドラゴン");
 
-    var dragonWithBreaker = utils.monoCard("test-dragon-2", 7, 10000, FIRE, "W・ブレイカー");
-    utils.addSpeciesToFacet(dragonWithBreaker.id() + 1, 0, "アーマード・ドラゴン");
+    var dragonWithBreaker = utils.monoCard("test-dragon-2", 7, 10000, FIRE, "W・ブレイカー", "アーマード・ドラゴン");
 
-    var guardianWithBlocker = utils.monoCard("test-guardian", 5, 6000, LIGHT, "ブロッカー");
-    utils.addSpeciesToFacet(guardianWithBlocker.id() + 1, 0, "ガーディアン");
+    var guardianWithBlocker = utils.monoCard("test-guardian", 5, 6000, LIGHT, "ブロッカー", "ガーディアン");
 
     SearchFilter filter = search().setEffectSearch("ブロッカー").setSpeciesSearch("ドラゴン").build();
     assertQueryFinds(filter, dragonWithBlocker);
@@ -1041,11 +996,11 @@ class CardQueryServiceIntegrationTest {
     var fiveCost = utils.monoCard("five", 5, WATER);
 
     SearchFilter filter =
-        search().setPageable(Pageable.unpaged(Sort.by(CardFacet.Columns.COST).ascending())).build();
+        search().setPageable(Pageable.unpaged(Sort.by("sort_cost").ascending())).build();
     assertQueryFindsInOrder(filter, zeroCost, oneCost, fiveCost);
     filter =
         search()
-            .setPageable(Pageable.unpaged(Sort.by(CardFacet.Columns.COST).descending()))
+            .setPageable(Pageable.unpaged(Sort.by("sort_cost").descending()))
             .build();
     assertQueryFindsInOrder(filter, fiveCost, oneCost, zeroCost);
   }
@@ -1059,11 +1014,11 @@ class CardQueryServiceIntegrationTest {
     var fourCost = utils.twinpact("four", Set.of(LIGHT), Set.of(LIGHT), 4, 3, 5500);
 
     SearchFilter filter =
-        search().setPageable(Pageable.unpaged(Sort.by(CardFacet.Columns.COST).ascending())).build();
+        search().setPageable(Pageable.unpaged(Sort.by("sort_cost").ascending())).build();
     assertQueryFindsInOrder(filter, zeroCost, oneCost, threeCost, fourCost, fiveCost);
     filter =
         search()
-            .setPageable(Pageable.unpaged(Sort.by(CardFacet.Columns.COST).descending()))
+            .setPageable(Pageable.unpaged(Sort.by("sort_cost").descending()))
             .build();
     assertQueryFindsInOrder(filter, fiveCost, fourCost, threeCost, oneCost, zeroCost);
   }
@@ -1077,11 +1032,11 @@ class CardQueryServiceIntegrationTest {
     var threeCost = utils.twoSided("three", Set.of(FIRE), Set.of(WATER), 1, 3, 4000, 8000);
 
     SearchFilter filter =
-        search().setPageable(Pageable.unpaged(Sort.by(CardFacet.Columns.COST).ascending())).build();
+        search().setPageable(Pageable.unpaged(Sort.by("sort_cost").ascending())).build();
     assertQueryFindsInOrder(filter, zeroCost, oneCost, threeCost, fiveCost, nullCost);
     filter =
         search()
-            .setPageable(Pageable.unpaged(Sort.by(CardFacet.Columns.COST).descending()))
+            .setPageable(Pageable.unpaged(Sort.by("sort_cost").descending()))
             .build();
     assertQueryFindsInOrder(filter, fiveCost, threeCost, oneCost, zeroCost, nullCost);
   }
@@ -1097,7 +1052,7 @@ class CardQueryServiceIntegrationTest {
         .isEqualTo(Arrays.asList(expectedCards));
   }
 
-  private void assertQueryFinds(TestUtils.SearchBuilder builder, CardStub... expectedCards) {
+  private void assertQueryFinds(TestFixtureBuilder.SearchBuilder builder, CardStub... expectedCards) {
     assertQueryFinds(builder.build(), expectedCards);
   }
 

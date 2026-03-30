@@ -1,39 +1,30 @@
 package net.dmcollection.server.user;
 
-import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Objects;
 import java.util.UUID;
-import org.springframework.data.annotation.CreatedDate;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.annotation.PersistenceCreator;
-import org.springframework.data.relational.core.mapping.Table;
 import org.springframework.security.core.CredentialsContainer;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-@Table("USERS")
 public class User implements UserDetails, CredentialsContainer {
-  private final @Id UUID id;
+  private final UUID id;
   private final String username;
   private String password;
-  private boolean enabled;
-  private final @CreatedDate LocalDateTime createdAt;
+  private final String displayName;
+  private final String avatarPath;
+  private final boolean admin;
 
-  @PersistenceCreator
-  public User(UUID id, String username, String password, boolean enabled, LocalDateTime createdAt) {
+  public User(
+      UUID id, String username, String password, String displayName, String avatarPath,
+      boolean admin) {
     this.id = id;
     this.username = username;
     this.password = password;
-    this.enabled = enabled;
-    this.createdAt = createdAt;
-  }
-
-  public User(UUID id, String username) {
-    this.id = id;
-    this.username = username;
-    this.createdAt = LocalDateTime.now();
+    this.displayName = displayName;
+    this.avatarPath = avatarPath;
+    this.admin = admin;
   }
 
   public UUID getId() {
@@ -50,21 +41,21 @@ public class User implements UserDetails, CredentialsContainer {
     return password;
   }
 
+  public String getDisplayName() {
+    return displayName;
+  }
+
+  public String getAvatarPath() {
+    return avatarPath;
+  }
+
+  public boolean isAdmin() {
+    return admin;
+  }
+
   @Override
   public boolean isEnabled() {
-    return enabled;
-  }
-
-  public LocalDateTime getCreatedAt() {
-    return createdAt;
-  }
-
-  public void setPassword(String password) {
-    this.password = password;
-  }
-
-  public void setEnabled(boolean enabled) {
-    this.enabled = enabled;
+    return true;
   }
 
   @Override
@@ -82,7 +73,6 @@ public class User implements UserDetails, CredentialsContainer {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     User user = (User) o;
-    // ID is the primary key, sufficient for equality
     return Objects.equals(id, user.id);
   }
 
@@ -93,15 +83,6 @@ public class User implements UserDetails, CredentialsContainer {
 
   @Override
   public String toString() {
-    return "User{"
-        + "id="
-        + id
-        + ", username='"
-        + username
-        + "', enabled="
-        + enabled
-        + ", createdAt="
-        + createdAt
-        + '}';
+    return "User{" + "id=" + id + ", username='" + username + "', admin=" + admin + '}';
   }
 }

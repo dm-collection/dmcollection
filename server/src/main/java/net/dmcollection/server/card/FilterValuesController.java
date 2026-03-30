@@ -1,8 +1,9 @@
 package net.dmcollection.server.card;
 
-import net.dmcollection.model.card.Species;
+import static net.dmcollection.server.jooq.generated.tables.Race.RACE;
+
 import net.dmcollection.server.card.internal.RarityService;
-import net.dmcollection.server.card.internal.SpeciesService;
+import org.jooq.DSLContext;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,13 +12,12 @@ import org.springframework.web.bind.annotation.GetMapping;
 public class FilterValuesController {
 
   private final SetService setService;
-  private final SpeciesService speciesService;
+  private final DSLContext dsl;
   private final RarityService rarityService;
 
-  public FilterValuesController(
-      SetService setService, SpeciesService speciesService, RarityService rarityService) {
+  public FilterValuesController(SetService setService, DSLContext dsl, RarityService rarityService) {
     this.setService = setService;
-    this.speciesService = speciesService;
+    this.dsl = dsl;
     this.rarityService = rarityService;
   }
 
@@ -28,7 +28,7 @@ public class FilterValuesController {
 
   @GetMapping("/api/species")
   ResponseEntity<?> getSpecies() {
-    return ResponseEntity.ok(speciesService.getSpecies().stream().map(Species::species));
+    return ResponseEntity.ok(dsl.select(RACE.NAME).from(RACE).orderBy(RACE.NAME).fetch(RACE.NAME));
   }
 
   @GetMapping("/api/rarities")

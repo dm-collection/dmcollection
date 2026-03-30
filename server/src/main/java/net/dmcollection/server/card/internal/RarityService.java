@@ -1,38 +1,50 @@
 package net.dmcollection.server.card.internal;
 
-import java.util.Comparator;
+import static net.dmcollection.server.jooq.generated.tables.Rarity.RARITY;
+
+import java.util.ArrayList;
 import java.util.List;
 import net.dmcollection.model.card.Rarity;
 import net.dmcollection.model.card.RarityCode;
-import net.dmcollection.model.card.RarityRepository;
+import org.jooq.DSLContext;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 @Service
 public class RarityService {
 
-  private final RarityRepository rarityRepository;
+  private final DSLContext dsl;
 
-  private final List<Rarity> rarities;
-
-  public RarityService(RarityRepository rarityRepository) {
-    this.rarityRepository = rarityRepository;
-    this.rarities =
-        rarityRepository.findAll().stream().sorted(Comparator.comparing(Rarity::order)).toList();
+  public RarityService(DSLContext dsl) {
+    this.dsl = dsl;
   }
 
   public int getOrder(@NonNull RarityCode rarityCode) {
-    return rarities.stream()
-        .filter(r -> r.code().equals(rarityCode))
-        .findFirst()
-        .map(Rarity::order)
-        .orElse(0);
+    Short order =
+        dsl.select(RARITY.SORT_ORDER)
+            .from(RARITY)
+            .where(RARITY.NAME.eq(rarityCode.toString()))
+            .fetchOne(RARITY.SORT_ORDER);
+    return order != null ? order : 0;
   }
 
   public List<Rarity> getRarities() {
-    if (rarities.isEmpty()) {
-      this.rarities.addAll(rarityRepository.findAll());
-    }
-    return rarities;
+    List<Rarity> result = new ArrayList<>();
+    dsl.select(RARITY.NAME, RARITY.SORT_ORDER)
+        .from(RARITY)
+        .orderBy(RARITY.SORT_ORDER)
+        .forEach(
+            r -> {
+              try {
+                result.add(
+                    new Rarity(
+                        RarityCode.valueOf(r.get(RARITY.NAME)),
+                        r.get(RARITY.SORT_ORDER),
+                        r.get(RARITY.NAME)));
+              } catch (IllegalArgumentException ignored) {
+                // Skip rarities not in enum
+              }
+            });
+    return result;
   }
 }
