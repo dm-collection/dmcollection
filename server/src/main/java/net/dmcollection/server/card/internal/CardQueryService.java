@@ -19,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import net.dmcollection.model.card.Civilization;
+import net.dmcollection.server.card.Civilization;
 import net.dmcollection.server.card.CardService.CardStub;
 import net.dmcollection.server.card.internal.SearchFilter.CollectionFilter;
 import net.dmcollection.server.card.internal.query.SearchFilterTranslator;

@@ -4,8 +4,8 @@ import static net.dmcollection.server.jooq.generated.tables.Rarity.RARITY;
 
 import java.util.ArrayList;
 import java.util.List;
-import net.dmcollection.model.card.Rarity;
-import net.dmcollection.model.card.RarityCode;
+import net.dmcollection.server.card.Rarity;
+import net.dmcollection.server.card.RarityCode;
 import org.jooq.DSLContext;
 import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;

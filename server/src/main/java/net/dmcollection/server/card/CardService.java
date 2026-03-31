@@ -24,7 +24,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import net.dmcollection.model.card.Civilization;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Component;
 

@@ -1,11 +1,11 @@
 package net.dmcollection.server.card;
 
-import static net.dmcollection.model.card.Civilization.DARK;
-import static net.dmcollection.model.card.Civilization.FIRE;
-import static net.dmcollection.model.card.Civilization.LIGHT;
-import static net.dmcollection.model.card.Civilization.NATURE;
-import static net.dmcollection.model.card.Civilization.WATER;
-import static net.dmcollection.model.card.Civilization.ZERO;
+import static net.dmcollection.server.card.Civilization.DARK;
+import static net.dmcollection.server.card.Civilization.FIRE;
+import static net.dmcollection.server.card.Civilization.LIGHT;
+import static net.dmcollection.server.card.Civilization.NATURE;
+import static net.dmcollection.server.card.Civilization.WATER;
+import static net.dmcollection.server.card.Civilization.ZERO;
 import static net.dmcollection.server.TestFixtureBuilder.D2_FIELD;
 import static net.dmcollection.server.jooq.generated.Tables.APP_USER;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import net.dmcollection.model.card.RarityCode;
+import net.dmcollection.server.card.RarityCode;
 import net.dmcollection.server.PostgresTestBase;
 import net.dmcollection.server.TestFixtureBuilder;
 import net.dmcollection.server.card.CardService.CardStub;

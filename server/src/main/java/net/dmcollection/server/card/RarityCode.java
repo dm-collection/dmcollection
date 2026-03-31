@@ -1,4 +1,4 @@
-package net.dmcollection.model.card;
+package net.dmcollection.server.card;
 
 public enum RarityCode {
   NONE, // no rarity

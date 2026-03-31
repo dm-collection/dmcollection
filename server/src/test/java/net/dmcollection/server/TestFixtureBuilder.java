@@ -1,15 +1,15 @@
 package net.dmcollection.server;
 
-import static net.dmcollection.model.card.Civilization.FIRE;
-import static net.dmcollection.model.card.Civilization.NATURE;
-import static net.dmcollection.model.card.Civilization.WATER;
+import static net.dmcollection.server.card.Civilization.FIRE;
+import static net.dmcollection.server.card.Civilization.NATURE;
+import static net.dmcollection.server.card.Civilization.WATER;
 import static net.dmcollection.server.jooq.generated.Tables.*;
 
 import java.time.LocalDate;
 import java.util.*;
 import java.util.stream.Collectors;
-import net.dmcollection.model.card.Civilization;
-import net.dmcollection.model.card.RarityCode;
+import net.dmcollection.server.card.Civilization;
+import net.dmcollection.server.card.RarityCode;
 import net.dmcollection.server.card.CardService.CardStub;
 import net.dmcollection.server.card.internal.SearchFilter;
 import net.dmcollection.server.card.internal.SearchFilter.CardType;

@@ -1,14 +1,32 @@
 services:
+  db:
+    image: postgres:18-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dmcollection
+      POSTGRES_USER: dev_user
+      POSTGRES_PASSWORD: devpw
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
   server:
     image: ghcr.io/dm-collection/server:latest
     ports:
       - "8080:8080"
+    depends_on:
+      - db
     environment:
       DMCOLLECTION_IMAGE_STORAGE_PATH: /images
+      DMCOLLECTION_DB_HOST: db
+      DMCOLLECTION_DB_NAME: dmcollection
+      DMCOLLECTION_DB_USER: dev_user
+      DMCOLLECTION_DB_PASSWORD: devpw
     volumes:
-      - type: bind
-        source: ./db-data
-        target: /home/nonroot/data
       - type: bind
         source: ./dmcollection-images
         target: /images
+
+volumes:
+  pgdata:

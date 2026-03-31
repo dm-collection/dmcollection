@@ -27,11 +27,6 @@ public abstract class PostgresTestBase {
 		registry.add("spring.datasource.url", PG::getJdbcUrl);
 		registry.add("spring.datasource.username", PG::getUsername);
 		registry.add("spring.datasource.password", PG::getPassword);
-		registry.add("spring.datasource.driverClassName", () -> "org.postgresql.Driver");
-		registry.add("spring.flyway.enabled", () -> "true");
-		registry.add("spring.flyway.locations", () -> "classpath:db/migration");
-		registry.add("spring.liquibase.enabled", () -> "false");
-		registry.add("spring.h2.console.enabled", () -> "false");
 	}
 
 	@Autowired

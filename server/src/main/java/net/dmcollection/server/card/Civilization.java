@@ -1,4 +1,4 @@
-package net.dmcollection.model.card;
+package net.dmcollection.server.card;
 
 import java.util.ArrayList;
 import java.util.Arrays;

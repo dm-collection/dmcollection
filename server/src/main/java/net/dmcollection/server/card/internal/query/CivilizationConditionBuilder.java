@@ -9,7 +9,7 @@ import static org.jooq.impl.DSL.or;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import net.dmcollection.model.card.Civilization;
+import net.dmcollection.server.card.Civilization;
 import org.jooq.Condition;
 
 public class CivilizationConditionBuilder {

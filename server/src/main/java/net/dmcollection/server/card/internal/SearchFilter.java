@@ -4,8 +4,8 @@ import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import net.dmcollection.model.card.Civilization;
-import net.dmcollection.model.card.RarityCode;
+import net.dmcollection.server.card.Civilization;
+import net.dmcollection.server.card.RarityCode;
 import org.springframework.data.domain.Pageable;
 import org.springframework.lang.NonNull;
 

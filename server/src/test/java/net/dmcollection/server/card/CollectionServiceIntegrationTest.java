@@ -1,9 +1,9 @@
 package net.dmcollection.server.card;
 
-import static net.dmcollection.model.card.Civilization.FIRE;
-import static net.dmcollection.model.card.Civilization.LIGHT;
-import static net.dmcollection.model.card.Civilization.WATER;
-import static net.dmcollection.model.card.Civilization.ZERO;
+import static net.dmcollection.server.card.Civilization.FIRE;
+import static net.dmcollection.server.card.Civilization.LIGHT;
+import static net.dmcollection.server.card.Civilization.WATER;
+import static net.dmcollection.server.card.Civilization.ZERO;
 import static net.dmcollection.server.jooq.generated.Tables.APP_USER;
 import static net.dmcollection.server.jooq.generated.Tables.COLLECTION_ENTRY;
 import static net.dmcollection.server.jooq.generated.Tables.COLLECTION_HISTORY_ENTRY;

@@ -22,7 +22,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import net.dmcollection.model.card.Civilization;
 import net.dmcollection.server.card.CardService.CardStub;
 import org.jooq.DSLContext;
 import org.slf4j.Logger;

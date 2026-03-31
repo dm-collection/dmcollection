@@ -3,8 +3,6 @@ package net.dmcollection.server.card;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import net.dmcollection.model.card.Civilization;
-import net.dmcollection.model.card.RarityCode;
 import net.dmcollection.server.card.internal.SearchFilter;
 import net.dmcollection.server.card.internal.SearchFilter.CardType;
 import net.dmcollection.server.card.internal.SearchFilter.FilterState;

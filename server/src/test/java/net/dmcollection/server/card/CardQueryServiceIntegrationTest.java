@@ -1,11 +1,11 @@
 package net.dmcollection.server.card;
 
-import static net.dmcollection.model.card.Civilization.DARK;
-import static net.dmcollection.model.card.Civilization.FIRE;
-import static net.dmcollection.model.card.Civilization.LIGHT;
-import static net.dmcollection.model.card.Civilization.NATURE;
-import static net.dmcollection.model.card.Civilization.WATER;
-import static net.dmcollection.model.card.Civilization.ZERO;
+import static net.dmcollection.server.card.Civilization.DARK;
+import static net.dmcollection.server.card.Civilization.FIRE;
+import static net.dmcollection.server.card.Civilization.LIGHT;
+import static net.dmcollection.server.card.Civilization.NATURE;
+import static net.dmcollection.server.card.Civilization.WATER;
+import static net.dmcollection.server.card.Civilization.ZERO;
 import static net.dmcollection.server.TestFixtureBuilder.CREATURE;
 import static net.dmcollection.server.TestFixtureBuilder.PSYCHIC_CREATURE;
 import static net.dmcollection.server.TestFixtureBuilder.SPELL;
@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import net.dmcollection.model.card.RarityCode;
+import net.dmcollection.server.card.RarityCode;
 import net.dmcollection.server.PostgresTestBase;
 import net.dmcollection.server.TestFixtureBuilder;
 import net.dmcollection.server.card.CardService.CardStub;

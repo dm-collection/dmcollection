@@ -4,17 +4,11 @@ spring:
   application:
     name: Server
   datasource:
-    url: jdbc:h2:file:./data/db;DB_CLOSE_ON_EXIT=FALSE
-    driverClassName: org.h2.Driver
+    url: jdbc:postgresql://${dmcollection_db_host:localhost}:${dmcollection_db_port:5432}/${dmcollection_db_name:dmcollection}
     username: ${dmcollection_db_user:dev_user}
     password: ${dmcollection_db_password:devpw}
-  h2:
-    console:
-      enabled: false
-      path: /h2-console
   flyway:
-    enabled: false
-  liquibase.change-log: classpath:db/changelog/db.changelog-master.yml
+    locations: classpath:db/migration
 dmcollection:
   image-storage-path: ${dmcollection_image_storage_path:${user.home}/dmcollection-images}
   card-page:
