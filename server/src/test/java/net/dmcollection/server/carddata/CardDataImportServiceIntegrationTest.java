@@ -255,7 +255,9 @@ class CardDataImportServiceIntegrationTest {
               List.of(),
               List.of(),
               List.of(),
-              List.of(new CardDataJson.CardAliasJson("__test_old_name__", "__test_new_name__"))));
+              List.of(new CardDataJson.CardAliasJson("__test_old_name__", "__test_new_name__")),
+              List.of(),
+              List.of()));
 
       assertThat(dsl.fetchCount(CARD, CARD.NAME.eq("__test_old_name__"))).isZero();
       var renamed = dsl.selectFrom(CARD).where(CARD.NAME.eq("__test_new_name__")).fetchOne();
@@ -278,7 +280,9 @@ class CardDataImportServiceIntegrationTest {
               List.of(),
               List.of(
                   new CardDataJson.CardAliasJson(
-                      "__nonexistent_old__", "__nonexistent_new__"))));
+                      "__nonexistent_old__", "__nonexistent_new__")),
+              List.of(),
+              List.of()));
 
       assertThat(dsl.fetchCount(CARD)).isEqualTo(countBefore);
     }
@@ -297,7 +301,9 @@ class CardDataImportServiceIntegrationTest {
               List.of(),
               List.of(
                   new CardDataJson.CardAliasJson(
-                      "__test_merge_old__", "__test_merge_survivor__"))));
+                      "__test_merge_old__", "__test_merge_survivor__")),
+              List.of(),
+              List.of()));
 
       // Old card should be deleted
       assertThat(dsl.fetchCount(CARD, CARD.ID.eq(oldCardId))).isZero();
@@ -348,7 +354,9 @@ class CardDataImportServiceIntegrationTest {
               List.of(),
               List.of(
                   new CardDataJson.CardAliasJson(
-                      "__test_tag_old__", "__test_tag_survivor__"))));
+                      "__test_tag_old__", "__test_tag_survivor__")),
+              List.of(),
+              List.of()));
 
       // Old card deleted, survivor retains tag
       assertThat(dsl.fetchCount(CARD, CARD.ID.eq(oldCardId))).isZero();
@@ -417,7 +425,9 @@ class CardDataImportServiceIntegrationTest {
               List.of(),
               List.of(
                   new CardDataJson.CardAliasJson(
-                      "__test_deck_old__", "__test_deck_survivor__"))));
+                      "__test_deck_old__", "__test_deck_survivor__")),
+              List.of(),
+              List.of()));
 
       // Old card deleted
       assertThat(dsl.fetchCount(CARD, CARD.ID.eq(oldCardId))).isZero();

@@ -26,12 +26,13 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
 import java.util.stream.Collectors;
 import net.dmcollection.server.carddata.CardDataJson.CardAliasJson;
 import net.dmcollection.server.carddata.CardDataJson.CardJson;
 import net.dmcollection.server.carddata.CardDataJson.CardSetJson;
+import net.dmcollection.server.carddata.CardDataJson.CivGroupJson;
 import net.dmcollection.server.carddata.CardDataJson.PrintingJson;
+import net.dmcollection.server.carddata.CardDataJson.RarityJson;
 import net.dmcollection.server.carddata.CardDataJson.SetGroupJson;
 import org.jooq.DSLContext;
 import org.jooq.Field;
@@ -48,39 +49,6 @@ public class CardDataImportService {
 
   private static final Logger log = LoggerFactory.getLogger(CardDataImportService.class);
 
-  private static final Map<String, Short> RARITY_SORT_ORDER =
-      Map.ofEntries(
-          Map.entry("C", (short) 1),
-          Map.entry("U", (short) 2),
-          Map.entry("R", (short) 3),
-          Map.entry("VR", (short) 4),
-          Map.entry("SR", (short) 5),
-          Map.entry("SPR", (short) 6),
-          Map.entry("OR", (short) 7),
-          Map.entry("DG", (short) 8),
-          Map.entry("MDG", (short) 9),
-          Map.entry("DMR", (short) 10),
-          Map.entry("DSR", (short) 11),
-          Map.entry("LEG", (short) 12),
-          Map.entry("VIC", (short) 13),
-          Map.entry("WVC", (short) 14),
-          Map.entry("KGM", (short) 15),
-          Map.entry("KGR", (short) 16),
-          Map.entry("KDL", (short) 17),
-          Map.entry("FFL", (short) 18),
-          Map.entry("MAS", (short) 19),
-          Map.entry("MDS", (short) 20),
-          Map.entry("MHZ", (short) 21),
-          Map.entry("MSS", (short) 22),
-          Map.entry("MSZ", (short) 23));
-
-  private static final Map<String, Short> POWER_MODIFIER_SORT =
-      Map.of(
-          "trailing_minus", (short) 0,
-          "none", (short) 1,
-          "leading_plus", (short) 2,
-          "trailing_plus", (short) 3);
-
   private final DSLContext dsl;
 
   public CardDataImportService(DSLContext dsl) {
@@ -96,7 +64,7 @@ public class CardDataImportService {
     Map<String, Short> cardTypeIds =
         upsertSmallLookup(CARD_TYPE, CARD_TYPE.NAME, extractCardTypes(data));
     Map<String, Short> raceIds = upsertSmallLookup(RACE, RACE.NAME, extractRaces(data));
-    Map<String, Short> rarityIds = upsertRarities(extractRarities(data));
+    Map<String, Short> rarityIds = upsertRarities(data.rarities());
     Map<String, Integer> illustratorIds =
         upsertIntLookup(ILLUSTRATOR, ILLUSTRATOR.NAME, extractIllustrators(data));
     Map<String, Short> productTypeIds =
@@ -117,7 +85,7 @@ public class CardDataImportService {
     replaceSideJunctions(data.cards(), cardIds, cardSideIds, cardTypeIds, raceIds);
 
     // Step 7: card_civ_group
-    recomputeCivGroups(data.cards(), cardIds);
+    insertCivGroups(data.cardCivGroups(), cardIds);
 
     // Steps 8, 12: no-op (no keyword_abilities or public_tags in JSON)
 
@@ -278,13 +246,6 @@ public class CardDataImportService {
         .collect(Collectors.toSet());
   }
 
-  private Set<String> extractRarities(CardDataJson data) {
-    return data.printings().stream()
-        .map(PrintingJson::rarity)
-        .filter(r -> r != null && !r.isEmpty())
-        .collect(Collectors.toSet());
-  }
-
   private Set<String> extractProductTypes(CardDataJson data) {
     return data.cardSets().stream()
         .map(CardSetJson::productType)
@@ -335,21 +296,18 @@ public class CardDataImportService {
         .fetchMap(nameField, idField);
   }
 
-  private Map<String, Short> upsertRarities(Set<String> names) {
-    if (names.isEmpty()) return Map.of();
-    for (String name : names) {
-      Short sortOrder = RARITY_SORT_ORDER.get(name);
-      if (sortOrder == null) {
-        throw new IllegalArgumentException("Unknown rarity: " + name);
-      }
+  private Map<String, Short> upsertRarities(List<RarityJson> rarities) {
+    if (rarities == null || rarities.isEmpty()) return Map.of();
+    for (var rarity : rarities) {
       dsl.insertInto(RARITY)
           .columns(RARITY.NAME, RARITY.SORT_ORDER)
-          .values(name, sortOrder)
+          .values(rarity.name(), rarity.sortOrder())
           .onConflict(RARITY.NAME)
           .doUpdate()
           .set(RARITY.SORT_ORDER, DSL.field("excluded.sort_order", Short.class))
           .execute();
     }
+    Set<String> names = rarities.stream().map(RarityJson::name).collect(Collectors.toSet());
     return dsl.select(RARITY.ID, RARITY.NAME)
         .from(RARITY)
         .where(RARITY.NAME.in(names))
@@ -406,13 +364,7 @@ public class CardDataImportService {
 
   private Map<String, Integer> upsertCards(List<CardJson> cards) {
     for (var card : cards) {
-      var firstSide = card.sides().getFirst();
-      Integer sortCost =
-          firstSide.costIsInfinity() ? (Integer) Integer.MAX_VALUE : firstSide.cost();
-      Integer sortPower =
-          firstSide.powerIsInfinity() ? (Integer) Integer.MAX_VALUE : firstSide.power();
-      Short sortPowerModifier = POWER_MODIFIER_SORT.get(firstSide.powerModifier());
-
+      Short[] sortCiv = toShortArray(card.sortCivilization());
       dsl.insertInto(CARD)
           .columns(
               CARD.NAME,
@@ -420,14 +372,16 @@ public class CardDataImportService {
               CARD.DECK_ZONE,
               CARD.SORT_COST,
               CARD.SORT_POWER,
-              CARD.SORT_POWER_MODIFIER)
+              CARD.SORT_POWER_MODIFIER,
+              CARD.SORT_CIVILIZATION)
           .values(
               card.name(),
               card.isTwinpact(),
               card.deckZone(),
-              sortCost,
-              sortPower,
-              sortPowerModifier)
+              card.sortCost(),
+              card.sortPower(),
+              card.sortPowerModifier(),
+              sortCiv)
           .onConflict(CARD.NAME)
           .doUpdate()
           .set(CARD.IS_TWINPACT, DSL.field("excluded.is_twinpact", Boolean.class))
@@ -435,6 +389,7 @@ public class CardDataImportService {
           .set(CARD.SORT_COST, DSL.field("excluded.sort_cost", Integer.class))
           .set(CARD.SORT_POWER, DSL.field("excluded.sort_power", Integer.class))
           .set(CARD.SORT_POWER_MODIFIER, DSL.field("excluded.sort_power_modifier", Short.class))
+          .set(CARD.SORT_CIVILIZATION, DSL.field("excluded.sort_civilization", Short[].class))
           .execute();
     }
     return dsl.select(CARD.ID, CARD.NAME).from(CARD).fetchMap(CARD.NAME, CARD.ID);
@@ -539,65 +494,22 @@ public class CardDataImportService {
 
   // -- Step 7: card_civ_group --
 
-  private void recomputeCivGroups(List<CardJson> cards, Map<String, Integer> cardIds) {
-    for (var card : cards) {
-      int cardId = cardIds.get(card.name());
+  private void insertCivGroups(List<CivGroupJson> civGroups, Map<String, Integer> cardIds) {
+    // Delete all existing civ groups for cards being imported
+    for (int cardId : cardIds.values()) {
       dsl.deleteFrom(CARD_CIV_GROUP).where(CARD_CIV_GROUP.CARD_ID.eq(cardId)).execute();
-
-      Short[] sortCiv;
-
-      if (card.isTwinpact()) {
-        // Twinpact: single row with union of all sides' civilizations
-        TreeSet<Short> union = new TreeSet<>();
-        boolean includesColorless = false;
-        for (var side : card.sides()) {
-          if (side.civilizationIds().isEmpty()) {
-            includesColorless = true;
-          }
-          for (Integer cid : side.civilizationIds()) {
-            union.add(cid.shortValue());
-          }
-        }
-        Short[] civIds = union.toArray(Short[]::new);
-        dsl.insertInto(CARD_CIV_GROUP)
-            .columns(
-                CARD_CIV_GROUP.CARD_ID,
-                CARD_CIV_GROUP.CIVILIZATION_IDS,
-                CARD_CIV_GROUP.INCLUDES_COLORLESS_SIDE)
-            .values(cardId, civIds, includesColorless)
-            .execute();
-        sortCiv = civIds;
-      } else if (card.sides().size() == 1) {
-        // Single-side: 1 row
-        var side = card.sides().getFirst();
-        Short[] civIds = toShortArray(side.civilizationIds());
-        boolean includesColorless = side.civilizationIds().isEmpty();
-        dsl.insertInto(CARD_CIV_GROUP)
-            .columns(
-                CARD_CIV_GROUP.CARD_ID,
-                CARD_CIV_GROUP.CIVILIZATION_IDS,
-                CARD_CIV_GROUP.INCLUDES_COLORLESS_SIDE)
-            .values(cardId, civIds, includesColorless)
-            .execute();
-        sortCiv = civIds;
-      } else {
-        // Non-twinpact multi-side: 1 row per side
-        sortCiv = toShortArray(card.sides().getFirst().civilizationIds());
-        for (var side : card.sides()) {
-          Short[] civIds = toShortArray(side.civilizationIds());
-          boolean includesColorless = side.civilizationIds().isEmpty();
-          dsl.insertInto(CARD_CIV_GROUP)
-              .columns(
-                  CARD_CIV_GROUP.CARD_ID,
-                  CARD_CIV_GROUP.CIVILIZATION_IDS,
-                  CARD_CIV_GROUP.INCLUDES_COLORLESS_SIDE)
-              .values(cardId, civIds, includesColorless)
-              .execute();
-        }
-      }
-
-      // Update card.sort_civilization
-      dsl.update(CARD).set(CARD.SORT_CIVILIZATION, sortCiv).where(CARD.ID.eq(cardId)).execute();
+    }
+    for (var group : civGroups) {
+      Integer cardId = cardIds.get(group.cardName());
+      if (cardId == null) continue;
+      Short[] civIds = toShortArray(group.civilizationIds());
+      dsl.insertInto(CARD_CIV_GROUP)
+          .columns(
+              CARD_CIV_GROUP.CARD_ID,
+              CARD_CIV_GROUP.CIVILIZATION_IDS,
+              CARD_CIV_GROUP.INCLUDES_COLORLESS_SIDE)
+          .values(cardId, civIds, group.includesColorlessSide())
+          .execute();
     }
   }
 

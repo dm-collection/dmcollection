@@ -8,7 +8,9 @@ public record CardDataJson(
     @JsonProperty("card_sets") List<CardSetJson> cardSets,
     List<CardJson> cards,
     List<PrintingJson> printings,
-    @JsonProperty("card_aliases") List<CardAliasJson> cardAliases) {
+    @JsonProperty("card_aliases") List<CardAliasJson> cardAliases,
+    List<RarityJson> rarities,
+    @JsonProperty("card_civ_groups") List<CivGroupJson> cardCivGroups) {
 
   public record SetGroupJson(String name, @JsonProperty("sort_order") int sortOrder) {}
 
@@ -23,7 +25,11 @@ public record CardDataJson(
       String name,
       @JsonProperty("is_twinpact") boolean isTwinpact,
       @JsonProperty("deck_zone") String deckZone,
-      List<CardSideJson> sides) {}
+      List<CardSideJson> sides,
+      @JsonProperty("sort_cost") Integer sortCost,
+      @JsonProperty("sort_power") Integer sortPower,
+      @JsonProperty("sort_power_modifier") short sortPowerModifier,
+      @JsonProperty("sort_civilization") List<Integer> sortCivilization) {}
 
   public record CardSideJson(
       @JsonProperty("side_order") int sideOrder,
@@ -60,4 +66,11 @@ public record CardDataJson(
 
   public record CardAliasJson(
       @JsonProperty("old_name") String oldName, @JsonProperty("new_name") String newName) {}
+
+  public record RarityJson(String name, @JsonProperty("sort_order") short sortOrder) {}
+
+  public record CivGroupJson(
+      @JsonProperty("card_name") String cardName,
+      @JsonProperty("civilization_ids") List<Integer> civilizationIds,
+      @JsonProperty("includes_colorless_side") boolean includesColorlessSide) {}
 }
