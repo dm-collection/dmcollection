@@ -21,6 +21,7 @@ import static net.dmcollection.server.jooq.generated.Tables.SET_GROUP;
 import static net.dmcollection.server.jooq.generated.Tables.WISHLIST_ENTRY;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -264,14 +265,13 @@ public class CardDataImportService {
       Table<R> table, TableField<R, String> nameField, Set<String> names) {
     if (names.isEmpty()) return Map.of();
     Field<Short> idField = table.field("id", Short.class);
+    var batch =
+        dsl.batch(
+            dsl.insertInto(table).columns(nameField).values(DSL.val((String) null)).onConflict(nameField).doNothing());
     for (String name : names) {
-      dsl.insertInto(table)
-          .columns(nameField)
-          .values(name)
-          .onConflict(nameField)
-          .doNothing()
-          .execute();
+      batch.bind(name);
     }
+    batch.execute();
     return dsl.select(idField, nameField)
         .from(table)
         .where(nameField.in(names))
@@ -282,14 +282,13 @@ public class CardDataImportService {
       Table<R> table, TableField<R, String> nameField, Set<String> names) {
     if (names.isEmpty()) return Map.of();
     Field<Integer> idField = table.field("id", Integer.class);
+    var batch =
+        dsl.batch(
+            dsl.insertInto(table).columns(nameField).values(DSL.val((String) null)).onConflict(nameField).doNothing());
     for (String name : names) {
-      dsl.insertInto(table)
-          .columns(nameField)
-          .values(name)
-          .onConflict(nameField)
-          .doNothing()
-          .execute();
+      batch.bind(name);
     }
+    batch.execute();
     return dsl.select(idField, nameField)
         .from(table)
         .where(nameField.in(names))
@@ -298,15 +297,18 @@ public class CardDataImportService {
 
   private Map<String, Short> upsertRarities(List<RarityJson> rarities) {
     if (rarities == null || rarities.isEmpty()) return Map.of();
+    var batch =
+        dsl.batch(
+            dsl.insertInto(RARITY)
+                .columns(RARITY.NAME, RARITY.SORT_ORDER)
+                .values(DSL.val((String) null), DSL.val((Short) null))
+                .onConflict(RARITY.NAME)
+                .doUpdate()
+                .set(RARITY.SORT_ORDER, DSL.field("excluded.sort_order", Short.class)));
     for (var rarity : rarities) {
-      dsl.insertInto(RARITY)
-          .columns(RARITY.NAME, RARITY.SORT_ORDER)
-          .values(rarity.name(), rarity.sortOrder())
-          .onConflict(RARITY.NAME)
-          .doUpdate()
-          .set(RARITY.SORT_ORDER, DSL.field("excluded.sort_order", Short.class))
-          .execute();
+      batch.bind(rarity.name(), rarity.sortOrder());
     }
+    batch.execute();
     Set<String> names = rarities.stream().map(RarityJson::name).collect(Collectors.toSet());
     return dsl.select(RARITY.ID, RARITY.NAME)
         .from(RARITY)
@@ -317,14 +319,19 @@ public class CardDataImportService {
   // -- Step 3: Set groups and card sets --
 
   private Map<String, Integer> upsertSetGroups(List<SetGroupJson> setGroups) {
-    for (var sg : setGroups) {
-      dsl.insertInto(SET_GROUP)
-          .columns(SET_GROUP.NAME, SET_GROUP.SORT_ORDER)
-          .values(sg.name(), sg.sortOrder())
-          .onConflict(SET_GROUP.NAME)
-          .doUpdate()
-          .set(SET_GROUP.SORT_ORDER, DSL.field("excluded.sort_order", Integer.class))
-          .execute();
+    if (!setGroups.isEmpty()) {
+      var batch =
+          dsl.batch(
+              dsl.insertInto(SET_GROUP)
+                  .columns(SET_GROUP.NAME, SET_GROUP.SORT_ORDER)
+                  .values(DSL.val((String) null), DSL.val((Integer) null))
+                  .onConflict(SET_GROUP.NAME)
+                  .doUpdate()
+                  .set(SET_GROUP.SORT_ORDER, DSL.field("excluded.sort_order", Integer.class)));
+      for (var sg : setGroups) {
+        batch.bind(sg.name(), sg.sortOrder());
+      }
+      batch.execute();
     }
     return dsl.select(SET_GROUP.ID, SET_GROUP.NAME)
         .from(SET_GROUP)
@@ -335,25 +342,35 @@ public class CardDataImportService {
       List<CardSetJson> cardSets,
       Map<String, Integer> setGroupIds,
       Map<String, Short> productTypeIds) {
-    for (var cs : cardSets) {
-      Integer setGroupId = setGroupIds.get(cs.setGroup());
-      Short productTypeId = productTypeIds.get(cs.productType());
-      dsl.insertInto(CARD_SET)
-          .columns(
-              CARD_SET.CODE,
-              CARD_SET.NAME,
-              CARD_SET.RELEASE_DATE,
-              CARD_SET.PRODUCT_TYPE_ID,
-              CARD_SET.SET_GROUP_ID)
-          .values(
-              cs.code(), cs.name(), LocalDate.parse(cs.releaseDate()), productTypeId, setGroupId)
-          .onConflict(CARD_SET.CODE)
-          .doUpdate()
-          .set(CARD_SET.NAME, DSL.field("excluded.name", String.class))
-          .set(CARD_SET.RELEASE_DATE, DSL.field("excluded.release_date", LocalDate.class))
-          .set(CARD_SET.PRODUCT_TYPE_ID, DSL.field("excluded.product_type_id", Short.class))
-          .set(CARD_SET.SET_GROUP_ID, DSL.field("excluded.set_group_id", Integer.class))
-          .execute();
+    if (!cardSets.isEmpty()) {
+      var batch =
+          dsl.batch(
+              dsl.insertInto(CARD_SET)
+                  .columns(
+                      CARD_SET.CODE,
+                      CARD_SET.NAME,
+                      CARD_SET.RELEASE_DATE,
+                      CARD_SET.PRODUCT_TYPE_ID,
+                      CARD_SET.SET_GROUP_ID)
+                  .values(
+                      DSL.val((String) null),
+                      DSL.val((String) null),
+                      DSL.val((LocalDate) null),
+                      DSL.val((Short) null),
+                      DSL.val((Integer) null))
+                  .onConflict(CARD_SET.CODE)
+                  .doUpdate()
+                  .set(CARD_SET.NAME, DSL.field("excluded.name", String.class))
+                  .set(CARD_SET.RELEASE_DATE, DSL.field("excluded.release_date", LocalDate.class))
+                  .set(CARD_SET.PRODUCT_TYPE_ID, DSL.field("excluded.product_type_id", Short.class))
+                  .set(CARD_SET.SET_GROUP_ID, DSL.field("excluded.set_group_id", Integer.class)));
+      for (var cs : cardSets) {
+        Integer setGroupId = setGroupIds.get(cs.setGroup());
+        Short productTypeId = productTypeIds.get(cs.productType());
+        batch.bind(
+            cs.code(), cs.name(), LocalDate.parse(cs.releaseDate()), productTypeId, setGroupId);
+      }
+      batch.execute();
     }
     return dsl.select(CARD_SET.ID, CARD_SET.CODE)
         .from(CARD_SET)
@@ -363,34 +380,50 @@ public class CardDataImportService {
   // -- Step 4: Cards --
 
   private Map<String, Integer> upsertCards(List<CardJson> cards) {
-    for (var card : cards) {
-      Short[] sortCiv = toShortArray(card.sortCivilization());
-      dsl.insertInto(CARD)
-          .columns(
-              CARD.NAME,
-              CARD.IS_TWINPACT,
-              CARD.DECK_ZONE,
-              CARD.SORT_COST,
-              CARD.SORT_POWER,
-              CARD.SORT_POWER_MODIFIER,
-              CARD.SORT_CIVILIZATION)
-          .values(
-              card.name(),
-              card.isTwinpact(),
-              card.deckZone(),
-              card.sortCost(),
-              card.sortPower(),
-              card.sortPowerModifier(),
-              sortCiv)
-          .onConflict(CARD.NAME)
-          .doUpdate()
-          .set(CARD.IS_TWINPACT, DSL.field("excluded.is_twinpact", Boolean.class))
-          .set(CARD.DECK_ZONE, DSL.field("excluded.deck_zone", String.class))
-          .set(CARD.SORT_COST, DSL.field("excluded.sort_cost", Integer.class))
-          .set(CARD.SORT_POWER, DSL.field("excluded.sort_power", Integer.class))
-          .set(CARD.SORT_POWER_MODIFIER, DSL.field("excluded.sort_power_modifier", Short.class))
-          .set(CARD.SORT_CIVILIZATION, DSL.field("excluded.sort_civilization", Short[].class))
-          .execute();
+    if (!cards.isEmpty()) {
+      var batch =
+          dsl.batch(
+              dsl.insertInto(CARD)
+                  .columns(
+                      CARD.NAME,
+                      CARD.IS_TWINPACT,
+                      CARD.DECK_ZONE,
+                      CARD.SORT_COST,
+                      CARD.SORT_POWER,
+                      CARD.SORT_POWER_MODIFIER,
+                      CARD.SORT_CIVILIZATION)
+                  .values(
+                      DSL.val((String) null),
+                      DSL.val((Boolean) null),
+                      DSL.val((String) null),
+                      DSL.val((Integer) null),
+                      DSL.val((Integer) null),
+                      DSL.val((Short) null),
+                      DSL.val((Short[]) null))
+                  .onConflict(CARD.NAME)
+                  .doUpdate()
+                  .set(CARD.IS_TWINPACT, DSL.field("excluded.is_twinpact", Boolean.class))
+                  .set(CARD.DECK_ZONE, DSL.field("excluded.deck_zone", String.class))
+                  .set(CARD.SORT_COST, DSL.field("excluded.sort_cost", Integer.class))
+                  .set(CARD.SORT_POWER, DSL.field("excluded.sort_power", Integer.class))
+                  .set(
+                      CARD.SORT_POWER_MODIFIER,
+                      DSL.field("excluded.sort_power_modifier", Short.class))
+                  .set(
+                      CARD.SORT_CIVILIZATION,
+                      DSL.field("excluded.sort_civilization", Short[].class)));
+      for (var card : cards) {
+        Short[] sortCiv = toShortArray(card.sortCivilization());
+        batch.bind(
+            card.name(),
+            card.isTwinpact(),
+            card.deckZone(),
+            card.sortCost(),
+            card.sortPower(),
+            card.sortPowerModifier(),
+            sortCiv);
+      }
+      batch.execute();
     }
     return dsl.select(CARD.ID, CARD.NAME).from(CARD).fetchMap(CARD.NAME, CARD.ID);
   }
@@ -401,44 +434,67 @@ public class CardDataImportService {
     return ((long) cardId << 32) | (sideOrder & 0xFFFFFFFFL);
   }
 
+  private static long printingSideKey(int printingId, int cardSideId) {
+    return ((long) printingId << 32) | (cardSideId & 0xFFFFFFFFL);
+  }
+
   private Map<Long, Integer> upsertCardSides(List<CardJson> cards, Map<String, Integer> cardIds) {
-    for (var card : cards) {
-      int cardId = cardIds.get(card.name());
-      for (var side : card.sides()) {
-        Short[] civIds = toShortArray(side.civilizationIds());
-        dsl.insertInto(CARD_SIDE)
-            .columns(
-                CARD_SIDE.CARD_ID,
-                CARD_SIDE.SIDE_ORDER,
-                CARD_SIDE.NAME,
-                CARD_SIDE.COST,
-                CARD_SIDE.COST_IS_INFINITY,
-                CARD_SIDE.POWER,
-                CARD_SIDE.POWER_IS_INFINITY,
-                CARD_SIDE.POWER_MODIFIER,
-                CARD_SIDE.CIVILIZATION_IDS)
-            .values(
-                cardId,
-                (short) side.sideOrder(),
-                side.name(),
-                side.cost(),
-                side.costIsInfinity(),
-                side.power(),
-                side.powerIsInfinity(),
-                side.powerModifier(),
-                civIds)
-            .onConflict(CARD_SIDE.CARD_ID, CARD_SIDE.SIDE_ORDER)
-            .doUpdate()
-            .set(CARD_SIDE.NAME, DSL.field("excluded.name", String.class))
-            .set(CARD_SIDE.COST, DSL.field("excluded.cost", Integer.class))
-            .set(CARD_SIDE.COST_IS_INFINITY, DSL.field("excluded.cost_is_infinity", Boolean.class))
-            .set(CARD_SIDE.POWER, DSL.field("excluded.power", Integer.class))
-            .set(
-                CARD_SIDE.POWER_IS_INFINITY, DSL.field("excluded.power_is_infinity", Boolean.class))
-            .set(CARD_SIDE.POWER_MODIFIER, DSL.field("excluded.power_modifier", String.class))
-            .set(CARD_SIDE.CIVILIZATION_IDS, DSL.field("excluded.civilization_ids", Short[].class))
-            .execute();
+    if (!cards.isEmpty()) {
+      var batch =
+          dsl.batch(
+              dsl.insertInto(CARD_SIDE)
+                  .columns(
+                      CARD_SIDE.CARD_ID,
+                      CARD_SIDE.SIDE_ORDER,
+                      CARD_SIDE.NAME,
+                      CARD_SIDE.COST,
+                      CARD_SIDE.COST_IS_INFINITY,
+                      CARD_SIDE.POWER,
+                      CARD_SIDE.POWER_IS_INFINITY,
+                      CARD_SIDE.POWER_MODIFIER,
+                      CARD_SIDE.CIVILIZATION_IDS)
+                  .values(
+                      DSL.val((Integer) null),
+                      DSL.val((Short) null),
+                      DSL.val((String) null),
+                      DSL.val((Integer) null),
+                      DSL.val((Boolean) null),
+                      DSL.val((Integer) null),
+                      DSL.val((Boolean) null),
+                      DSL.val((String) null),
+                      DSL.val((Short[]) null))
+                  .onConflict(CARD_SIDE.CARD_ID, CARD_SIDE.SIDE_ORDER)
+                  .doUpdate()
+                  .set(CARD_SIDE.NAME, DSL.field("excluded.name", String.class))
+                  .set(CARD_SIDE.COST, DSL.field("excluded.cost", Integer.class))
+                  .set(
+                      CARD_SIDE.COST_IS_INFINITY,
+                      DSL.field("excluded.cost_is_infinity", Boolean.class))
+                  .set(CARD_SIDE.POWER, DSL.field("excluded.power", Integer.class))
+                  .set(
+                      CARD_SIDE.POWER_IS_INFINITY,
+                      DSL.field("excluded.power_is_infinity", Boolean.class))
+                  .set(CARD_SIDE.POWER_MODIFIER, DSL.field("excluded.power_modifier", String.class))
+                  .set(
+                      CARD_SIDE.CIVILIZATION_IDS,
+                      DSL.field("excluded.civilization_ids", Short[].class)));
+      for (var card : cards) {
+        int cardId = cardIds.get(card.name());
+        for (var side : card.sides()) {
+          Short[] civIds = toShortArray(side.civilizationIds());
+          batch.bind(
+              cardId,
+              (short) side.sideOrder(),
+              side.name(),
+              side.cost(),
+              side.costIsInfinity(),
+              side.power(),
+              side.powerIsInfinity(),
+              side.powerModifier(),
+              civIds);
+        }
       }
+      batch.execute();
     }
     // Fetch all card side IDs
     Map<Long, Integer> result = new HashMap<>();
@@ -461,56 +517,87 @@ public class CardDataImportService {
       Map<Long, Integer> cardSideIds,
       Map<String, Short> cardTypeIds,
       Map<String, Short> raceIds) {
+    if (cards.isEmpty()) return;
+    // Collect all card side IDs to delete, then batch insert
+    var allCardSideIdsList = new ArrayList<Integer>();
+    for (var card : cards) {
+      int cardId = cardIds.get(card.name());
+      for (var side : card.sides()) {
+        allCardSideIdsList.add(cardSideIds.get(cardSideKey(cardId, side.sideOrder())));
+      }
+    }
+
+    // Batch delete card_side_card_type and card_side_race
+    dsl.deleteFrom(CARD_SIDE_CARD_TYPE)
+        .where(CARD_SIDE_CARD_TYPE.CARD_SIDE_ID.in(allCardSideIdsList))
+        .execute();
+    dsl.deleteFrom(CARD_SIDE_RACE)
+        .where(CARD_SIDE_RACE.CARD_SIDE_ID.in(allCardSideIdsList))
+        .execute();
+
+    // Batch insert card_side_card_type
+    var ctBatch =
+        dsl.batch(
+            dsl.insertInto(CARD_SIDE_CARD_TYPE)
+                .columns(
+                    CARD_SIDE_CARD_TYPE.CARD_SIDE_ID,
+                    CARD_SIDE_CARD_TYPE.CARD_TYPE_ID,
+                    CARD_SIDE_CARD_TYPE.POSITION)
+                .values(DSL.val((Integer) null), DSL.val((Short) null), DSL.val((Short) null)));
+    // Batch insert card_side_race
+    var raceBatch =
+        dsl.batch(
+            dsl.insertInto(CARD_SIDE_RACE)
+                .columns(CARD_SIDE_RACE.CARD_SIDE_ID, CARD_SIDE_RACE.RACE_ID, CARD_SIDE_RACE.POSITION)
+                .values(DSL.val((Integer) null), DSL.val((Short) null), DSL.val((Short) null)));
+
+    boolean hasCardTypes = false;
+    boolean hasRaces = false;
     for (var card : cards) {
       int cardId = cardIds.get(card.name());
       for (var side : card.sides()) {
         int cardSideId = cardSideIds.get(cardSideKey(cardId, side.sideOrder()));
-
-        // card_side_card_type
-        dsl.deleteFrom(CARD_SIDE_CARD_TYPE)
-            .where(CARD_SIDE_CARD_TYPE.CARD_SIDE_ID.eq(cardSideId))
-            .execute();
         for (int i = 0; i < side.cardTypes().size(); i++) {
-          dsl.insertInto(CARD_SIDE_CARD_TYPE)
-              .columns(
-                  CARD_SIDE_CARD_TYPE.CARD_SIDE_ID,
-                  CARD_SIDE_CARD_TYPE.CARD_TYPE_ID,
-                  CARD_SIDE_CARD_TYPE.POSITION)
-              .values(cardSideId, cardTypeIds.get(side.cardTypes().get(i)), (short) i)
-              .execute();
+          ctBatch.bind(cardSideId, cardTypeIds.get(side.cardTypes().get(i)), (short) i);
+          hasCardTypes = true;
         }
-
-        // card_side_race
-        dsl.deleteFrom(CARD_SIDE_RACE).where(CARD_SIDE_RACE.CARD_SIDE_ID.eq(cardSideId)).execute();
         for (int i = 0; i < side.races().size(); i++) {
-          dsl.insertInto(CARD_SIDE_RACE)
-              .columns(CARD_SIDE_RACE.CARD_SIDE_ID, CARD_SIDE_RACE.RACE_ID, CARD_SIDE_RACE.POSITION)
-              .values(cardSideId, raceIds.get(side.races().get(i)), (short) i)
-              .execute();
+          raceBatch.bind(cardSideId, raceIds.get(side.races().get(i)), (short) i);
+          hasRaces = true;
         }
       }
     }
+    if (hasCardTypes) ctBatch.execute();
+    if (hasRaces) raceBatch.execute();
   }
 
   // -- Step 7: card_civ_group --
 
   private void insertCivGroups(List<CivGroupJson> civGroups, Map<String, Integer> cardIds) {
+    if (civGroups == null || civGroups.isEmpty()) return;
+
     // Delete all existing civ groups for cards being imported
-    for (int cardId : cardIds.values()) {
-      dsl.deleteFrom(CARD_CIV_GROUP).where(CARD_CIV_GROUP.CARD_ID.eq(cardId)).execute();
-    }
+    dsl.deleteFrom(CARD_CIV_GROUP)
+        .where(CARD_CIV_GROUP.CARD_ID.in(cardIds.values()))
+        .execute();
+
+    var batch =
+        dsl.batch(
+            dsl.insertInto(CARD_CIV_GROUP)
+                .columns(
+                    CARD_CIV_GROUP.CARD_ID,
+                    CARD_CIV_GROUP.CIVILIZATION_IDS,
+                    CARD_CIV_GROUP.INCLUDES_COLORLESS_SIDE)
+                .values(DSL.val((Integer) null), DSL.val((Short[]) null), DSL.val((Boolean) null)));
+    boolean hasRows = false;
     for (var group : civGroups) {
       Integer cardId = cardIds.get(group.cardName());
       if (cardId == null) continue;
       Short[] civIds = toShortArray(group.civilizationIds());
-      dsl.insertInto(CARD_CIV_GROUP)
-          .columns(
-              CARD_CIV_GROUP.CARD_ID,
-              CARD_CIV_GROUP.CIVILIZATION_IDS,
-              CARD_CIV_GROUP.INCLUDES_COLORLESS_SIDE)
-          .values(cardId, civIds, group.includesColorlessSide())
-          .execute();
+      batch.bind(cardId, civIds, group.includesColorlessSide());
+      hasRows = true;
     }
+    if (hasRows) batch.execute();
   }
 
   // -- Step 9: Abilities --
@@ -531,15 +618,18 @@ public class CardDataImportService {
     if (abilityTexts.isEmpty()) return Map.of();
 
     // Batch upsert abilities
+    var batch =
+        dsl.batch(
+            dsl.insertInto(ABILITY)
+                .columns(ABILITY.TEXT, ABILITY.SEARCH_TEXT)
+                .values(DSL.val((String) null), DSL.val((String) null))
+                .onConflict(ABILITY.TEXT)
+                .doUpdate()
+                .set(ABILITY.SEARCH_TEXT, DSL.field("excluded.search_text", String.class)));
     for (var entry : abilityTexts.entrySet()) {
-      dsl.insertInto(ABILITY)
-          .columns(ABILITY.TEXT, ABILITY.SEARCH_TEXT)
-          .values(entry.getKey(), entry.getValue())
-          .onConflict(ABILITY.TEXT)
-          .doUpdate()
-          .set(ABILITY.SEARCH_TEXT, DSL.field("excluded.search_text", String.class))
-          .execute();
+      batch.bind(entry.getKey(), entry.getValue());
     }
+    batch.execute();
 
     // Fetch all ability IDs
     return dsl.select(ABILITY.ID, ABILITY.TEXT)
@@ -556,33 +646,48 @@ public class CardDataImportService {
       Map<String, Integer> setIds,
       Map<String, Short> rarityIds,
       Map<String, Integer> illustratorIds) {
-    for (var p : printings) {
-      Integer cardId = cardIds.get(p.cardName());
-      Integer setId = setIds.get(p.setCode());
-      Short rarityId =
-          (p.rarity() != null && !p.rarity().isEmpty()) ? rarityIds.get(p.rarity()) : null;
-      Integer illustratorId =
-          (p.illustrator() != null && !p.illustrator().isEmpty())
-              ? illustratorIds.get(p.illustrator())
-              : null;
-
-      dsl.insertInto(PRINTING)
-          .columns(
-              PRINTING.OFFICIAL_SITE_ID,
-              PRINTING.CARD_ID,
-              PRINTING.SET_ID,
-              PRINTING.COLLECTOR_NUMBER,
-              PRINTING.RARITY_ID,
-              PRINTING.ILLUSTRATOR_ID)
-          .values(p.officialSiteId(), cardId, setId, p.collectorNumber(), rarityId, illustratorId)
-          .onConflict(PRINTING.OFFICIAL_SITE_ID)
-          .doUpdate()
-          .set(PRINTING.CARD_ID, DSL.field("excluded.card_id", Integer.class))
-          .set(PRINTING.SET_ID, DSL.field("excluded.set_id", Integer.class))
-          .set(PRINTING.COLLECTOR_NUMBER, DSL.field("excluded.collector_number", String.class))
-          .set(PRINTING.RARITY_ID, DSL.field("excluded.rarity_id", Short.class))
-          .set(PRINTING.ILLUSTRATOR_ID, DSL.field("excluded.illustrator_id", Integer.class))
-          .execute();
+    if (!printings.isEmpty()) {
+      var batch =
+          dsl.batch(
+              dsl.insertInto(PRINTING)
+                  .columns(
+                      PRINTING.OFFICIAL_SITE_ID,
+                      PRINTING.CARD_ID,
+                      PRINTING.SET_ID,
+                      PRINTING.COLLECTOR_NUMBER,
+                      PRINTING.RARITY_ID,
+                      PRINTING.ILLUSTRATOR_ID)
+                  .values(
+                      DSL.val((String) null),
+                      DSL.val((Integer) null),
+                      DSL.val((Integer) null),
+                      DSL.val((String) null),
+                      DSL.val((Short) null),
+                      DSL.val((Integer) null))
+                  .onConflict(PRINTING.OFFICIAL_SITE_ID)
+                  .doUpdate()
+                  .set(PRINTING.CARD_ID, DSL.field("excluded.card_id", Integer.class))
+                  .set(PRINTING.SET_ID, DSL.field("excluded.set_id", Integer.class))
+                  .set(
+                      PRINTING.COLLECTOR_NUMBER,
+                      DSL.field("excluded.collector_number", String.class))
+                  .set(PRINTING.RARITY_ID, DSL.field("excluded.rarity_id", Short.class))
+                  .set(
+                      PRINTING.ILLUSTRATOR_ID,
+                      DSL.field("excluded.illustrator_id", Integer.class)));
+      for (var p : printings) {
+        Integer cardId = cardIds.get(p.cardName());
+        Integer setId = setIds.get(p.setCode());
+        Short rarityId =
+            (p.rarity() != null && !p.rarity().isEmpty()) ? rarityIds.get(p.rarity()) : null;
+        Integer illustratorId =
+            (p.illustrator() != null && !p.illustrator().isEmpty())
+                ? illustratorIds.get(p.illustrator())
+                : null;
+        batch.bind(
+            p.officialSiteId(), cardId, setId, p.collectorNumber(), rarityId, illustratorId);
+      }
+      batch.execute();
     }
     return dsl.select(PRINTING.ID, PRINTING.OFFICIAL_SITE_ID)
         .from(PRINTING)
@@ -597,32 +702,53 @@ public class CardDataImportService {
       Map<String, Integer> cardIds,
       Map<Long, Integer> cardSideIds,
       Map<String, Integer> abilityIds) {
-    for (var p : printings) {
-      int printingId = printingIds.get(p.officialSiteId());
-      int cardId = cardIds.get(p.cardName());
+    if (printings.isEmpty()) return;
 
-      // Delete existing printing_side (cascades to printing_side_ability)
-      dsl.deleteFrom(PRINTING_SIDE).where(PRINTING_SIDE.PRINTING_ID.eq(printingId)).execute();
+    // Batch delete all printing_sides (cascades to printing_side_ability)
+    var allPrintingIds = new ArrayList<>(printingIds.values());
+    dsl.deleteFrom(PRINTING_SIDE)
+        .where(PRINTING_SIDE.PRINTING_ID.in(allPrintingIds))
+        .execute();
 
-      for (var side : p.sides()) {
-        int cardSideId = cardSideIds.get(cardSideKey(cardId, side.sideOrder()));
-
-        // Insert printing_side
-        Integer printingSideId =
+    // Batch insert all printing_sides
+    var psBatch =
+        dsl.batch(
             dsl.insertInto(PRINTING_SIDE)
                 .columns(
                     PRINTING_SIDE.PRINTING_ID,
                     PRINTING_SIDE.CARD_SIDE_ID,
                     PRINTING_SIDE.FLAVOR_TEXT,
                     PRINTING_SIDE.IMAGE_FILENAME)
-                .values(printingId, cardSideId, side.flavorText(), side.imageFilename())
-                .returning(PRINTING_SIDE.ID)
-                .fetchOne(PRINTING_SIDE.ID);
+                .values(
+                    DSL.val((Integer) null),
+                    DSL.val((Integer) null),
+                    DSL.val((String) null),
+                    DSL.val((String) null)));
+    for (var p : printings) {
+      int printingId = printingIds.get(p.officialSiteId());
+      int cardId = cardIds.get(p.cardName());
+      for (var side : p.sides()) {
+        int cardSideId = cardSideIds.get(cardSideKey(cardId, side.sideOrder()));
+        psBatch.bind(printingId, cardSideId, side.flavorText(), side.imageFilename());
+      }
+    }
+    psBatch.execute();
 
-        // Insert printing_side_ability
-        if (side.abilities() != null) {
-          for (var ability : side.abilities()) {
-            Integer abilityId = abilityIds.get(ability.text());
+    // Fetch all printing_side IDs keyed by (printing_id, card_side_id)
+    Map<Long, Integer> printingSideIds = new HashMap<>();
+    dsl.select(PRINTING_SIDE.ID, PRINTING_SIDE.PRINTING_ID, PRINTING_SIDE.CARD_SIDE_ID)
+        .from(PRINTING_SIDE)
+        .where(PRINTING_SIDE.PRINTING_ID.in(allPrintingIds))
+        .fetch()
+        .forEach(
+            r ->
+                printingSideIds.put(
+                    printingSideKey(r.get(PRINTING_SIDE.PRINTING_ID), r.get(PRINTING_SIDE.CARD_SIDE_ID)),
+                    r.get(PRINTING_SIDE.ID)));
+
+    // Batch insert all printing_side_ability
+    var psaBatch =
+        dsl.batch(
             dsl.insertInto(PRINTING_SIDE_ABILITY)
                 .columns(
                     PRINTING_SIDE_ABILITY.PRINTING_SIDE_ID,
@@ -630,15 +756,26 @@ public class CardDataImportService {
                     PRINTING_SIDE_ABILITY.POSITION,
                     PRINTING_SIDE_ABILITY.INDENT_LEVEL)
                 .values(
-                    printingSideId,
-                    abilityId,
-                    (short) ability.position(),
-                    (short) ability.indentLevel())
-                .execute();
-          }
+                    DSL.val((Integer) null),
+                    DSL.val((Integer) null),
+                    DSL.val((Short) null),
+                    DSL.val((Short) null)));
+    boolean hasAbilities = false;
+    for (var p : printings) {
+      int printingId = printingIds.get(p.officialSiteId());
+      int cardId = cardIds.get(p.cardName());
+      for (var side : p.sides()) {
+        if (side.abilities() == null) continue;
+        int cardSideId = cardSideIds.get(cardSideKey(cardId, side.sideOrder()));
+        int printingSideId = printingSideIds.get(printingSideKey(printingId, cardSideId));
+        for (var ability : side.abilities()) {
+          Integer abilityId = abilityIds.get(ability.text());
+          psaBatch.bind(printingSideId, abilityId, (short) ability.position(), (short) ability.indentLevel());
+          hasAbilities = true;
         }
       }
     }
+    if (hasAbilities) psaBatch.execute();
   }
 
   // -- Cleanup --
