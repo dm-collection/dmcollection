@@ -319,7 +319,7 @@ public class CardDataImportService {
   // -- Step 3: Set groups and card sets --
 
   private Map<String, Integer> upsertSetGroups(List<SetGroupJson> setGroups) {
-    if (!setGroups.isEmpty()) {
+    if (setGroups != null && !setGroups.isEmpty()) {
       var batch =
           dsl.batch(
               dsl.insertInto(SET_GROUP)

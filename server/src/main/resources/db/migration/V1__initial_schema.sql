@@ -99,7 +99,7 @@ CREATE TABLE card_set (
     code            text        NOT NULL UNIQUE,
     release_date    date        NOT NULL,           -- approximate for promos
     product_type_id smallint    NOT NULL REFERENCES product_type (id),
-    set_group_id    integer     NOT NULL REFERENCES set_group (id)
+    set_group_id    integer     REFERENCES set_group (id)
 );
 
 CREATE INDEX idx_card_set_release_date ON card_set (release_date);
