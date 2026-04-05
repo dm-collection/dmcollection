@@ -110,12 +110,11 @@ CREATE INDEX idx_card_set_release_date ON card_set (release_date);
 
 CREATE TABLE card (
     id              integer     GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    name            text        NOT NULL UNIQUE,    -- full name (composite for twinpact)
+    name            text        NOT NULL UNIQUE,    -- full name (composite for twinpact/multi-sided cards)
     language        text        NOT NULL DEFAULT 'ja',
     is_twinpact     boolean     NOT NULL DEFAULT false,
     -- Pre-computed sort values from the first side (side_order = 0).
-    -- Maintained by the application during card upserts (same pattern as
-    -- card_civ_group). Avoids JOINs/subqueries to card_side for sorting.
+    -- Avoids JOINs/subqueries to card_side for sorting.
     sort_cost            integer,    -- first side's cost_sort (null = no cost)
     sort_power           integer,    -- first side's power_sort
     sort_power_modifier  smallint,   -- first side's power_modifier_sort
@@ -195,8 +194,7 @@ CREATE INDEX idx_card_side_card_type_type_id ON card_side_card_type (card_type_i
 --   Non-twinpact multi-side card  → 1 row per side (each independently filterable)
 --   Twinpact card                 → 1 row (union of all sides' civilizations)
 --
--- Maintained by the application during card upserts (same pattern as
--- ability.search_text). Source of truth remains card_side.civilization_ids.
+-- Source of truth remains card_side.civilization_ids.
 --
 -- Colorless-side handling:
 --   Because colorless = empty array, the union of a colorless side with a

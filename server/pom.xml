@@ -100,68 +100,22 @@
         <artifactId>jacoco-maven-plugin</artifactId>
       </plugin>
       <plugin>
-        <groupId>dev.sivalabs</groupId>
-        <artifactId>testcontainers-jooq-codegen-maven-plugin</artifactId>
-        <version>1.0.0</version>
-        <dependencies>
-          <dependency>
-            <groupId>org.testcontainers</groupId>
-            <artifactId>testcontainers-postgresql</artifactId>
-            <version>${testcontainers.version}</version>
-          </dependency>
-          <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-            <version>${postgresql.version}</version>
-          </dependency>
-          <dependency>
-            <groupId>org.jooq</groupId>
-            <artifactId>jooq-codegen</artifactId>
-            <version>${jooq.version}</version>
-          </dependency>
-          <dependency>
-            <groupId>org.jooq</groupId>
-            <artifactId>jooq-meta</artifactId>
-            <version>${jooq.version}</version>
-          </dependency>
-        </dependencies>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
         <executions>
           <execution>
-            <id>generate-jooq-sources</id>
-            <goals>
-              <goal>generate</goal>
-            </goals>
+            <id>add-generated-sources</id>
             <phase>generate-sources</phase>
+            <goals>
+              <goal>add-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>${project.basedir}/src/main/generated</source>
+              </sources>
+            </configuration>
           </execution>
         </executions>
-        <configuration>
-          <database>
-            <type>POSTGRES</type>
-            <containerImage>postgres:18-alpine</containerImage>
-          </database>
-          <flyway>
-            <locations>filesystem:${project.basedir}/src/main/resources/db/migration</locations>
-          </flyway>
-          <jooq>
-            <generator>
-              <database>
-                <includes>.*</includes>
-                <excludes>flyway_schema_history</excludes>
-                <inputSchema>public</inputSchema>
-              </database>
-              <target>
-                <packageName>net.dmcollection.server.jooq.generated</packageName>
-                <directory>target/generated-sources/jooq</directory>
-              </target>
-              <generate>
-                <pojos>false</pojos>
-                <daos>false</daos>
-                <records>true</records>
-                <fluentSetters>true</fluentSetters>
-              </generate>
-            </generator>
-          </jooq>
-        </configuration>
       </plugin>
     </plugins>
   </build>

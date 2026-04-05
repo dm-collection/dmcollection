@@ -1,0 +1,275 @@
+{
+  "$schema" : "https://json-schema.org/draft/2020-12/schema",
+  "$defs" : {
+    "Ability" : {
+      "type" : "object",
+      "properties" : {
+        "indent_level" : {
+          "type" : "integer"
+        },
+        "position" : {
+          "type" : "integer"
+        },
+        "search_text" : {
+          "type" : "string"
+        },
+        "text" : {
+          "type" : "string"
+        }
+      }
+    },
+    "Card" : {
+      "type" : "object",
+      "properties" : {
+        "deck_zone" : {
+          "type" : "string"
+        },
+        "is_twinpact" : {
+          "type" : "boolean"
+        },
+        "name" : {
+          "type" : "string"
+        },
+        "sides" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/$defs/CardSide"
+          }
+        },
+        "sort_civilization" : {
+          "type" : "array",
+          "items" : {
+            "type" : "integer"
+          }
+        },
+        "sort_cost" : {
+          "type" : [ "integer", "null" ]
+        },
+        "sort_power" : {
+          "type" : [ "integer", "null" ]
+        },
+        "sort_power_modifier" : {
+          "type" : [ "integer", "null" ]
+        }
+      }
+    },
+    "CardAlias" : {
+      "type" : "object",
+      "properties" : {
+        "new_name" : {
+          "type" : "string"
+        },
+        "old_name" : {
+          "type" : "string"
+        }
+      }
+    },
+    "CardSet" : {
+      "type" : "object",
+      "properties" : {
+        "code" : {
+          "type" : "string"
+        },
+        "name" : {
+          "type" : "string"
+        },
+        "product_type" : {
+          "type" : "string"
+        },
+        "release_date" : {
+          "$ref" : "#/$defs/LocalDate"
+        },
+        "set_group" : {
+          "type" : [ "string", "null" ]
+        }
+      }
+    },
+    "CardSide" : {
+      "type" : "object",
+      "properties" : {
+        "card_types" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
+        },
+        "civilization_ids" : {
+          "type" : "array",
+          "items" : {
+            "type" : "integer"
+          }
+        },
+        "cost" : {
+          "type" : [ "integer", "null" ]
+        },
+        "cost_is_infinity" : {
+          "type" : "boolean"
+        },
+        "name" : {
+          "type" : "string"
+        },
+        "power" : {
+          "type" : [ "integer", "null" ]
+        },
+        "power_is_infinity" : {
+          "type" : "boolean"
+        },
+        "power_modifier" : {
+          "type" : [ "string", "null" ]
+        },
+        "races" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
+        },
+        "side_order" : {
+          "type" : "integer"
+        },
+        "souls" : {
+          "type" : "array",
+          "items" : {
+            "type" : "string"
+          }
+        }
+      }
+    },
+    "CivGroup" : {
+      "type" : "object",
+      "properties" : {
+        "card_name" : {
+          "type" : "string"
+        },
+        "civilization_ids" : {
+          "type" : "array",
+          "items" : {
+            "type" : "integer"
+          }
+        },
+        "includes_colorless_side" : {
+          "type" : "boolean"
+        }
+      }
+    },
+    "LocalDate" : {
+      "type" : "string",
+      "format" : "date"
+    },
+    "Printing" : {
+      "type" : "object",
+      "properties" : {
+        "card_name" : {
+          "type" : "string"
+        },
+        "collector_number" : {
+          "type" : [ "string", "null" ]
+        },
+        "illustrator" : {
+          "type" : [ "string", "null" ]
+        },
+        "official_site_id" : {
+          "type" : "string"
+        },
+        "rarity" : {
+          "type" : [ "string", "null" ]
+        },
+        "set_code" : {
+          "type" : "string"
+        },
+        "sides" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/$defs/PrintingSide"
+          }
+        }
+      }
+    },
+    "PrintingSide" : {
+      "type" : "object",
+      "properties" : {
+        "abilities" : {
+          "type" : "array",
+          "items" : {
+            "$ref" : "#/$defs/Ability"
+          }
+        },
+        "flavor_text" : {
+          "type" : [ "string", "null" ]
+        },
+        "image_filename" : {
+          "type" : [ "string", "null" ]
+        },
+        "side_order" : {
+          "type" : "integer"
+        }
+      }
+    },
+    "Rarity" : {
+      "type" : "object",
+      "properties" : {
+        "name" : {
+          "type" : "string"
+        },
+        "sort_order" : {
+          "type" : "integer"
+        }
+      }
+    },
+    "SetGroup" : {
+      "type" : "object",
+      "properties" : {
+        "name" : {
+          "type" : "string"
+        },
+        "sort_order" : {
+          "type" : "integer"
+        }
+      }
+    }
+  },
+  "type" : "object",
+  "properties" : {
+    "card_aliases" : {
+      "type" : "array",
+      "items" : {
+        "$ref" : "#/$defs/CardAlias"
+      }
+    },
+    "card_civ_groups" : {
+      "type" : "array",
+      "items" : {
+        "$ref" : "#/$defs/CivGroup"
+      }
+    },
+    "card_sets" : {
+      "type" : "array",
+      "items" : {
+        "$ref" : "#/$defs/CardSet"
+      }
+    },
+    "cards" : {
+      "type" : "array",
+      "items" : {
+        "$ref" : "#/$defs/Card"
+      }
+    },
+    "printings" : {
+      "type" : "array",
+      "items" : {
+        "$ref" : "#/$defs/Printing"
+      }
+    },
+    "rarities" : {
+      "type" : "array",
+      "items" : {
+        "$ref" : "#/$defs/Rarity"
+      }
+    },
+    "set_groups" : {
+      "type" : "array",
+      "items" : {
+        "$ref" : "#/$defs/SetGroup"
+      }
+    }
+  }
+}

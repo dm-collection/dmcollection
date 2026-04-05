@@ -19,7 +19,6 @@
 
   <modules>
     <module>server</module>
-    <module>coverage-aggregate</module>
   </modules>
 
   <properties>
@@ -28,7 +27,7 @@
     <sonar.projectName>DM Collection Server</sonar.projectName>
     <sonar.host.url>https://sonarcloud.io</sonar.host.url>
     <sonar.coverage.jacoco.xmlReportPaths>
-      ${maven.multiModuleProjectDirectory}/coverage-aggregate/target/site/jacoco-aggregate/jacoco.xml
+      ${maven.multiModuleProjectDirectory}/server/target/site/jacoco/jacoco.xml,${maven.multiModuleProjectDirectory}/server/target/site/jacoco-it/jacoco.xml
     </sonar.coverage.jacoco.xmlReportPaths>
     <java.version>25</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -167,5 +166,81 @@
     </plugins>
   </build>
 
+  <profiles>
+    <profile>
+      <id>jooq-codegen</id>
+      <modules>
+        <module>server</module>
+      </modules>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>dev.sivalabs</groupId>
+            <artifactId>testcontainers-jooq-codegen-maven-plugin</artifactId>
+            <version>1.0.0</version>
+            <dependencies>
+              <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-postgresql</artifactId>
+                <version>${testcontainers.version}</version>
+              </dependency>
+              <dependency>
+                <groupId>org.postgresql</groupId>
+                <artifactId>postgresql</artifactId>
+                <version>${postgresql.version}</version>
+              </dependency>
+              <dependency>
+                <groupId>org.jooq</groupId>
+                <artifactId>jooq-codegen</artifactId>
+                <version>${jooq.version}</version>
+              </dependency>
+              <dependency>
+                <groupId>org.jooq</groupId>
+                <artifactId>jooq-meta</artifactId>
+                <version>${jooq.version}</version>
+              </dependency>
+            </dependencies>
+            <executions>
+              <execution>
+                <id>generate-jooq-sources</id>
+                <goals>
+                  <goal>generate</goal>
+                </goals>
+                <phase>generate-sources</phase>
+              </execution>
+            </executions>
+            <configuration>
+              <database>
+                <type>POSTGRES</type>
+                <containerImage>postgres:18-alpine</containerImage>
+              </database>
+              <flyway>
+                <locations>filesystem:${project.basedir}/src/main/resources/db/migration</locations>
+              </flyway>
+              <jooq>
+                <generator>
+                  <database>
+                    <includes>.*</includes>
+                    <excludes>flyway_schema_history</excludes>
+                    <inputSchema>public</inputSchema>
+                  </database>
+                  <target>
+                    <packageName>net.dmcollection.server.jooq.generated</packageName>
+                    <directory>src/main/generated</directory>
+                  </target>
+                  <generate>
+                    <pojos>false</pojos>
+                    <daos>false</daos>
+                    <records>true</records>
+                    <fluentSetters>true</fluentSetters>
+                  </generate>
+                </generator>
+              </jooq>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 
 </project>
