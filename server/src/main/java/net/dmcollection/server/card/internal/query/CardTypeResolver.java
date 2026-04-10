@@ -1,14 +1,15 @@
 package net.dmcollection.server.card.internal.query;
 
-import static net.dmcollection.server.jooq.generated.tables.CardType.CARD_TYPE;
+import net.dmcollection.server.card.internal.SearchFilter.CardType;
+import org.jooq.DSLContext;
+import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import net.dmcollection.server.card.internal.SearchFilter.CardType;
-import org.jooq.DSLContext;
-import org.springframework.stereotype.Component;
+
+import static net.dmcollection.server.jooq.generated.tables.CardType.CARD_TYPE;
 
 @Component
 public class CardTypeResolver {
@@ -17,18 +18,23 @@ public class CardTypeResolver {
 
   private final DSLContext dsl;
 
+  private Map<String, Integer> nameToId;
+
   public CardTypeResolver(DSLContext dsl) {
     this.dsl = dsl;
   }
 
-  private Map<String, Integer> loadNameToId() {
-    return dsl.select(CARD_TYPE.NAME, CARD_TYPE.ID)
-        .from(CARD_TYPE)
-        .fetchMap(CARD_TYPE.NAME, r -> r.get(CARD_TYPE.ID).intValue());
+  public void loadNameToId() {
+    this.nameToId =
+        dsl.select(CARD_TYPE.NAME, CARD_TYPE.ID)
+            .from(CARD_TYPE)
+            .fetchMap(CARD_TYPE.NAME, r -> r.get(CARD_TYPE.ID).intValue());
   }
 
   public IncludedExcluded resolve(CardType cardType) {
-    Map<String, Integer> nameToId = loadNameToId();
+    if (nameToId == null) {
+      loadNameToId();
+    }
     return switch (cardType) {
       case CREATURE ->
           new IncludedExcluded(
@@ -46,15 +52,7 @@ public class CardTypeResolver {
               idsContainingAny(nameToId, CardType.CROSSGEAR, CardType.PSYCHIC, CardType.DRAGHEART));
       case CASTLE -> new IncludedExcluded(idsExact(nameToId, CardType.CASTLE), Set.of());
       case OTHER -> new IncludedExcluded(Set.of(), idsForAllStandardTypes(nameToId));
-      case SPELL,
-              PSYCHIC,
-              DRAGHEART,
-              FIELD,
-              CROSSGEAR,
-              EXILE,
-              GACHALLENGE,
-              AURA,
-              TAMASEED ->
+      case SPELL, PSYCHIC, DRAGHEART, FIELD, CROSSGEAR, EXILE, GACHALLENGE, AURA, TAMASEED ->
           new IncludedExcluded(idsContaining(nameToId, cardType), Set.of());
     };
   }

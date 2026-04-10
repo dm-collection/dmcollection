@@ -58,10 +58,9 @@ public class CardDataImportService {
 
   @Transactional
   public void importCardData(CardDataJson data) {
-    // Step 1: Process aliases
     processAliases(data.cardAliases());
 
-    // Step 2: Lookup tables
+    // create lookup tables
     Map<String, Short> cardTypeIds =
         upsertSmallLookup(CARD_TYPE, CARD_TYPE.NAME, extractCardTypes(data));
     Map<String, Short> raceIds = upsertSmallLookup(RACE, RACE.NAME, extractRaces(data));
@@ -71,43 +70,37 @@ public class CardDataImportService {
     Map<String, Short> productTypeIds =
         upsertSmallLookup(PRODUCT_TYPE, PRODUCT_TYPE.NAME, extractProductTypes(data));
 
-    // Step 3: Set groups and card sets
+    // Set groups and card sets
     Map<String, Integer> setGroupIds = upsertSetGroups(data.setGroups());
-    Map<String, Integer> setIds =
-        upsertCardSets(data.cardSets(), setGroupIds, productTypeIds);
+    Map<String, Integer> setIds = upsertCardSets(data.cardSets(), setGroupIds, productTypeIds);
 
-    // Step 4: Cards
+    // Cards
     Map<String, Integer> cardIds = upsertCards(data.cards());
 
-    // Step 5: Card sides
+    // Card sides
     Map<Long, Integer> cardSideIds = upsertCardSides(data.cards(), cardIds);
 
-    // Step 6: Side junction tables
+    // Side junction tables
     replaceSideJunctions(data.cards(), cardIds, cardSideIds, cardTypeIds, raceIds);
 
-    // Step 7: card_civ_group
+    // card_civ_group
     insertCivGroups(data.cardCivGroups(), cardIds);
 
-    // Steps 8, 12: no-op (no keyword_abilities or public_tags in JSON)
-
-    // Step 9: abilities (bulk upsert)
+    // abilities
     Map<String, Integer> abilityIds = upsertAbilities(data.printings());
 
-    // Step 10: printings
+    // printings
     Map<String, Integer> printingIds =
         upsertPrintings(data.printings(), cardIds, setIds, rarityIds, illustratorIds);
 
-    // Step 11: printing_side + printing_side_ability
+    // printing_side + printing_side_ability
     replacePrintingSides(data.printings(), printingIds, cardIds, cardSideIds, abilityIds);
 
-    // Cleanup orphaned abilities
     cleanupOrphanedAbilities();
 
     log.info(
         "Import complete: {} cards, {} printings", data.cards().size(), data.printings().size());
   }
-
-  // -- Step 1: Aliases --
 
   private void processAliases(List<CardAliasJson> aliases) {
     if (aliases == null || aliases.isEmpty()) return;
@@ -231,8 +224,6 @@ public class CardDataImportService {
     dsl.update(table).set(cardIdField, survivorCardId).where(cardIdField.eq(oldCardId)).execute();
   }
 
-  // -- Step 2: Lookup tables --
-
   private Set<String> extractCardTypes(CardDataJson data) {
     return data.cards().stream()
         .flatMap(c -> c.sides().stream())
@@ -267,7 +258,11 @@ public class CardDataImportService {
     Field<Short> idField = table.field("id", Short.class);
     var batch =
         dsl.batch(
-            dsl.insertInto(table).columns(nameField).values(DSL.val((String) null)).onConflict(nameField).doNothing());
+            dsl.insertInto(table)
+                .columns(nameField)
+                .values(DSL.val((String) null))
+                .onConflict(nameField)
+                .doNothing());
     for (String name : names) {
       batch.bind(name);
     }
@@ -284,7 +279,11 @@ public class CardDataImportService {
     Field<Integer> idField = table.field("id", Integer.class);
     var batch =
         dsl.batch(
-            dsl.insertInto(table).columns(nameField).values(DSL.val((String) null)).onConflict(nameField).doNothing());
+            dsl.insertInto(table)
+                .columns(nameField)
+                .values(DSL.val((String) null))
+                .onConflict(nameField)
+                .doNothing());
     for (String name : names) {
       batch.bind(name);
     }
@@ -315,8 +314,6 @@ public class CardDataImportService {
         .where(RARITY.NAME.in(names))
         .fetchMap(RARITY.NAME, RARITY.ID);
   }
-
-  // -- Step 3: Set groups and card sets --
 
   private Map<String, Integer> upsertSetGroups(List<SetGroupJson> setGroups) {
     if (setGroups != null && !setGroups.isEmpty()) {
@@ -377,8 +374,6 @@ public class CardDataImportService {
         .fetchMap(CARD_SET.CODE, CARD_SET.ID);
   }
 
-  // -- Step 4: Cards --
-
   private Map<String, Integer> upsertCards(List<CardJson> cards) {
     if (!cards.isEmpty()) {
       var batch =
@@ -427,8 +422,6 @@ public class CardDataImportService {
     }
     return dsl.select(CARD.ID, CARD.NAME).from(CARD).fetchMap(CARD.NAME, CARD.ID);
   }
-
-  // -- Step 5: Card sides --
 
   private static long cardSideKey(int cardId, int sideOrder) {
     return ((long) cardId << 32) | (sideOrder & 0xFFFFFFFFL);
@@ -509,8 +502,6 @@ public class CardDataImportService {
     return result;
   }
 
-  // -- Step 6: Side junction tables --
-
   private void replaceSideJunctions(
       List<CardJson> cards,
       Map<String, Integer> cardIds,
@@ -548,7 +539,8 @@ public class CardDataImportService {
     var raceBatch =
         dsl.batch(
             dsl.insertInto(CARD_SIDE_RACE)
-                .columns(CARD_SIDE_RACE.CARD_SIDE_ID, CARD_SIDE_RACE.RACE_ID, CARD_SIDE_RACE.POSITION)
+                .columns(
+                    CARD_SIDE_RACE.CARD_SIDE_ID, CARD_SIDE_RACE.RACE_ID, CARD_SIDE_RACE.POSITION)
                 .values(DSL.val((Integer) null), DSL.val((Short) null), DSL.val((Short) null)));
 
     boolean hasCardTypes = false;
@@ -571,15 +563,11 @@ public class CardDataImportService {
     if (hasRaces) raceBatch.execute();
   }
 
-  // -- Step 7: card_civ_group --
-
   private void insertCivGroups(List<CivGroupJson> civGroups, Map<String, Integer> cardIds) {
     if (civGroups == null || civGroups.isEmpty()) return;
 
     // Delete all existing civ groups for cards being imported
-    dsl.deleteFrom(CARD_CIV_GROUP)
-        .where(CARD_CIV_GROUP.CARD_ID.in(cardIds.values()))
-        .execute();
+    dsl.deleteFrom(CARD_CIV_GROUP).where(CARD_CIV_GROUP.CARD_ID.in(cardIds.values())).execute();
 
     var batch =
         dsl.batch(
@@ -599,8 +587,6 @@ public class CardDataImportService {
     }
     if (hasRows) batch.execute();
   }
-
-  // -- Step 9: Abilities --
 
   private Map<String, Integer> upsertAbilities(List<PrintingJson> printings) {
     // Collect all unique ability (text, search_text) pairs
@@ -637,8 +623,6 @@ public class CardDataImportService {
         .where(ABILITY.TEXT.in(abilityTexts.keySet()))
         .fetchMap(ABILITY.TEXT, ABILITY.ID);
   }
-
-  // -- Step 10: Printings --
 
   private Map<String, Integer> upsertPrintings(
       List<PrintingJson> printings,
@@ -684,8 +668,7 @@ public class CardDataImportService {
             (p.illustrator() != null && !p.illustrator().isEmpty())
                 ? illustratorIds.get(p.illustrator())
                 : null;
-        batch.bind(
-            p.officialSiteId(), cardId, setId, p.collectorNumber(), rarityId, illustratorId);
+        batch.bind(p.officialSiteId(), cardId, setId, p.collectorNumber(), rarityId, illustratorId);
       }
       batch.execute();
     }
@@ -693,8 +676,6 @@ public class CardDataImportService {
         .from(PRINTING)
         .fetchMap(PRINTING.OFFICIAL_SITE_ID, PRINTING.ID);
   }
-
-  // -- Step 11: Printing sides + abilities --
 
   private void replacePrintingSides(
       List<PrintingJson> printings,
@@ -706,9 +687,7 @@ public class CardDataImportService {
 
     // Batch delete all printing_sides (cascades to printing_side_ability)
     var allPrintingIds = new ArrayList<>(printingIds.values());
-    dsl.deleteFrom(PRINTING_SIDE)
-        .where(PRINTING_SIDE.PRINTING_ID.in(allPrintingIds))
-        .execute();
+    dsl.deleteFrom(PRINTING_SIDE).where(PRINTING_SIDE.PRINTING_ID.in(allPrintingIds)).execute();
 
     // Batch insert all printing_sides
     var psBatch =
@@ -743,7 +722,8 @@ public class CardDataImportService {
         .forEach(
             r ->
                 printingSideIds.put(
-                    printingSideKey(r.get(PRINTING_SIDE.PRINTING_ID), r.get(PRINTING_SIDE.CARD_SIDE_ID)),
+                    printingSideKey(
+                        r.get(PRINTING_SIDE.PRINTING_ID), r.get(PRINTING_SIDE.CARD_SIDE_ID)),
                     r.get(PRINTING_SIDE.ID)));
 
     // Batch insert all printing_side_ability
@@ -770,15 +750,14 @@ public class CardDataImportService {
         int printingSideId = printingSideIds.get(printingSideKey(printingId, cardSideId));
         for (var ability : side.abilities()) {
           Integer abilityId = abilityIds.get(ability.text());
-          psaBatch.bind(printingSideId, abilityId, (short) ability.position(), (short) ability.indentLevel());
+          psaBatch.bind(
+              printingSideId, abilityId, (short) ability.position(), (short) ability.indentLevel());
           hasAbilities = true;
         }
       }
     }
     if (hasAbilities) psaBatch.execute();
   }
-
-  // -- Cleanup --
 
   private void cleanupOrphanedAbilities() {
     int deleted =
@@ -792,8 +771,6 @@ public class CardDataImportService {
       log.info("Cleaned up {} orphaned abilities", deleted);
     }
   }
-
-  // -- Utilities --
 
   private static Short[] toShortArray(List<Integer> ints) {
     if (ints == null || ints.isEmpty()) return new Short[0];
