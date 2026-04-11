@@ -18,6 +18,7 @@ import net.dmcollection.server.TestFixtureBuilder;
 import net.dmcollection.server.card.CardService.CardStub;
 import net.dmcollection.server.card.CollectionService.CollectionCardExport;
 import net.dmcollection.server.card.CollectionService.CollectionExport;
+import net.dmcollection.server.card.internal.query.CardTypeResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,13 +28,14 @@ import org.springframework.transaction.annotation.Transactional;
 class CollectionServiceIntegrationTest extends PostgresTestBase {
 
   @Autowired CollectionService collectionService;
+  @Autowired CardTypeResolver cardTypeResolver;
 
   private TestFixtureBuilder fixtures;
   private UUID userId;
 
   @BeforeEach
   void setup() {
-    fixtures = new TestFixtureBuilder(dsl);
+    fixtures = new TestFixtureBuilder(dsl, cardTypeResolver);
 
     userId =
         dsl.insertInto(APP_USER)
@@ -58,10 +60,12 @@ class CollectionServiceIntegrationTest extends PostgresTestBase {
     collectionService.setCardAmount(userId, card.id(), 3);
 
     var result = collectionService.getSingleCardAmount(userId, card.id());
-    assertThat(result).hasValueSatisfying(stub -> {
-      assertThat(stub.cardId()).isEqualTo(card.id());
-      assertThat(stub.amount()).isEqualTo(3);
-    });
+    assertThat(result)
+        .hasValueSatisfying(
+            stub -> {
+              assertThat(stub.cardId()).isEqualTo(card.id());
+              assertThat(stub.amount()).isEqualTo(3);
+            });
   }
 
   @Test
@@ -88,7 +92,9 @@ class CollectionServiceIntegrationTest extends PostgresTestBase {
     int rowCount =
         dsl.fetchCount(
             COLLECTION_ENTRY,
-            COLLECTION_ENTRY.USER_ID.eq(userId)
+            COLLECTION_ENTRY
+                .USER_ID
+                .eq(userId)
                 .and(COLLECTION_ENTRY.PRINTING_ID.eq(card.id().intValue())));
     assertThat(rowCount).isZero();
   }
@@ -110,10 +116,11 @@ class CollectionServiceIntegrationTest extends PostgresTestBase {
     assertThat(result.info().uniqueCardCount()).isEqualTo(1);
     assertThat(result.cardPage().getContent())
         .hasSize(1)
-        .allSatisfy(cardStub -> {
-          assertThat(cardStub.dmId()).isEqualTo("dmr08-021");
-          assertThat(cardStub.amount()).isEqualTo(5000);
-        });
+        .allSatisfy(
+            cardStub -> {
+              assertThat(cardStub.dmId()).isEqualTo("dmr08-021");
+              assertThat(cardStub.amount()).isEqualTo(5000);
+            });
   }
 
   @Test

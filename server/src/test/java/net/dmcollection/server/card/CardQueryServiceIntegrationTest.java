@@ -1,21 +1,20 @@
 package net.dmcollection.server.card;
 
+import static net.dmcollection.server.TestFixtureBuilder.CREATURE;
+import static net.dmcollection.server.TestFixtureBuilder.PSYCHIC_CREATURE;
+import static net.dmcollection.server.TestFixtureBuilder.SPELL;
+import static net.dmcollection.server.TestFixtureBuilder.search;
 import static net.dmcollection.server.card.Civilization.DARK;
 import static net.dmcollection.server.card.Civilization.FIRE;
 import static net.dmcollection.server.card.Civilization.LIGHT;
 import static net.dmcollection.server.card.Civilization.NATURE;
 import static net.dmcollection.server.card.Civilization.WATER;
 import static net.dmcollection.server.card.Civilization.ZERO;
-import static net.dmcollection.server.TestFixtureBuilder.CREATURE;
-import static net.dmcollection.server.TestFixtureBuilder.PSYCHIC_CREATURE;
-import static net.dmcollection.server.TestFixtureBuilder.SPELL;
-import static net.dmcollection.server.TestFixtureBuilder.search;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import net.dmcollection.server.card.RarityCode;
 import net.dmcollection.server.PostgresTestBase;
 import net.dmcollection.server.TestFixtureBuilder;
 import net.dmcollection.server.card.CardService.CardStub;
@@ -24,6 +23,7 @@ import net.dmcollection.server.card.internal.SearchFilter;
 import net.dmcollection.server.card.internal.SearchFilter.CardType;
 import net.dmcollection.server.card.internal.SearchFilter.FilterState;
 import net.dmcollection.server.card.internal.SearchFilter.Range;
+import net.dmcollection.server.card.internal.query.CardTypeResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,12 +37,13 @@ import org.springframework.transaction.annotation.Transactional;
 class CardQueryServiceIntegrationTest extends PostgresTestBase {
 
   @Autowired CardQueryService cardQueryService;
+  @Autowired CardTypeResolver cardTypeResolver;
 
   TestFixtureBuilder utils;
 
   @BeforeEach
   void setup() {
-    utils = new TestFixtureBuilder(dsl);
+    utils = new TestFixtureBuilder(dsl, cardTypeResolver);
   }
 
   @Test
@@ -404,7 +405,7 @@ class CardQueryServiceIntegrationTest extends PostgresTestBase {
     SearchFilter filter = search().addIncludedCivs(WATER).setIncludeMono(true).build();
 
     Page<CardStub> result = cardQueryService.search(filter).pageOfCards();
-    assertThat(result.getTotalElements()).isEqualTo(0);
+    assertThat(result.getTotalElements()).isZero();
   }
 
   @Test
@@ -736,6 +737,41 @@ class CardQueryServiceIntegrationTest extends PostgresTestBase {
   }
 
   @Test
+  void findsOnlyEvolutionCreature() {
+    var creature = utils.monoCard("creature1", 1, 4000, LIGHT);
+    var evolutionCreature = utils.monoCard("evoCreature", DARK, "進化クリーチャー");
+
+    SearchFilter filter = search().setCardType(CardType.CREATURE).build();
+    assertQueryFinds(filter, creature);
+
+    filter = search().setCardType(CardType.EVOLUTION).build();
+    assertQueryFinds(filter, evolutionCreature);
+  }
+
+  @Test
+  void findsOthers() {
+    var rulePlus =
+        utils.twoSided(
+            "rulePlus",
+            Set.of(WATER),
+            Set.of(WATER, NATURE),
+            null,
+            7,
+            null,
+            4000,
+            "ルール・プラス",
+            PSYCHIC_CREATURE);
+    var sealed =
+        utils.twoSided(
+            "sealed", Set.of(FIRE), Set.of(FIRE), null, 99, null, 99999, "禁断の鼓動", "禁断クリーチャー");
+    utils.monoCard("creature1", 1, 4000, LIGHT);
+
+    SearchFilter filter = search().setCardType(CardType.OTHER).build();
+
+    assertQueryFinds(filter, rulePlus, sealed);
+  }
+
+  @Test
   void findsExactSpecies() {
     var card1 = utils.monoCard("test", 6, 6000, LIGHT);
     var card2 = utils.monoCard("test-2", 6, 6000, LIGHT);
@@ -913,7 +949,8 @@ class CardQueryServiceIntegrationTest extends PostgresTestBase {
   void combinesEffectSearchWithSpeciesFilter() {
     var dragonWithBlocker = utils.monoCard("test-dragon-1", 6, 8000, FIRE, "ブロッカー", "アーマード・ドラゴン");
 
-    var dragonWithBreaker = utils.monoCard("test-dragon-2", 7, 10000, FIRE, "W・ブレイカー", "アーマード・ドラゴン");
+    var dragonWithBreaker =
+        utils.monoCard("test-dragon-2", 7, 10000, FIRE, "W・ブレイカー", "アーマード・ドラゴン");
 
     var guardianWithBlocker = utils.monoCard("test-guardian", 5, 6000, LIGHT, "ブロッカー", "ガーディアン");
 
@@ -998,10 +1035,7 @@ class CardQueryServiceIntegrationTest extends PostgresTestBase {
     SearchFilter filter =
         search().setPageable(Pageable.unpaged(Sort.by("sort_cost").ascending())).build();
     assertQueryFindsInOrder(filter, zeroCost, oneCost, fiveCost);
-    filter =
-        search()
-            .setPageable(Pageable.unpaged(Sort.by("sort_cost").descending()))
-            .build();
+    filter = search().setPageable(Pageable.unpaged(Sort.by("sort_cost").descending())).build();
     assertQueryFindsInOrder(filter, fiveCost, oneCost, zeroCost);
   }
 
@@ -1016,10 +1050,7 @@ class CardQueryServiceIntegrationTest extends PostgresTestBase {
     SearchFilter filter =
         search().setPageable(Pageable.unpaged(Sort.by("sort_cost").ascending())).build();
     assertQueryFindsInOrder(filter, zeroCost, oneCost, threeCost, fourCost, fiveCost);
-    filter =
-        search()
-            .setPageable(Pageable.unpaged(Sort.by("sort_cost").descending()))
-            .build();
+    filter = search().setPageable(Pageable.unpaged(Sort.by("sort_cost").descending())).build();
     assertQueryFindsInOrder(filter, fiveCost, fourCost, threeCost, oneCost, zeroCost);
   }
 
@@ -1034,10 +1065,7 @@ class CardQueryServiceIntegrationTest extends PostgresTestBase {
     SearchFilter filter =
         search().setPageable(Pageable.unpaged(Sort.by("sort_cost").ascending())).build();
     assertQueryFindsInOrder(filter, zeroCost, oneCost, threeCost, fiveCost, nullCost);
-    filter =
-        search()
-            .setPageable(Pageable.unpaged(Sort.by("sort_cost").descending()))
-            .build();
+    filter = search().setPageable(Pageable.unpaged(Sort.by("sort_cost").descending())).build();
     assertQueryFindsInOrder(filter, fiveCost, threeCost, oneCost, zeroCost, nullCost);
   }
 
@@ -1052,7 +1080,8 @@ class CardQueryServiceIntegrationTest extends PostgresTestBase {
         .isEqualTo(Arrays.asList(expectedCards));
   }
 
-  private void assertQueryFinds(TestFixtureBuilder.SearchBuilder builder, CardStub... expectedCards) {
+  private void assertQueryFinds(
+      TestFixtureBuilder.SearchBuilder builder, CardStub... expectedCards) {
     assertQueryFinds(builder.build(), expectedCards);
   }
 

@@ -1,12 +1,12 @@
 package net.dmcollection.server.card;
 
+import static net.dmcollection.server.TestFixtureBuilder.D2_FIELD;
 import static net.dmcollection.server.card.Civilization.DARK;
 import static net.dmcollection.server.card.Civilization.FIRE;
 import static net.dmcollection.server.card.Civilization.LIGHT;
 import static net.dmcollection.server.card.Civilization.NATURE;
 import static net.dmcollection.server.card.Civilization.WATER;
 import static net.dmcollection.server.card.Civilization.ZERO;
-import static net.dmcollection.server.TestFixtureBuilder.D2_FIELD;
 import static net.dmcollection.server.jooq.generated.Tables.APP_USER;
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -14,13 +14,12 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import net.dmcollection.server.card.RarityCode;
 import net.dmcollection.server.PostgresTestBase;
 import net.dmcollection.server.TestFixtureBuilder;
 import net.dmcollection.server.card.CardService.CardStub;
 import net.dmcollection.server.card.DeckService.DeckCardExport;
 import net.dmcollection.server.card.DeckService.DeckExport;
-import net.dmcollection.server.card.DeckService.DeckInfo;
+import net.dmcollection.server.card.internal.query.CardTypeResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +30,7 @@ class DeckServiceIntegrationTest extends PostgresTestBase {
 
   @Autowired DeckService deckService;
   @Autowired CollectionService collectionService;
+  @Autowired CardTypeResolver cardTypeResolver;
 
   private TestFixtureBuilder fixtures;
   private UUID userId;
@@ -42,7 +42,7 @@ class DeckServiceIntegrationTest extends PostgresTestBase {
 
   @BeforeEach
   void setup() {
-    fixtures = new TestFixtureBuilder(dsl);
+    fixtures = new TestFixtureBuilder(dsl, cardTypeResolver);
 
     userId =
         dsl.insertInto(APP_USER)

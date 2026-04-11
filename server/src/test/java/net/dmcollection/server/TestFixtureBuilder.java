@@ -3,19 +3,43 @@ package net.dmcollection.server;
 import static net.dmcollection.server.card.Civilization.FIRE;
 import static net.dmcollection.server.card.Civilization.NATURE;
 import static net.dmcollection.server.card.Civilization.WATER;
-import static net.dmcollection.server.jooq.generated.Tables.*;
+import static net.dmcollection.server.jooq.generated.Tables.ABILITY;
+import static net.dmcollection.server.jooq.generated.Tables.CARD;
+import static net.dmcollection.server.jooq.generated.Tables.CARD_CIV_GROUP;
+import static net.dmcollection.server.jooq.generated.Tables.CARD_SET;
+import static net.dmcollection.server.jooq.generated.Tables.CARD_SIDE;
+import static net.dmcollection.server.jooq.generated.Tables.CARD_SIDE_CARD_TYPE;
+import static net.dmcollection.server.jooq.generated.Tables.CARD_SIDE_RACE;
+import static net.dmcollection.server.jooq.generated.Tables.CARD_TYPE;
+import static net.dmcollection.server.jooq.generated.Tables.PRINTING;
+import static net.dmcollection.server.jooq.generated.Tables.PRINTING_SIDE;
+import static net.dmcollection.server.jooq.generated.Tables.PRINTING_SIDE_ABILITY;
+import static net.dmcollection.server.jooq.generated.Tables.PRODUCT_TYPE;
+import static net.dmcollection.server.jooq.generated.Tables.RACE;
+import static net.dmcollection.server.jooq.generated.Tables.RARITY;
+import static net.dmcollection.server.jooq.generated.Tables.SET_GROUP;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
+import net.dmcollection.server.card.CardService.CardStub;
 import net.dmcollection.server.card.Civilization;
 import net.dmcollection.server.card.RarityCode;
-import net.dmcollection.server.card.CardService.CardStub;
 import net.dmcollection.server.card.internal.SearchFilter;
 import net.dmcollection.server.card.internal.SearchFilter.CardType;
 import net.dmcollection.server.card.internal.SearchFilter.FilterState;
 import net.dmcollection.server.card.internal.SearchFilter.Range;
 import net.dmcollection.server.card.internal.SearchFilter.RarityFilter;
+import net.dmcollection.server.card.internal.query.CardTypeResolver;
 import org.jooq.DSLContext;
 import org.springframework.data.domain.Pageable;
 
@@ -33,6 +57,7 @@ public class TestFixtureBuilder {
   private final Map<String, Short> races = new HashMap<>();
   private final Map<String, Integer> abilities = new HashMap<>();
   private final Map<RarityCode, Short> rarities = new HashMap<>();
+  private final CardTypeResolver cardTypeResolver;
 
   private Short defaultProductTypeId;
   private Integer defaultSetGroupId;
@@ -50,8 +75,9 @@ public class TestFixtureBuilder {
             RarityCode.SR, 5);
   }
 
-  public TestFixtureBuilder(DSLContext dsl) {
+  public TestFixtureBuilder(DSLContext dsl, CardTypeResolver cardTypeResolver) {
     this.dsl = dsl;
+    this.cardTypeResolver = cardTypeResolver;
   }
 
   public static SearchBuilder search() {
@@ -73,22 +99,44 @@ public class TestFixtureBuilder {
     return card(officialId, List.of(officialId + ".jpg"), List.of(Set.of(civ)));
   }
 
+  public CardStub monoCard(String officialId, Civilization civ, String cardType) {
+    return card(
+        officialId,
+        false,
+        RarityCode.VR,
+        1,
+        List.of(officialId + ".jpg"),
+        List.of(Set.of(civ)),
+        List.of(6),
+        List.of(8000),
+        List.of(cardType));
+  }
+
   public CardStub monoCard(String officialId, String effectText) {
     return monoCard(officialId, 7, 6500, Civilization.ZERO, effectText);
   }
 
   public CardStub monoCard(String officialId, Integer cost, Civilization civ) {
     return card(
-        officialId, false, RarityCode.C, 1,
-        List.of(officialId + ".jpg"), List.of(Set.of(civ)),
+        officialId,
+        false,
+        RarityCode.C,
+        1,
+        List.of(officialId + ".jpg"),
+        List.of(Set.of(civ)),
         cost != null ? List.of(cost) : null,
-        List.of(5000), List.of(CREATURE));
+        List.of(5000),
+        List.of(CREATURE));
   }
 
   public CardStub monoCard(String officialId, Integer cost, Integer power, Civilization civ) {
     return card(
-        officialId, false, RarityCode.C, 1,
-        List.of(officialId + ".jpg"), List.of(Set.of(civ)),
+        officialId,
+        false,
+        RarityCode.C,
+        1,
+        List.of(officialId + ".jpg"),
+        List.of(Set.of(civ)),
         cost != null ? List.of(cost) : null,
         Collections.singletonList(power),
         power != null ? List.of(CREATURE) : List.of(SPELL));
@@ -100,11 +148,20 @@ public class TestFixtureBuilder {
   }
 
   public CardStub monoCard(
-      String officialId, Integer cost, Integer power, Civilization civ, String effect,
+      String officialId,
+      Integer cost,
+      Integer power,
+      Civilization civ,
+      String effect,
       String species) {
     return card(
-        officialId, officialId, false, RarityCode.C, 1,
-        List.of(officialId + ".jpg"), List.of(Set.of(civ)),
+        officialId,
+        officialId,
+        false,
+        RarityCode.C,
+        1,
+        List.of(officialId + ".jpg"),
+        List.of(Set.of(civ)),
         cost != null ? List.of(cost) : null,
         Collections.singletonList(power),
         power != null ? List.of(CREATURE) : List.of(SPELL),
@@ -113,33 +170,44 @@ public class TestFixtureBuilder {
   }
 
   public CardStub monoCard(
-      String officialId, Integer cost, Integer power, Civilization civ,
+      String officialId,
+      Integer cost,
+      Integer power,
+      Civilization civ,
       List<List<String>> effects) {
     return card(
-        officialId, officialId, false, RarityCode.C, 1,
-        List.of(officialId + ".jpg"), List.of(Set.of(civ)),
+        officialId,
+        officialId,
+        false,
+        RarityCode.C,
+        1,
+        List.of(officialId + ".jpg"),
+        List.of(Set.of(civ)),
         cost != null ? List.of(cost) : null,
         Collections.singletonList(power),
         power != null ? List.of(CREATURE) : List.of(SPELL),
-        List.of(effects), null);
+        List.of(effects),
+        null);
   }
 
   /** Add a species (race) to the first side of a card. */
   public void addSpecies(CardStub card, String speciesName) {
     // Look up the printing, then its first printing_side, then the card_side_id
     int printingId = card.id().intValue();
-    Integer cardSideId = dsl.select(PRINTING_SIDE.CARD_SIDE_ID)
-        .from(PRINTING_SIDE)
-        .where(PRINTING_SIDE.PRINTING_ID.eq(printingId))
-        .orderBy(PRINTING_SIDE.ID.asc())
-        .limit(1)
-        .fetchOne(PRINTING_SIDE.CARD_SIDE_ID);
+    Integer cardSideId =
+        dsl.select(PRINTING_SIDE.CARD_SIDE_ID)
+            .from(PRINTING_SIDE)
+            .where(PRINTING_SIDE.PRINTING_ID.eq(printingId))
+            .orderBy(PRINTING_SIDE.ID.asc())
+            .limit(1)
+            .fetchOne(PRINTING_SIDE.CARD_SIDE_ID);
 
     short raceId = ensureRace(speciesName);
     // Use position based on existing race count for this side
-    short position = (short) dsl.fetchCount(
-        dsl.selectFrom(CARD_SIDE_RACE)
-            .where(CARD_SIDE_RACE.CARD_SIDE_ID.eq(cardSideId)));
+    short position =
+        (short)
+            dsl.fetchCount(
+                dsl.selectFrom(CARD_SIDE_RACE).where(CARD_SIDE_RACE.CARD_SIDE_ID.eq(cardSideId)));
     dsl.insertInto(CARD_SIDE_RACE)
         .set(CARD_SIDE_RACE.CARD_SIDE_ID, cardSideId)
         .set(CARD_SIDE_RACE.RACE_ID, raceId)
@@ -153,16 +221,25 @@ public class TestFixtureBuilder {
 
   public CardStub multiCard(String officialId, Integer cost, Civilization... civs) {
     return card(
-        officialId, false, RarityCode.R, 1,
-        List.of(officialId + ".jpg"), List.of(Set.of(civs)),
+        officialId,
+        false,
+        RarityCode.R,
+        1,
+        List.of(officialId + ".jpg"),
+        List.of(Set.of(civs)),
         cost != null ? List.of(cost) : null,
-        Collections.singletonList(1000), List.of(CREATURE));
+        Collections.singletonList(1000),
+        List.of(CREATURE));
   }
 
   public CardStub multiCard(String officialId, Integer cost, Integer power, Civilization... civs) {
     return card(
-        officialId, false, RarityCode.R, 1,
-        List.of(officialId + ".jpg"), List.of(Set.of(civs)),
+        officialId,
+        false,
+        RarityCode.R,
+        1,
+        List.of(officialId + ".jpg"),
+        List.of(Set.of(civs)),
         cost != null ? List.of(cost) : null,
         Collections.singletonList(power),
         power != null ? List.of(CREATURE) : List.of(SPELL));
@@ -170,101 +247,224 @@ public class TestFixtureBuilder {
 
   public CardStub twinpact(String officialId, Set<Civilization> civs1, Set<Civilization> civs2) {
     return card(
-        officialId, true, RarityCode.SR, 1,
-        List.of(officialId + ".jpg"), List.of(civs1, civs2),
-        List.of(5, 3), Arrays.asList(3000, null), List.of(CREATURE, SPELL));
+        officialId,
+        true,
+        RarityCode.SR,
+        1,
+        List.of(officialId + ".jpg"),
+        List.of(civs1, civs2),
+        List.of(5, 3),
+        Arrays.asList(3000, null),
+        List.of(CREATURE, SPELL));
   }
 
   public CardStub twinpact(
       String officialId, Set<Civilization> civs1, Set<Civilization> civs2, int cost1, int cost2) {
     return card(
-        officialId, true, RarityCode.SR, 1,
-        List.of(officialId + ".jpg"), List.of(civs1, civs2),
-        List.of(cost1, cost2), Arrays.asList(5000, null), List.of(CREATURE, SPELL));
+        officialId,
+        true,
+        RarityCode.SR,
+        1,
+        List.of(officialId + ".jpg"),
+        List.of(civs1, civs2),
+        List.of(cost1, cost2),
+        Arrays.asList(5000, null),
+        List.of(CREATURE, SPELL));
   }
 
   public CardStub twinpact(
-      String officialId, Set<Civilization> civs1, Set<Civilization> civs2,
-      int cost1, int cost2, int power1) {
+      String officialId,
+      Set<Civilization> civs1,
+      Set<Civilization> civs2,
+      int cost1,
+      int cost2,
+      int power1) {
     return card(
-        officialId, true, RarityCode.SR, 1,
-        List.of(officialId + ".jpg"), List.of(civs1, civs2),
-        List.of(cost1, cost2), Arrays.asList(power1, null), List.of(CREATURE, SPELL));
+        officialId,
+        true,
+        RarityCode.SR,
+        1,
+        List.of(officialId + ".jpg"),
+        List.of(civs1, civs2),
+        List.of(cost1, cost2),
+        Arrays.asList(power1, null),
+        List.of(CREATURE, SPELL));
   }
 
   public CardStub twoSided(String officialId, Set<Civilization> civs1, Set<Civilization> civs2) {
     return card(
-        officialId, false, RarityCode.VR, 1,
-        List.of(officialId + ".jpg", officialId + "b.jpg"), List.of(civs1, civs2),
-        List.of(6, 13), List.of(99999, 1000),
+        officialId,
+        false,
+        RarityCode.VR,
+        1,
+        List.of(officialId + ".jpg", officialId + "b.jpg"),
+        List.of(civs1, civs2),
+        List.of(6, 13),
+        List.of(99999, 1000),
         List.of(PSYCHIC_CREATURE, PSYCHIC_CREATURE));
   }
 
   public CardStub twoSided(
       String officialId, Set<Civilization> civs1, Set<Civilization> civs2, int cost1, int cost2) {
     return card(
-        officialId, false, RarityCode.VR, 1,
-        List.of(officialId + ".jpg", officialId + "b.jpg"), List.of(civs1, civs2),
-        List.of(cost1, cost2), List.of(4000, 11000),
+        officialId,
+        false,
+        RarityCode.VR,
+        1,
+        List.of(officialId + ".jpg", officialId + "b.jpg"),
+        List.of(civs1, civs2),
+        List.of(cost1, cost2),
+        List.of(4000, 11000),
         List.of(PSYCHIC_CREATURE, PSYCHIC_CREATURE));
   }
 
   public CardStub twoSided(
-      String officialId, Set<Civilization> civs1, Set<Civilization> civs2,
-      int cost1, int cost2, int power1, int power2) {
+      String officialId,
+      Set<Civilization> civs1,
+      Set<Civilization> civs2,
+      int cost1,
+      int cost2,
+      int power1,
+      int power2) {
     return card(
-        officialId, false, RarityCode.VR, 1,
-        List.of(officialId + ".jpg", officialId + "b.jpg"), List.of(civs1, civs2),
-        List.of(cost1, cost2), List.of(power1, power2),
+        officialId,
+        false,
+        RarityCode.VR,
+        1,
+        List.of(officialId + ".jpg", officialId + "b.jpg"),
+        List.of(civs1, civs2),
+        List.of(cost1, cost2),
+        List.of(power1, power2),
         List.of(PSYCHIC_CREATURE, PSYCHIC_CREATURE));
+  }
+
+  public CardStub twoSided(
+      String officialId,
+      Set<Civilization> civs1,
+      Set<Civilization> civs2,
+      Integer cost1,
+      int cost2,
+      Integer power1,
+      int power2,
+      String cardType1,
+      String cardType2) {
+    var costs = new ArrayList<Integer>();
+    costs.add(cost1);
+    costs.add(cost2);
+    var powers = new ArrayList<Integer>();
+    powers.add(power1);
+    powers.add(power2);
+
+    return card(
+        officialId,
+        false,
+        RarityCode.VR,
+        1,
+        List.of(officialId + ".jpg", officialId + "b.jpg"),
+        List.of(civs1, civs2),
+        costs,
+        powers,
+        List.of(cardType1, cardType2));
   }
 
   public CardStub createFoursides() {
     return card(
-        "dmbd13-001", "DMBD13 1/26", false, null, 201,
+        "dmbd13-001",
+        "DMBD13 1/26",
+        false,
+        null,
+        201,
         List.of("dmbd13-001a.jpg", "dmbd13-001b.jpg", "dmbd13-001c.jpg", "dmbd13-001d.jpg"),
         List.of(Set.of(WATER), Set.of(FIRE), Set.of(NATURE), Set.of(WATER, FIRE, NATURE)),
-        List.of(7, 7, 7, 21), List.of(5000, 5000, 7000, 11000),
+        List.of(7, 7, 7, 21),
+        List.of(5000, 5000, 7000, 11000),
         List.of(PSYCHIC_CREATURE, PSYCHIC_CREATURE, PSYCHIC_CREATURE, PSYCHIC_CREATURE));
   }
 
   public CardStub card(
       String officialId, List<String> imageFiles, List<Set<Civilization>> facetCivs) {
     return card(
-        officialId, false, RarityCode.C, 1,
-        imageFiles, facetCivs, List.of(5), List.of(1000), List.of(CREATURE));
+        officialId,
+        false,
+        RarityCode.C,
+        1,
+        imageFiles,
+        facetCivs,
+        List.of(5),
+        List.of(1000),
+        List.of(CREATURE));
   }
 
   public CardStub card(
-      String officialId, String idText, boolean twinpact, RarityCode rarity, long setId,
-      List<String> imageFiles, List<Set<Civilization>> facetCivs,
-      List<Integer> costs, List<Integer> powers, List<String> facetTypes) {
-    return card(officialId, idText, twinpact, rarity, (int) setId,
-        imageFiles, facetCivs, costs, powers, facetTypes, null, null);
+      String officialId,
+      String idText,
+      boolean twinpact,
+      RarityCode rarity,
+      long setId,
+      List<String> imageFiles,
+      List<Set<Civilization>> facetCivs,
+      List<Integer> costs,
+      List<Integer> powers,
+      List<String> facetTypes) {
+    return card(
+        officialId,
+        idText,
+        twinpact,
+        rarity,
+        (int) setId,
+        imageFiles,
+        facetCivs,
+        costs,
+        powers,
+        facetTypes,
+        null,
+        null);
   }
 
   public CardStub card(
-      String officialId, boolean twinpact, RarityCode rarity, int setId,
-      List<String> imageFiles, List<Set<Civilization>> facetCivs,
-      List<Integer> costs, List<Integer> powers, List<String> facetTypes) {
-    return card(officialId, officialId, twinpact, rarity, setId,
-        imageFiles, facetCivs, costs, powers, facetTypes, null, null);
+      String officialId,
+      boolean twinpact,
+      RarityCode rarity,
+      int setId,
+      List<String> imageFiles,
+      List<Set<Civilization>> facetCivs,
+      List<Integer> costs,
+      List<Integer> powers,
+      List<String> facetTypes) {
+    return card(
+        officialId,
+        officialId,
+        twinpact,
+        rarity,
+        setId,
+        imageFiles,
+        facetCivs,
+        costs,
+        powers,
+        facetTypes,
+        null,
+        null);
   }
-
-  // --- Core card creation method ---
 
   /**
-   * Creates a full card fixture: card, card_sides, card_civ_groups, printing, printing_sides,
-   * and optionally effects and species.
+   * Creates a full card fixture: card, card_sides, card_civ_groups, printing, printing_sides, and
+   * optionally effects and species.
    *
-   * @param facetEffects Effects per facet. Each inner list is [parent, child1, child2, ...].
-   *                     null means no effects.
+   * @param facetEffects Effects per facet. Each inner list is [parent, child1, child2, ...]. null
+   *     means no effects.
    * @param facetSpecies Species name for first side. null means no species.
    */
   public CardStub card(
-      String officialId, String idText, boolean twinpact, RarityCode rarity, int setId,
-      List<String> imageFiles, List<Set<Civilization>> facetCivs,
-      List<Integer> costs, List<Integer> powers, List<String> facetTypes,
+      String officialId,
+      String idText,
+      boolean twinpact,
+      RarityCode rarity,
+      int setId,
+      List<String> imageFiles,
+      List<Set<Civilization>> facetCivs,
+      List<Integer> costs,
+      List<Integer> powers,
+      List<String> facetTypes,
       List<List<List<String>>> facetEffects,
       List<String> facetSpecies) {
 
@@ -293,22 +493,24 @@ public class TestFixtureBuilder {
     for (Set<Civilization> sideCivs : facetCivs) {
       allCivs.addAll(sideCivs);
     }
-    Short[] sortCivilization = allCivs.stream()
-        .filter(c -> c != Civilization.ZERO)
-        .map(c -> (short) c.ordinal())
-        .sorted()
-        .toArray(Short[]::new);
+    Short[] sortCivilization =
+        allCivs.stream()
+            .filter(c -> c != Civilization.ZERO)
+            .map(c -> (short) c.ordinal())
+            .sorted()
+            .toArray(Short[]::new);
 
     // Insert card
-    int cardId = dsl.insertInto(CARD)
-        .set(CARD.NAME, officialId) // use officialId as card name for test fixtures
-        .set(CARD.IS_TWINPACT, twinpact)
-        .set(CARD.SORT_COST, sortCost)
-        .set(CARD.SORT_POWER, sortPower)
-        .set(CARD.SORT_CIVILIZATION, sortCivilization)
-        .returningResult(CARD.ID)
-        .fetchOne()
-        .value1();
+    int cardId =
+        dsl.insertInto(CARD)
+            .set(CARD.NAME, officialId) // use officialId as card name for test fixtures
+            .set(CARD.IS_TWINPACT, twinpact)
+            .set(CARD.SORT_COST, sortCost)
+            .set(CARD.SORT_POWER, sortPower)
+            .set(CARD.SORT_CIVILIZATION, sortCivilization)
+            .returningResult(CARD.ID)
+            .fetchOne()
+            .value1();
 
     // Insert card sides and collect their IDs
     List<Integer> cardSideIds = new ArrayList<>();
@@ -318,24 +520,26 @@ public class TestFixtureBuilder {
       boolean costIsInfinity = cost != null && cost == Integer.MAX_VALUE;
       boolean powerIsInfinity = power != null && power == Integer.MAX_VALUE;
 
-      Short[] civIds = facetCivs.get(i).stream()
-          .filter(c -> c != Civilization.ZERO)
-          .map(c -> (short) c.ordinal())
-          .sorted()
-          .toArray(Short[]::new);
+      Short[] civIds =
+          facetCivs.get(i).stream()
+              .filter(c -> c != Civilization.ZERO)
+              .map(c -> (short) c.ordinal())
+              .sorted()
+              .toArray(Short[]::new);
 
-      int cardSideId = dsl.insertInto(CARD_SIDE)
-          .set(CARD_SIDE.CARD_ID, cardId)
-          .set(CARD_SIDE.SIDE_ORDER, (short) i)
-          .set(CARD_SIDE.NAME, officialId + (facetCivs.size() > 1 ? "-side" + i : ""))
-          .set(CARD_SIDE.COST, costIsInfinity ? null : cost)
-          .set(CARD_SIDE.COST_IS_INFINITY, costIsInfinity)
-          .set(CARD_SIDE.POWER, powerIsInfinity ? null : power)
-          .set(CARD_SIDE.POWER_IS_INFINITY, powerIsInfinity)
-          .set(CARD_SIDE.CIVILIZATION_IDS, civIds)
-          .returningResult(CARD_SIDE.ID)
-          .fetchOne()
-          .value1();
+      int cardSideId =
+          dsl.insertInto(CARD_SIDE)
+              .set(CARD_SIDE.CARD_ID, cardId)
+              .set(CARD_SIDE.SIDE_ORDER, (short) i)
+              .set(CARD_SIDE.NAME, officialId + (facetCivs.size() > 1 ? "-side" + i : ""))
+              .set(CARD_SIDE.COST, costIsInfinity ? null : cost)
+              .set(CARD_SIDE.COST_IS_INFINITY, costIsInfinity)
+              .set(CARD_SIDE.POWER, powerIsInfinity ? null : power)
+              .set(CARD_SIDE.POWER_IS_INFINITY, powerIsInfinity)
+              .set(CARD_SIDE.CIVILIZATION_IDS, civIds)
+              .returningResult(CARD_SIDE.ID)
+              .fetchOne()
+              .value1();
       cardSideIds.add(cardSideId);
 
       // Insert card_side_card_type
@@ -364,27 +568,29 @@ public class TestFixtureBuilder {
     insertCivGroups(cardId, twinpact, facetCivs);
 
     // Insert printing
-    int printingId = dsl.insertInto(PRINTING)
-        .set(PRINTING.CARD_ID, cardId)
-        .set(PRINTING.SET_ID, cardSetId)
-        .set(PRINTING.OFFICIAL_SITE_ID, officialId)
-        .set(PRINTING.COLLECTOR_NUMBER, idText)
-        .set(PRINTING.RARITY_ID, rarityId)
-        .returningResult(PRINTING.ID)
-        .fetchOne()
-        .value1();
+    int printingId =
+        dsl.insertInto(PRINTING)
+            .set(PRINTING.CARD_ID, cardId)
+            .set(PRINTING.SET_ID, cardSetId)
+            .set(PRINTING.OFFICIAL_SITE_ID, officialId)
+            .set(PRINTING.COLLECTOR_NUMBER, idText)
+            .set(PRINTING.RARITY_ID, rarityId)
+            .returningResult(PRINTING.ID)
+            .fetchOne()
+            .value1();
 
     // Insert printing sides
     List<Integer> printingSideIds = new ArrayList<>();
     for (int i = 0; i < cardSideIds.size(); i++) {
       String imageFile = imageFiles != null && imageFiles.size() > i ? imageFiles.get(i) : null;
-      int printingSideId = dsl.insertInto(PRINTING_SIDE)
-          .set(PRINTING_SIDE.PRINTING_ID, printingId)
-          .set(PRINTING_SIDE.CARD_SIDE_ID, cardSideIds.get(i))
-          .set(PRINTING_SIDE.IMAGE_FILENAME, imageFile)
-          .returningResult(PRINTING_SIDE.ID)
-          .fetchOne()
-          .value1();
+      int printingSideId =
+          dsl.insertInto(PRINTING_SIDE)
+              .set(PRINTING_SIDE.PRINTING_ID, printingId)
+              .set(PRINTING_SIDE.CARD_SIDE_ID, cardSideIds.get(i))
+              .set(PRINTING_SIDE.IMAGE_FILENAME, imageFile)
+              .returningResult(PRINTING_SIDE.ID)
+              .fetchOne()
+              .value1();
       printingSideIds.add(printingSideId);
     }
 
@@ -425,21 +631,14 @@ public class TestFixtureBuilder {
     }
 
     // Build CardStub
-    List<String> imageUrls = imageFiles != null
-        ? imageFiles.stream()
-            .filter(Objects::nonNull)
-            .map(image -> "/image/" + image)
-            .toList()
-        : Collections.emptyList();
+    List<String> imageUrls =
+        imageFiles != null
+            ? imageFiles.stream().filter(Objects::nonNull).map(image -> "/image/" + image).toList()
+            : Collections.emptyList();
 
-    CardStub stub = new CardStub(
-        (long) printingId,
-        officialId,
-        idText,
-        new HashSet<>(allCivs),
-        imageUrls,
-        0,
-        0);
+    CardStub stub =
+        new CardStub(
+            (long) printingId, officialId, idText, new HashSet<>(allCivs), imageUrls, 0, 0);
     testCards.put((long) printingId, stub);
     return stub;
   }
@@ -452,18 +651,14 @@ public class TestFixtureBuilder {
       Set<Civilization> union = new LinkedHashSet<>();
       boolean includesColorlessSide = false;
       for (Set<Civilization> sideCivs : facetCivs) {
-        Set<Civilization> nonZero = sideCivs.stream()
-            .filter(c -> c != Civilization.ZERO)
-            .collect(Collectors.toSet());
+        Set<Civilization> nonZero =
+            sideCivs.stream().filter(c -> c != Civilization.ZERO).collect(Collectors.toSet());
         if (nonZero.isEmpty()) {
           includesColorlessSide = true;
         }
         union.addAll(nonZero);
       }
-      Short[] civIds = union.stream()
-          .map(c -> (short) c.ordinal())
-          .sorted()
-          .toArray(Short[]::new);
+      Short[] civIds = union.stream().map(c -> (short) c.ordinal()).sorted().toArray(Short[]::new);
       dsl.insertInto(CARD_CIV_GROUP)
           .set(CARD_CIV_GROUP.CARD_ID, cardId)
           .set(CARD_CIV_GROUP.CIVILIZATION_IDS, civIds)
@@ -472,13 +667,10 @@ public class TestFixtureBuilder {
     } else {
       // Non-twinpact: one row per side
       for (Set<Civilization> sideCivs : facetCivs) {
-        Set<Civilization> nonZero = sideCivs.stream()
-            .filter(c -> c != Civilization.ZERO)
-            .collect(Collectors.toSet());
-        Short[] civIds = nonZero.stream()
-            .map(c -> (short) c.ordinal())
-            .sorted()
-            .toArray(Short[]::new);
+        Set<Civilization> nonZero =
+            sideCivs.stream().filter(c -> c != Civilization.ZERO).collect(Collectors.toSet());
+        Short[] civIds =
+            nonZero.stream().map(c -> (short) c.ordinal()).sorted().toArray(Short[]::new);
         boolean includesColorlessSide = nonZero.isEmpty();
         dsl.insertInto(CARD_CIV_GROUP)
             .set(CARD_CIV_GROUP.CARD_ID, cardId)
@@ -493,126 +685,137 @@ public class TestFixtureBuilder {
 
   private void ensureDefaultLookups() {
     if (defaultProductTypeId == null) {
-      defaultProductTypeId = dsl.select(PRODUCT_TYPE.ID)
-          .from(PRODUCT_TYPE)
-          .where(PRODUCT_TYPE.NAME.eq("ブースターパック"))
-          .fetchOne(PRODUCT_TYPE.ID);
+      defaultProductTypeId =
+          dsl.select(PRODUCT_TYPE.ID)
+              .from(PRODUCT_TYPE)
+              .where(PRODUCT_TYPE.NAME.eq("ブースターパック"))
+              .fetchOne(PRODUCT_TYPE.ID);
       if (defaultProductTypeId == null) {
-        defaultProductTypeId = dsl.insertInto(PRODUCT_TYPE)
-            .set(PRODUCT_TYPE.NAME, "ブースターパック")
-            .returningResult(PRODUCT_TYPE.ID)
-            .fetchOne()
-            .value1();
+        defaultProductTypeId =
+            dsl.insertInto(PRODUCT_TYPE)
+                .set(PRODUCT_TYPE.NAME, "ブースターパック")
+                .returningResult(PRODUCT_TYPE.ID)
+                .fetchOne()
+                .value1();
       }
     }
     if (defaultSetGroupId == null) {
-      defaultSetGroupId = dsl.select(SET_GROUP.ID)
-          .from(SET_GROUP)
-          .where(SET_GROUP.NAME.eq("Test Group"))
-          .fetchOne(SET_GROUP.ID);
+      defaultSetGroupId =
+          dsl.select(SET_GROUP.ID)
+              .from(SET_GROUP)
+              .where(SET_GROUP.NAME.eq("Test Group"))
+              .fetchOne(SET_GROUP.ID);
       if (defaultSetGroupId == null) {
-        defaultSetGroupId = dsl.insertInto(SET_GROUP)
-            .set(SET_GROUP.NAME, "Test Group")
-            .set(SET_GROUP.SORT_ORDER, 1)
-            .returningResult(SET_GROUP.ID)
-            .fetchOne()
-            .value1();
+        defaultSetGroupId =
+            dsl.insertInto(SET_GROUP)
+                .set(SET_GROUP.NAME, "Test Group")
+                .set(SET_GROUP.SORT_ORDER, 1)
+                .returningResult(SET_GROUP.ID)
+                .fetchOne()
+                .value1();
       }
     }
   }
 
   private int ensureCardSet(int setId) {
-    return testSets.computeIfAbsent(setId, id -> {
-      String code = "DM-" + id;
-      // Check if already exists
-      Integer existing = dsl.select(CARD_SET.ID)
-          .from(CARD_SET)
-          .where(CARD_SET.CODE.eq(code))
-          .fetchOne(CARD_SET.ID);
-      if (existing != null) return existing;
+    return testSets.computeIfAbsent(
+        setId,
+        id -> {
+          String code = "DM-" + id;
+          // Check if already exists
+          Integer existing =
+              dsl.select(CARD_SET.ID)
+                  .from(CARD_SET)
+                  .where(CARD_SET.CODE.eq(code))
+                  .fetchOne(CARD_SET.ID);
+          if (existing != null) return existing;
 
-      return dsl.insertInto(CARD_SET)
-          .set(CARD_SET.NAME, "Set " + id)
-          .set(CARD_SET.CODE, code)
-          .set(CARD_SET.RELEASE_DATE, LocalDate.now())
-          .set(CARD_SET.PRODUCT_TYPE_ID, defaultProductTypeId)
-          .set(CARD_SET.SET_GROUP_ID, defaultSetGroupId)
-          .returningResult(CARD_SET.ID)
-          .fetchOne()
-          .value1();
-    });
+          return dsl.insertInto(CARD_SET)
+              .set(CARD_SET.NAME, "Set " + id)
+              .set(CARD_SET.CODE, code)
+              .set(CARD_SET.RELEASE_DATE, LocalDate.now())
+              .set(CARD_SET.PRODUCT_TYPE_ID, defaultProductTypeId)
+              .set(CARD_SET.SET_GROUP_ID, defaultSetGroupId)
+              .returningResult(CARD_SET.ID)
+              .fetchOne()
+              .value1();
+        });
   }
 
   private Short ensureRarity(RarityCode rarity) {
     if (rarity == RarityCode.NONE) return null;
-    return rarities.computeIfAbsent(rarity, r -> {
-      String name = r.toString();
-      Short existing = dsl.select(RARITY.ID)
-          .from(RARITY)
-          .where(RARITY.NAME.eq(name))
-          .fetchOne(RARITY.ID);
-      if (existing != null) return existing;
+    return rarities.computeIfAbsent(
+        rarity,
+        r -> {
+          String name = r.toString();
+          Short existing =
+              dsl.select(RARITY.ID).from(RARITY).where(RARITY.NAME.eq(name)).fetchOne(RARITY.ID);
+          if (existing != null) return existing;
 
-      int order = rarityOrder.getOrDefault(r, 0);
-      return dsl.insertInto(RARITY)
-          .set(RARITY.NAME, name)
-          .set(RARITY.SORT_ORDER, (short) order)
-          .returningResult(RARITY.ID)
-          .fetchOne()
-          .value1();
-    });
+          int order = rarityOrder.getOrDefault(r, 0);
+          return dsl.insertInto(RARITY)
+              .set(RARITY.NAME, name)
+              .set(RARITY.SORT_ORDER, (short) order)
+              .returningResult(RARITY.ID)
+              .fetchOne()
+              .value1();
+        });
   }
 
   private short ensureCardType(String typeName) {
-    return cardTypes.computeIfAbsent(typeName, name -> {
-      Short existing = dsl.select(CARD_TYPE.ID)
-          .from(CARD_TYPE)
-          .where(CARD_TYPE.NAME.eq(name))
-          .fetchOne(CARD_TYPE.ID);
-      if (existing != null) return existing;
+    return cardTypes.computeIfAbsent(
+        typeName,
+        name -> {
+          Short existing =
+              dsl.select(CARD_TYPE.ID)
+                  .from(CARD_TYPE)
+                  .where(CARD_TYPE.NAME.eq(name))
+                  .fetchOne(CARD_TYPE.ID);
+          if (existing != null) return existing;
 
-      return dsl.insertInto(CARD_TYPE)
-          .set(CARD_TYPE.NAME, name)
-          .returningResult(CARD_TYPE.ID)
-          .fetchOne()
-          .value1();
-    });
+          var id =
+              dsl.insertInto(CARD_TYPE)
+                  .set(CARD_TYPE.NAME, name)
+                  .returningResult(CARD_TYPE.ID)
+                  .fetchOne()
+                  .value1();
+          cardTypeResolver.loadNameToId();
+          return id;
+        });
   }
 
   private short ensureRace(String raceName) {
-    return races.computeIfAbsent(raceName, name -> {
-      Short existing = dsl.select(RACE.ID)
-          .from(RACE)
-          .where(RACE.NAME.eq(name))
-          .fetchOne(RACE.ID);
-      if (existing != null) return existing;
+    return races.computeIfAbsent(
+        raceName,
+        name -> {
+          Short existing =
+              dsl.select(RACE.ID).from(RACE).where(RACE.NAME.eq(name)).fetchOne(RACE.ID);
+          if (existing != null) return existing;
 
-      return dsl.insertInto(RACE)
-          .set(RACE.NAME, name)
-          .returningResult(RACE.ID)
-          .fetchOne()
-          .value1();
-    });
+          return dsl.insertInto(RACE)
+              .set(RACE.NAME, name)
+              .returningResult(RACE.ID)
+              .fetchOne()
+              .value1();
+        });
   }
 
   private int ensureAbility(String text) {
-    return abilities.computeIfAbsent(text, t -> {
-      Integer existing = dsl.select(ABILITY.ID)
-          .from(ABILITY)
-          .where(ABILITY.TEXT.eq(t))
-          .fetchOne(ABILITY.ID);
-      if (existing != null) return existing;
+    return abilities.computeIfAbsent(
+        text,
+        t -> {
+          Integer existing =
+              dsl.select(ABILITY.ID).from(ABILITY).where(ABILITY.TEXT.eq(t)).fetchOne(ABILITY.ID);
+          if (existing != null) return existing;
 
-      return dsl.insertInto(ABILITY)
-          .set(ABILITY.TEXT, t)
-          .set(ABILITY.SEARCH_TEXT, t) // for test fixtures, search_text = text
-          .returningResult(ABILITY.ID)
-          .fetchOne()
-          .value1();
-    });
+          return dsl.insertInto(ABILITY)
+              .set(ABILITY.TEXT, t)
+              .set(ABILITY.SEARCH_TEXT, t) // for test fixtures, search_text = text
+              .returningResult(ABILITY.ID)
+              .fetchOne()
+              .value1();
+        });
   }
-
-  // --- SearchBuilder (unchanged from TestUtils) ---
 
   public static class SearchBuilder {
     private Long setId;
