@@ -3,7 +3,9 @@ package net.dmcollection.server.card.internal;
 import static net.dmcollection.server.jooq.generated.tables.Rarity.RARITY;
 
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import net.dmcollection.server.card.Rarity;
 import net.dmcollection.server.card.RarityCode;
 import org.jooq.DSLContext;
@@ -18,32 +20,26 @@ public class RarityService {
   private static final Logger log = LoggerFactory.getLogger(RarityService.class);
   private final DSLContext dsl;
 
+  private List<Rarity> rarities;
+  private Map<RarityCode, Integer> codeToOrder;
+
   public RarityService(DSLContext dsl) {
     this.dsl = dsl;
   }
 
-  public int getOrder(@NonNull RarityCode rarityCode) {
-    Short order =
-        dsl.select(RARITY.SORT_ORDER)
-            .from(RARITY)
-            .where(RARITY.NAME.eq(rarityCode.toString()))
-            .fetchOne(RARITY.SORT_ORDER);
-    return order != null ? order : 0;
-  }
-
-  public List<Rarity> getRarities() {
-    List<Rarity> result = new ArrayList<>();
+  public void loadRarities() {
+    List<Rarity> loaded = new ArrayList<>();
+    Map<RarityCode, Integer> orders = new EnumMap<>(RarityCode.class);
     dsl.select(RARITY.NAME, RARITY.SORT_ORDER, RARITY.DESCRIPTION)
         .from(RARITY)
         .orderBy(RARITY.SORT_ORDER)
         .forEach(
             r -> {
               try {
-                result.add(
-                    new Rarity(
-                        RarityCode.valueOf(r.get(RARITY.NAME)),
-                        r.get(RARITY.SORT_ORDER),
-                        r.get(RARITY.DESCRIPTION)));
+                RarityCode code = RarityCode.valueOf(r.get(RARITY.NAME));
+                Short sortOrder = r.get(RARITY.SORT_ORDER);
+                loaded.add(new Rarity(code, sortOrder, r.get(RARITY.DESCRIPTION)));
+                orders.put(code, sortOrder.intValue());
               } catch (IllegalArgumentException ignored) {
                 log.error(
                     "Unable to create rarity {} {} {}",
@@ -53,6 +49,22 @@ public class RarityService {
                 // Skip rarities not in enum
               }
             });
-    return result;
+    this.rarities = List.copyOf(loaded);
+    this.codeToOrder = orders;
+  }
+
+  public int getOrder(@NonNull RarityCode rarityCode) {
+    if (codeToOrder == null) {
+      loadRarities();
+    }
+    Integer order = codeToOrder.get(rarityCode);
+    return order != null ? order : 0;
+  }
+
+  public List<Rarity> getRarities() {
+    if (rarities == null) {
+      loadRarities();
+    }
+    return rarities;
   }
 }

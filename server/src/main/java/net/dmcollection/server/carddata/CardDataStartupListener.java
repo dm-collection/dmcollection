@@ -3,6 +3,7 @@ package net.dmcollection.server.carddata;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.IOException;
 import java.nio.file.Path;
+import net.dmcollection.server.card.internal.RarityService;
 import net.dmcollection.server.card.internal.query.CardTypeResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -22,16 +23,19 @@ public class CardDataStartupListener {
   private final ObjectMapper objectMapper;
   private final String cardDataPath;
   private final CardTypeResolver cardTypeResolver;
+  private final RarityService rarityService;
 
   public CardDataStartupListener(
       CardDataImportService importService,
       ObjectMapper objectMapper,
       @Value("${dmcollection.card-data-path:}") String cardDataPath,
-      CardTypeResolver cardTypeResolver) {
+      CardTypeResolver cardTypeResolver,
+      RarityService rarityService) {
     this.importService = importService;
     this.objectMapper = objectMapper;
     this.cardDataPath = cardDataPath;
     this.cardTypeResolver = cardTypeResolver;
+    this.rarityService = rarityService;
   }
 
   @EventListener(ApplicationReadyEvent.class)
@@ -46,6 +50,7 @@ public class CardDataStartupListener {
           objectMapper.readValue(Path.of(cardDataPath).toFile(), CardDataJson.class);
       importService.importCardData(data);
       cardTypeResolver.loadNameToId();
+      rarityService.loadRarities();
     } catch (IOException e) {
       log.error("Failed to load card data from {}", cardDataPath, e);
     }
