@@ -49,10 +49,25 @@ public class RarityRecord extends UpdatableRecordImpl<RarityRecord> {
     }
 
     /**
+     * Setter for <code>public.rarity.description</code>.
+     */
+    public RarityRecord setDescription(String value) {
+        set(2, value);
+        return this;
+    }
+
+    /**
+     * Getter for <code>public.rarity.description</code>.
+     */
+    public String getDescription() {
+        return (String) get(2);
+    }
+
+    /**
      * Setter for <code>public.rarity.sort_order</code>.
      */
     public RarityRecord setSortOrder(Short value) {
-        set(2, value);
+        set(3, value);
         return this;
     }
 
@@ -60,7 +75,7 @@ public class RarityRecord extends UpdatableRecordImpl<RarityRecord> {
      * Getter for <code>public.rarity.sort_order</code>.
      */
     public Short getSortOrder() {
-        return (Short) get(2);
+        return (Short) get(3);
     }
 
     // -------------------------------------------------------------------------
@@ -86,11 +101,12 @@ public class RarityRecord extends UpdatableRecordImpl<RarityRecord> {
     /**
      * Create a detached, initialised RarityRecord
      */
-    public RarityRecord(Short id, String name, Short sortOrder) {
+    public RarityRecord(Short id, String name, String description, Short sortOrder) {
         super(Rarity.RARITY);
 
         setId(id);
         setName(name);
+        setDescription(description);
         setSortOrder(sortOrder);
         resetTouchedOnNotNull();
     }

@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import net.dmcollection.server.card.RarityCode;
 import net.dmcollection.server.carddata.CardDataJson.CardAliasJson;
 import net.dmcollection.server.carddata.CardDataJson.CardJson;
 import net.dmcollection.server.carddata.CardDataJson.CardSetJson;
@@ -54,6 +55,13 @@ public class CardDataImportService {
 
   public CardDataImportService(DSLContext dsl) {
     this.dsl = dsl;
+  }
+
+  static Map<String, String> rarityDescriptions;
+
+  static {
+    rarityDescriptions = new HashMap<>();
+    rarityDescriptions.put(RarityCode.NONE.name(), "レアリティなし");
   }
 
   @Transactional
@@ -295,17 +303,25 @@ public class CardDataImportService {
   }
 
   private Map<String, Short> upsertRarities(List<RarityJson> rarities) {
-    if (rarities == null || rarities.isEmpty()) return Map.of();
+    RarityJson noneRarity = new RarityJson(RarityCode.NONE.name(), (short) 0);
+    if (rarities == null) {
+      rarities = List.of(noneRarity);
+    } else {
+      rarities.addFirst(noneRarity);
+    }
     var batch =
         dsl.batch(
             dsl.insertInto(RARITY)
-                .columns(RARITY.NAME, RARITY.SORT_ORDER)
-                .values(DSL.val((String) null), DSL.val((Short) null))
+                .columns(RARITY.NAME, RARITY.SORT_ORDER, RARITY.DESCRIPTION)
+                .values(DSL.val((String) null), DSL.val((Short) null), DSL.val((String) null))
                 .onConflict(RARITY.NAME)
                 .doUpdate()
                 .set(RARITY.SORT_ORDER, DSL.field("excluded.sort_order", Short.class)));
     for (var rarity : rarities) {
-      batch.bind(rarity.name(), rarity.sortOrder());
+      batch.bind(
+          rarity.name(),
+          rarity.sortOrder(),
+          rarityDescriptions.getOrDefault(rarity.name(), rarity.name()));
     }
     batch.execute();
     Set<String> names = rarities.stream().map(RarityJson::name).collect(Collectors.toSet());

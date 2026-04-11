@@ -69,6 +69,11 @@ public class Rarity extends TableImpl<RarityRecord> {
     public final TableField<RarityRecord, String> NAME = createField(DSL.name("name"), SQLDataType.CLOB.nullable(false), this, "");
 
     /**
+     * The column <code>public.rarity.description</code>.
+     */
+    public final TableField<RarityRecord, String> DESCRIPTION = createField(DSL.name("description"), SQLDataType.CLOB, this, "");
+
+    /**
      * The column <code>public.rarity.sort_order</code>.
      */
     public final TableField<RarityRecord, Short> SORT_ORDER = createField(DSL.name("sort_order"), SQLDataType.SMALLINT.nullable(false), this, "");

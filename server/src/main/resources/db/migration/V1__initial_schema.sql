@@ -60,6 +60,7 @@ CREATE TABLE keyword_ability (
 CREATE TABLE rarity (
     id          smallint    GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     name        text        NOT NULL UNIQUE,        -- e.g. 'C', 'UC', 'R', 'VR', 'SR'
+    description text,                               -- e.g. 'レアリティなし', 'スーパーレア'
     sort_order  smallint    NOT NULL UNIQUE
 );
 
