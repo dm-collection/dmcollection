@@ -15,7 +15,8 @@ public class FilterValuesController {
   private final DSLContext dsl;
   private final RarityService rarityService;
 
-  public FilterValuesController(SetService setService, DSLContext dsl, RarityService rarityService) {
+  public FilterValuesController(
+      SetService setService, DSLContext dsl, RarityService rarityService) {
     this.setService = setService;
     this.dsl = dsl;
     this.rarityService = rarityService;

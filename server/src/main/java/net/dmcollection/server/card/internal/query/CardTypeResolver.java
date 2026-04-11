@@ -1,15 +1,14 @@
 package net.dmcollection.server.card.internal.query;
 
-import net.dmcollection.server.card.internal.SearchFilter.CardType;
-import org.jooq.DSLContext;
-import org.springframework.stereotype.Component;
+import static net.dmcollection.server.jooq.generated.tables.CardType.CARD_TYPE;
 
 import java.util.Arrays;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
-import static net.dmcollection.server.jooq.generated.tables.CardType.CARD_TYPE;
+import net.dmcollection.server.card.internal.SearchFilter.CardType;
+import org.jooq.DSLContext;
+import org.springframework.stereotype.Component;
 
 @Component
 public class CardTypeResolver {

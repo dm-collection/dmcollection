@@ -61,7 +61,7 @@ public class CollectionController {
       }
       searchFilter = searchParams.toSearchFilter(pageNumber, pageSize);
     } else {
-     searchFilter = searchParams.toSearchFilter();
+      searchFilter = searchParams.toSearchFilter();
     }
     return ResponseEntity.ok(collectionService.getPrimaryCollection(currentUserId, searchFilter));
   }

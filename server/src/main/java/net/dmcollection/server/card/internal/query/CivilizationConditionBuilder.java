@@ -30,7 +30,11 @@ public class CivilizationConditionBuilder {
     Short[] colorCivIds = toColorIds(included);
 
     // When all civs included, no exclusions, both mono and rainbow → no filter needed
-    if (allIncluded && excluded.isEmpty() && includeMono && includeRainbow && !matchExactRainbowCivs) {
+    if (allIncluded
+        && excluded.isEmpty()
+        && includeMono
+        && includeRainbow
+        && !matchExactRainbowCivs) {
       return noCondition();
     }
 

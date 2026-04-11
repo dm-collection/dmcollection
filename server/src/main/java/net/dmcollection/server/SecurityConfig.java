@@ -53,10 +53,10 @@ public class SecurityConfig {
   @Bean
   public TokenBasedRememberMeServices rememberMeServices() {
     var rememberMeServices =
-        new TokenBasedRememberMeServices(
-            appProperties.rememberMeKey(), userDetailsService);
+        new TokenBasedRememberMeServices(appProperties.rememberMeKey(), userDetailsService);
     rememberMeServices.setTokenValiditySeconds(30 * 24 * 60 * 60);
-    rememberMeServices.setAlwaysRemember(true); // would otherwise not work with our login request format
+    rememberMeServices.setAlwaysRemember(
+        true); // would otherwise not work with our login request format
     return rememberMeServices;
   }
 

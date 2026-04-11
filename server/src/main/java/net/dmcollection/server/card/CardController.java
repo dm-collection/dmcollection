@@ -25,9 +25,7 @@ public class CardController {
   private final AppProperties appProperties;
 
   public CardController(
-      CardService cardService,
-      CardQueryService cardQueryService,
-      AppProperties appProperties) {
+      CardService cardService, CardQueryService cardQueryService, AppProperties appProperties) {
     this.cardService = cardService;
     this.cardQueryService = cardQueryService;
     this.appProperties = appProperties;
@@ -44,7 +42,8 @@ public class CardController {
           Math.min(appProperties.cardPage().defaultSize(), appProperties.cardPage().maxSize());
     }
     var searchFilter =
-        searchParams.toSearchFilter(pageNumber, pageSize)
+        searchParams
+            .toSearchFilter(pageNumber, pageSize)
             .withCollectionFilter(currentUserId, false);
     try {
       return ResponseEntity.ok(

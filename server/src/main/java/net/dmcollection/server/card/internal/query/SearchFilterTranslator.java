@@ -26,9 +26,7 @@ public class SearchFilterTranslator {
   }
 
   public record TranslatedFilter(
-      Condition civilizationCondition,
-      Condition mainCondition,
-      List<OrderField<?>> orderBy) {}
+      Condition civilizationCondition, Condition mainCondition, List<OrderField<?>> orderBy) {}
 
   public TranslatedFilter translate(SearchFilter filter) {
     Condition civCondition = translateCivilization(filter);
@@ -50,8 +48,7 @@ public class SearchFilterTranslator {
             .and(AbilityTextConditionBuilder.build(filter.effectSearch()))
             .and(translateCollection(filter.collectionFilter()));
 
-    UUID userId =
-        filter.collectionFilter() != null ? filter.collectionFilter().userId() : null;
+    UUID userId = filter.collectionFilter() != null ? filter.collectionFilter().userId() : null;
     List<OrderField<?>> orderBy = SortBuilder.build(filter.pageable().getSort(), userId);
 
     return new TranslatedFilter(civCondition, main, orderBy);

@@ -67,8 +67,7 @@ public class DeckService {
       List<DeckCardExport> cards) {}
 
   public List<DeckInfo> getDecks(UUID userId) {
-    return dsl
-        .select(
+    return dsl.select(
             DECK.ID,
             DECK.NAME,
             DECK.UPDATED_AT,
@@ -119,9 +118,7 @@ public class DeckService {
   }
 
   public boolean deleteDeck(UUID userId, UUID deckId) {
-    return dsl.deleteFrom(DECK)
-            .where(DECK.ID.eq(deckId).and(DECK.USER_ID.eq(userId)))
-            .execute()
+    return dsl.deleteFrom(DECK).where(DECK.ID.eq(deckId).and(DECK.USER_ID.eq(userId))).execute()
         > 0;
   }
 
@@ -142,9 +139,7 @@ public class DeckService {
   public Optional<DeckDto> getDeck(UUID userId, UUID deckId) {
     boolean exists =
         dsl.fetchExists(
-            dsl.selectOne()
-                .from(DECK)
-                .where(DECK.ID.eq(deckId).and(DECK.USER_ID.eq(userId))));
+            dsl.selectOne().from(DECK).where(DECK.ID.eq(deckId).and(DECK.USER_ID.eq(userId))));
     if (!exists) {
       return Optional.empty();
     }
@@ -160,7 +155,9 @@ public class DeckService {
             .join(DECK)
             .on(DECK.ID.eq(DECK_VERSION.DECK_ID))
             .where(
-                DECK_VERSION.DECK_ID.eq(deckId)
+                DECK_VERSION
+                    .DECK_ID
+                    .eq(deckId)
                     .and(DECK_VERSION.IS_DRAFT.isTrue())
                     .and(DECK.USER_ID.eq(userId)))
             .fetchOne(DECK_VERSION.ID);
@@ -214,9 +211,7 @@ public class DeckService {
   public Optional<DeckExport> exportDeck(UUID userId, UUID deckId) {
     boolean exists =
         dsl.fetchExists(
-            dsl.selectOne()
-                .from(DECK)
-                .where(DECK.ID.eq(deckId).and(DECK.USER_ID.eq(userId))));
+            dsl.selectOne().from(DECK).where(DECK.ID.eq(deckId).and(DECK.USER_ID.eq(userId))));
     if (!exists) {
       return Optional.empty();
     }
@@ -261,10 +256,7 @@ public class DeckService {
 
     // Collect shortNames for lookup
     List<String> shortNames =
-        toImport.cards().stream()
-            .map(DeckCardExport::shortName)
-            .filter(Objects::nonNull)
-            .toList();
+        toImport.cards().stream().map(DeckCardExport::shortName).filter(Objects::nonNull).toList();
 
     if (shortNames.isEmpty()) {
       return;
@@ -274,7 +266,8 @@ public class DeckService {
     record PrintingLookup(int printingId, int cardId) {}
 
     Map<String, PrintingLookup> lookupByShortName =
-        dsl.select(PRINTING.ID, PRINTING.CARD_ID, PRINTING.OFFICIAL_SITE_ID)
+        dsl
+            .select(PRINTING.ID, PRINTING.CARD_ID, PRINTING.OFFICIAL_SITE_ID)
             .from(PRINTING)
             .where(PRINTING.OFFICIAL_SITE_ID.in(shortNames))
             .fetch()
@@ -443,8 +436,7 @@ public class DeckService {
                     civs.add(Civilization.ZERO);
                   }
 
-                  int collectionAmount =
-                      collectionAmounts.getOrDefault((long) printingId, 0);
+                  int collectionAmount = collectionAmounts.getOrDefault((long) printingId, 0);
 
                   return new CardStub(
                       (long) printingId,

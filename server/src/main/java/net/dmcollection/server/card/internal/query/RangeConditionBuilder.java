@@ -23,7 +23,6 @@ public class RangeConditionBuilder {
       sideCondition = sideCondition.and(field.lessOrEqual(max));
     }
 
-    return CARD.ID.in(
-        selectDistinct(CARD_SIDE.CARD_ID).from(CARD_SIDE).where(sideCondition));
+    return CARD.ID.in(selectDistinct(CARD_SIDE.CARD_ID).from(CARD_SIDE).where(sideCondition));
   }
 }

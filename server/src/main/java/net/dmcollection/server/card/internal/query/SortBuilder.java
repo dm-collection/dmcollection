@@ -54,9 +54,7 @@ public class SortBuilder {
       }
 
       SortField<? extends Comparable<?>> sortField =
-          order.isAscending()
-              ? column.asc().nullsLast()
-              : column.desc().nullsLast();
+          order.isAscending() ? column.asc().nullsLast() : column.desc().nullsLast();
       fields.add(sortField);
     }
 

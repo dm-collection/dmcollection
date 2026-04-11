@@ -74,11 +74,13 @@ public class CollectionService {
             .on(CARD_SIDE.CARD_ID.eq(PRINTING.CARD_ID))
             .where(COLLECTION_ENTRY.USER_ID.eq(userId))
             .orderBy(PRINTING.OFFICIAL_SITE_ID, CARD_SIDE.SIDE_ORDER)
-            .fetch(r -> new ExportRow(
-                r.get(PRINTING.OFFICIAL_SITE_ID),
-                r.get(CARD_SIDE.NAME),
-                r.get(CARD_SIDE.SIDE_ORDER),
-                r.get(COLLECTION_ENTRY.QUANTITY)));
+            .fetch(
+                r ->
+                    new ExportRow(
+                        r.get(PRINTING.OFFICIAL_SITE_ID),
+                        r.get(CARD_SIDE.NAME),
+                        r.get(CARD_SIDE.SIDE_ORDER),
+                        r.get(COLLECTION_ENTRY.QUANTITY)));
 
     // Group by printing, join side names with "／"
     Map<String, List<ExportRow>> byPrinting = new LinkedHashMap<>();
@@ -88,22 +90,27 @@ public class CollectionService {
 
     List<CollectionCardExport> cardExports =
         byPrinting.entrySet().stream()
-            .map(entry -> {
-              String officialSiteId = entry.getKey();
-              List<ExportRow> sideRows = entry.getValue();
-              String cardName =
-                  sideRows.stream()
-                      .map(ExportRow::sideName)
-                      .filter(Objects::nonNull)
-                      .collect(Collectors.joining("／"));
-              int quantity = sideRows.getFirst().quantity();
-              return new CollectionCardExport(cardName, officialSiteId, quantity);
-            })
+            .map(
+                entry -> {
+                  String officialSiteId = entry.getKey();
+                  List<ExportRow> sideRows = entry.getValue();
+                  String cardName =
+                      sideRows.stream()
+                          .map(ExportRow::sideName)
+                          .filter(Objects::nonNull)
+                          .collect(Collectors.joining("／"));
+                  int quantity = sideRows.getFirst().quantity();
+                  return new CollectionCardExport(cardName, officialSiteId, quantity);
+                })
             .toList();
 
     int total = cardExports.stream().mapToInt(CollectionCardExport::amount).sum();
     return new CollectionExport(
-        EXPORT_FORMAT_VERSION, LocalDateTime.now(), "collection", total, cardExports.size(),
+        EXPORT_FORMAT_VERSION,
+        LocalDateTime.now(),
+        "collection",
+        total,
+        cardExports.size(),
         cardExports);
   }
 
@@ -131,11 +138,12 @@ public class CollectionService {
             .fetchMap(PRINTING.OFFICIAL_SITE_ID, PRINTING.ID);
 
     // Insert matching entries
-    var insert = dsl.insertInto(
-        COLLECTION_ENTRY,
-        COLLECTION_ENTRY.USER_ID,
-        COLLECTION_ENTRY.PRINTING_ID,
-        COLLECTION_ENTRY.QUANTITY);
+    var insert =
+        dsl.insertInto(
+            COLLECTION_ENTRY,
+            COLLECTION_ENTRY.USER_ID,
+            COLLECTION_ENTRY.PRINTING_ID,
+            COLLECTION_ENTRY.QUANTITY);
 
     int matched = 0;
     for (CollectionCardExport card : toImport.cards()) {
@@ -158,9 +166,7 @@ public class CollectionService {
     SearchResult searchResult = cardQueryService.search(searchFilter);
     CollectionInfo ci =
         new CollectionInfo(
-            searchResult.pageOfCards().getTotalElements(),
-            searchResult.totalCollected(),
-            userId);
+            searchResult.pageOfCards().getTotalElements(), searchResult.totalCollected(), userId);
     return new CollectionDto(ci, new PagedModel<>(searchResult.pageOfCards()));
   }
 
@@ -174,7 +180,8 @@ public class CollectionService {
   }
 
   @Transactional
-  public Optional<Map<Long, Integer>> setCardAmountOnStub(UUID userId, Long printingId, int amount) {
+  public Optional<Map<Long, Integer>> setCardAmountOnStub(
+      UUID userId, Long printingId, int amount) {
     if (!printingExists(printingId)) {
       return Optional.empty();
     }
@@ -183,7 +190,8 @@ public class CollectionService {
   }
 
   @Transactional
-  public Optional<CollectionCardStub> setSingleCardAmount(UUID userId, Long printingId, int amount) {
+  public Optional<CollectionCardStub> setSingleCardAmount(
+      UUID userId, Long printingId, int amount) {
     if (!printingExists(printingId)) {
       return Optional.empty();
     }
@@ -262,8 +270,6 @@ public class CollectionService {
             .where(COLLECTION_ENTRY.USER_ID.eq(userId))
             .fetchOne();
     return new CollectionInfo(
-        result.get("unique_count", Long.class),
-        result.get("total_count", Long.class),
-        userId);
+        result.get("unique_count", Long.class), result.get("total_count", Long.class), userId);
   }
 }

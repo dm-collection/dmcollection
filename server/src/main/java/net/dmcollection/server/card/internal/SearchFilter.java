@@ -1,13 +1,12 @@
 package net.dmcollection.server.card.internal;
 
+import java.util.EnumSet;
+import java.util.Set;
+import java.util.UUID;
 import net.dmcollection.server.card.Civilization;
 import net.dmcollection.server.card.RarityCode;
 import org.springframework.data.domain.Pageable;
 import org.springframework.lang.NonNull;
-
-import java.util.EnumSet;
-import java.util.Set;
-import java.util.UUID;
 
 /**
  * Search filter for card search.

@@ -19,8 +19,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import net.dmcollection.server.card.Civilization;
 import net.dmcollection.server.card.CardService.CardStub;
+import net.dmcollection.server.card.Civilization;
 import net.dmcollection.server.card.internal.SearchFilter.CollectionFilter;
 import net.dmcollection.server.card.internal.query.SearchFilterTranslator;
 import net.dmcollection.server.card.internal.query.SearchFilterTranslator.TranslatedFilter;
@@ -42,8 +42,7 @@ public class CardQueryService {
 
   private static final Logger log = LoggerFactory.getLogger(CardQueryService.class);
 
-  private static final Field<Long> TOTAL_COUNT =
-      count().over().cast(Long.class).as("total_count");
+  private static final Field<Long> TOTAL_COUNT = count().over().cast(Long.class).as("total_count");
   private static final Field<Integer> AMOUNT_FIELD =
       coalesce(COLLECTION_ENTRY.QUANTITY, 0).as("amount");
   private static final Field<Long> TOTAL_COLLECTED =
@@ -104,8 +103,7 @@ public class CardQueryService {
                       .and(COLLECTION_ENTRY.USER_ID.eq(collectionFilter.userId())));
     } else {
       fromClause =
-          dsl.select(
-                  PRINTING.ID, PRINTING.OFFICIAL_SITE_ID, PRINTING.COLLECTOR_NUMBER, TOTAL_COUNT)
+          dsl.select(PRINTING.ID, PRINTING.OFFICIAL_SITE_ID, PRINTING.COLLECTOR_NUMBER, TOTAL_COUNT)
               .from(PRINTING)
               .join(CARD)
               .on(CARD.ID.eq(PRINTING.CARD_ID))
@@ -116,15 +114,14 @@ public class CardQueryService {
     }
 
     SelectConditionStep<? extends Record> filtered =
-        fromClause
-            .where(PRINTING.CARD_ID.in(civSubquery))
-            .and(translated.mainCondition());
+        fromClause.where(PRINTING.CARD_ID.in(civSubquery)).and(translated.mainCondition());
 
     var ordered = filtered.orderBy(translated.orderBy());
 
-    var query = pageable.isPaged()
-        ? ordered.limit(pageable.getPageSize()).offset((int) pageable.getOffset())
-        : ordered;
+    var query =
+        pageable.isPaged()
+            ? ordered.limit(pageable.getPageSize()).offset((int) pageable.getOffset())
+            : ordered;
 
     // Execute and collect results
     record PrintingRow(

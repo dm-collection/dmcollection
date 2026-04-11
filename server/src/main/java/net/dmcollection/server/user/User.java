@@ -17,7 +17,11 @@ public class User implements UserDetails, CredentialsContainer {
   private final boolean admin;
 
   public User(
-      UUID id, String username, String password, String displayName, String avatarPath,
+      UUID id,
+      String username,
+      String password,
+      String displayName,
+      String avatarPath,
       boolean admin) {
     this.id = id;
     this.username = username;

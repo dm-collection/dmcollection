@@ -134,7 +134,8 @@ public class AuthenticationController {
 
     User newUser;
     try {
-      newUser = userService.createUser(registrationRequest.username(), registrationRequest.password());
+      newUser =
+          userService.createUser(registrationRequest.username(), registrationRequest.password());
       log.info("User '{}' registered successfully.", newUser.getUsername());
     } catch (Exception e) {
       log.error("Error saving registered user '{}'", registrationRequest.username(), e);
