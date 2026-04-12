@@ -37,26 +37,36 @@ public class CardTypeResolver {
     return switch (cardType) {
       case CREATURE ->
           new IncludedExcluded(
-              idsContaining(nameToId, CardType.CREATURE),
+              idsContaining(CardType.CREATURE),
               idsContainingAny(
-                  nameToId,
                   CardType.EVOLUTION,
                   CardType.CROSSGEAR,
                   CardType.PSYCHIC,
                   CardType.DRAGHEART,
-                  CardType.GACHALLENGE));
+                  CardType.GACHALLENGE,
+                  CardType.DUELMATE));
       case EVOLUTION ->
           new IncludedExcluded(
-              idsContaining(nameToId, CardType.EVOLUTION),
-              idsContainingAny(nameToId, CardType.CROSSGEAR, CardType.PSYCHIC, CardType.DRAGHEART));
-      case CASTLE -> new IncludedExcluded(idsExact(nameToId, CardType.CASTLE), Set.of());
-      case OTHER -> new IncludedExcluded(Set.of(), idsForAllStandardTypes(nameToId));
-      case SPELL, PSYCHIC, DRAGHEART, FIELD, CROSSGEAR, EXILE, GACHALLENGE, AURA, TAMASEED ->
-          new IncludedExcluded(idsContaining(nameToId, cardType), Set.of());
+              idsContaining(CardType.EVOLUTION),
+              idsContainingAny(CardType.CROSSGEAR, CardType.PSYCHIC, CardType.DRAGHEART));
+      case CASTLE -> new IncludedExcluded(idsContaining(CardType.CASTLE), Set.of());
+      case OTHER -> new IncludedExcluded(Set.of(), idsForAllStandardTypes());
+      case SPELL -> new IncludedExcluded(idsContaining(cardType), idsContaining(CardType.DUELMATE));
+      case PSYCHIC,
+          DRAGHEART,
+          FIELD,
+          CROSSGEAR,
+          EXILE,
+          GACHALLENGE,
+          AURA,
+          TAMASEED,
+          DUELIST,
+          DUELMATE ->
+          new IncludedExcluded(idsContaining(cardType), Set.of());
     };
   }
 
-  private static Set<Integer> idsContaining(Map<String, Integer> nameToId, CardType type) {
+  private Set<Integer> idsContaining(CardType type) {
     String keyword = type.getKeyWord();
     return nameToId.entrySet().stream()
         .filter(e -> e.getKey().contains(keyword))
@@ -64,21 +74,14 @@ public class CardTypeResolver {
         .collect(Collectors.toSet());
   }
 
-  private static Set<Integer> idsContainingAny(Map<String, Integer> nameToId, CardType... types) {
-    return Arrays.stream(types)
-        .flatMap(t -> idsContaining(nameToId, t).stream())
-        .collect(Collectors.toSet());
+  private Set<Integer> idsContainingAny(CardType... types) {
+    return Arrays.stream(types).flatMap(t -> idsContaining(t).stream()).collect(Collectors.toSet());
   }
 
-  private static Set<Integer> idsExact(Map<String, Integer> nameToId, CardType type) {
-    Integer id = nameToId.get(type.getKeyWord());
-    return id != null ? Set.of(id) : Set.of();
-  }
-
-  private static Set<Integer> idsForAllStandardTypes(Map<String, Integer> nameToId) {
+  private Set<Integer> idsForAllStandardTypes() {
     return Arrays.stream(CardType.values())
         .filter(t -> t != CardType.OTHER)
-        .flatMap(t -> idsContaining(nameToId, t).stream())
+        .flatMap(t -> idsContaining(t).stream())
         .collect(Collectors.toSet());
   }
 }

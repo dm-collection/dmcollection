@@ -1,6 +1,22 @@
 package net.dmcollection.server.carddata;
 
-import static net.dmcollection.server.jooq.generated.Tables.*;
+import static net.dmcollection.server.jooq.generated.Tables.APP_USER;
+import static net.dmcollection.server.jooq.generated.Tables.CARD;
+import static net.dmcollection.server.jooq.generated.Tables.CARD_CIV_GROUP;
+import static net.dmcollection.server.jooq.generated.Tables.CARD_PRIVATE_TAG;
+import static net.dmcollection.server.jooq.generated.Tables.CARD_SET;
+import static net.dmcollection.server.jooq.generated.Tables.CARD_SIDE;
+import static net.dmcollection.server.jooq.generated.Tables.CARD_SIDE_CARD_TYPE;
+import static net.dmcollection.server.jooq.generated.Tables.DECK;
+import static net.dmcollection.server.jooq.generated.Tables.DECK_VERSION;
+import static net.dmcollection.server.jooq.generated.Tables.DECK_VERSION_ENTRY;
+import static net.dmcollection.server.jooq.generated.Tables.PRINTING;
+import static net.dmcollection.server.jooq.generated.Tables.PRINTING_SIDE;
+import static net.dmcollection.server.jooq.generated.Tables.PRINTING_SIDE_ABILITY;
+import static net.dmcollection.server.jooq.generated.Tables.PRIVATE_TAG;
+import static net.dmcollection.server.jooq.generated.Tables.PRODUCT_TYPE;
+import static net.dmcollection.server.jooq.generated.Tables.RARITY;
+import static net.dmcollection.server.jooq.generated.Tables.SET_GROUP;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -113,9 +129,7 @@ class CardDataImportServiceIntegrationTest {
 
     // Verify civ group
     var civGroups =
-        dsl.selectFrom(CARD_CIV_GROUP)
-            .where(CARD_CIV_GROUP.CARD_ID.eq(card.getId()))
-            .fetch();
+        dsl.selectFrom(CARD_CIV_GROUP).where(CARD_CIV_GROUP.CARD_ID.eq(card.getId())).fetch();
     assertThat(civGroups).hasSize(1);
     assertThat(civGroups.getFirst().getCivilizationIds()).containsExactly((short) 1);
     assertThat(civGroups.getFirst().getIncludesColorlessSide()).isFalse();
@@ -123,25 +137,19 @@ class CardDataImportServiceIntegrationTest {
 
   @Test
   void twinpactCivGroupIsUnion() {
-    var card =
-        dsl.selectFrom(CARD).where(CARD.NAME.eq("ハザード・オウ禍武斗／禍武斗の轟印")).fetchOne();
+    var card = dsl.selectFrom(CARD).where(CARD.NAME.eq("ハザード・オウ禍武斗／禍武斗の轟印")).fetchOne();
     assertThat(card).isNotNull();
     assertThat(card.getIsTwinpact()).isTrue();
 
     var civGroups =
-        dsl.selectFrom(CARD_CIV_GROUP)
-            .where(CARD_CIV_GROUP.CARD_ID.eq(card.getId()))
-            .fetch();
+        dsl.selectFrom(CARD_CIV_GROUP).where(CARD_CIV_GROUP.CARD_ID.eq(card.getId())).fetch();
     assertThat(civGroups).hasSize(1);
     assertThat(civGroups.getFirst().getCivilizationIds()).containsExactly((short) 5);
   }
 
   @Test
   void nonTwinpactMultiSideHasOneGroupPerSide() {
-    var card =
-        dsl.selectFrom(CARD)
-            .where(CARD.NAME.eq("時空の勇躍ディアナ/閃光の覚醒者エル・ディアナ"))
-            .fetchOne();
+    var card = dsl.selectFrom(CARD).where(CARD.NAME.eq("時空の勇躍ディアナ/閃光の覚醒者エル・ディアナ")).fetchOne();
     assertThat(card).isNotNull();
     assertThat(card.getIsTwinpact()).isFalse();
 
@@ -153,9 +161,7 @@ class CardDataImportServiceIntegrationTest {
     assertThat(sides).hasSize(2);
 
     var civGroups =
-        dsl.selectFrom(CARD_CIV_GROUP)
-            .where(CARD_CIV_GROUP.CARD_ID.eq(card.getId()))
-            .fetch();
+        dsl.selectFrom(CARD_CIV_GROUP).where(CARD_CIV_GROUP.CARD_ID.eq(card.getId())).fetch();
     assertThat(civGroups).hasSize(2);
   }
 
@@ -167,9 +173,7 @@ class CardDataImportServiceIntegrationTest {
     assertThat(printing.getCollectorNumber()).isEqualTo("DM1 1/110");
 
     var printingSides =
-        dsl.selectFrom(PRINTING_SIDE)
-            .where(PRINTING_SIDE.PRINTING_ID.eq(printing.getId()))
-            .fetch();
+        dsl.selectFrom(PRINTING_SIDE).where(PRINTING_SIDE.PRINTING_ID.eq(printing.getId())).fetch();
     assertThat(printingSides).hasSize(1);
 
     var abilities =
@@ -184,8 +188,7 @@ class CardDataImportServiceIntegrationTest {
 
   @Test
   void productTypesImportedFromJson() {
-    var productTypes =
-        dsl.select(PRODUCT_TYPE.NAME).from(PRODUCT_TYPE).fetchSet(PRODUCT_TYPE.NAME);
+    var productTypes = dsl.select(PRODUCT_TYPE.NAME).from(PRODUCT_TYPE).fetchSet(PRODUCT_TYPE.NAME);
     assertThat(productTypes)
         .containsExactlyInAnyOrder("expansion", "special", "deck", "promo", "starter", "art");
   }
@@ -205,16 +208,14 @@ class CardDataImportServiceIntegrationTest {
   void raritiesHaveSortOrder() {
     var rarities = dsl.selectFrom(RARITY).orderBy(RARITY.SORT_ORDER).fetch();
     assertThat(rarities).isNotEmpty();
-    assertThat(rarities.getFirst().getName()).isEqualTo("C");
+    assertThat(rarities.getFirst().getName()).isEqualTo("NONE");
+    assertThat(rarities.get(1).getName()).isEqualTo("C");
   }
 
   @Test
   void printingWithNullRarity() {
     long nullRarityCount =
-        dsl.selectCount()
-            .from(PRINTING)
-            .where(PRINTING.RARITY_ID.isNull())
-            .fetchOne(0, long.class);
+        dsl.selectCount().from(PRINTING).where(PRINTING.RARITY_ID.isNull()).fetchOne(0, long.class);
     assertThat(nullRarityCount).isGreaterThan(0);
   }
 
@@ -278,9 +279,7 @@ class CardDataImportServiceIntegrationTest {
               List.of(),
               List.of(),
               List.of(),
-              List.of(
-                  new CardDataJson.CardAliasJson(
-                      "__nonexistent_old__", "__nonexistent_new__")),
+              List.of(new CardDataJson.CardAliasJson("__nonexistent_old__", "__nonexistent_new__")),
               List.of(),
               List.of()));
 
@@ -300,8 +299,7 @@ class CardDataImportServiceIntegrationTest {
               List.of(),
               List.of(),
               List.of(
-                  new CardDataJson.CardAliasJson(
-                      "__test_merge_old__", "__test_merge_survivor__")),
+                  new CardDataJson.CardAliasJson("__test_merge_old__", "__test_merge_survivor__")),
               List.of(),
               List.of()));
 
@@ -352,9 +350,7 @@ class CardDataImportServiceIntegrationTest {
               List.of(),
               List.of(),
               List.of(),
-              List.of(
-                  new CardDataJson.CardAliasJson(
-                      "__test_tag_old__", "__test_tag_survivor__")),
+              List.of(new CardDataJson.CardAliasJson("__test_tag_old__", "__test_tag_survivor__")),
               List.of(),
               List.of()));
 
@@ -363,14 +359,14 @@ class CardDataImportServiceIntegrationTest {
       assertThat(
               dsl.fetchCount(
                   CARD_PRIVATE_TAG,
-                  CARD_PRIVATE_TAG.CARD_ID.eq(survivorCardId)
+                  CARD_PRIVATE_TAG
+                      .CARD_ID
+                      .eq(survivorCardId)
                       .and(CARD_PRIVATE_TAG.PRIVATE_TAG_ID.eq(tagId))))
           .isEqualTo(1);
 
       // Cleanup
-      dsl.deleteFrom(CARD_PRIVATE_TAG)
-          .where(CARD_PRIVATE_TAG.CARD_ID.eq(survivorCardId))
-          .execute();
+      dsl.deleteFrom(CARD_PRIVATE_TAG).where(CARD_PRIVATE_TAG.CARD_ID.eq(survivorCardId)).execute();
       dsl.deleteFrom(PRIVATE_TAG).where(PRIVATE_TAG.ID.eq(tagId)).execute();
       dsl.deleteFrom(CARD).where(CARD.ID.eq(survivorCardId)).execute();
       dsl.deleteFrom(APP_USER).where(APP_USER.ID.eq(userId)).execute();
@@ -424,8 +420,7 @@ class CardDataImportServiceIntegrationTest {
               List.of(),
               List.of(),
               List.of(
-                  new CardDataJson.CardAliasJson(
-                      "__test_deck_old__", "__test_deck_survivor__")),
+                  new CardDataJson.CardAliasJson("__test_deck_old__", "__test_deck_survivor__")),
               List.of(),
               List.of()));
 
@@ -443,8 +438,7 @@ class CardDataImportServiceIntegrationTest {
       // Only one entry for this deck version
       assertThat(
               dsl.fetchCount(
-                  DECK_VERSION_ENTRY,
-                  DECK_VERSION_ENTRY.DECK_VERSION_ID.eq(deckVersionId)))
+                  DECK_VERSION_ENTRY, DECK_VERSION_ENTRY.DECK_VERSION_ID.eq(deckVersionId)))
           .isEqualTo(1);
 
       // Cleanup

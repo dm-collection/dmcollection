@@ -221,6 +221,8 @@ public record SearchFilter(
     GACHALLENGE("GR"),
     AURA("オーラ"),
     TAMASEED("タマシード"),
+    DUELIST("デュエリスト"),
+    DUELMATE("デュエルメイト"),
     OTHER("その他");
 
     private final String keyWord;

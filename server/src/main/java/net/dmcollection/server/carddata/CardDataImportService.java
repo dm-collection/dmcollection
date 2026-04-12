@@ -307,6 +307,7 @@ public class CardDataImportService {
     if (rarities == null) {
       rarities = List.of(noneRarity);
     } else {
+      rarities = new ArrayList<>(rarities);
       rarities.addFirst(noneRarity);
     }
     var batch =
