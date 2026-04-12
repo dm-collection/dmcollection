@@ -12,6 +12,6 @@ export const CardTypeFilter = {
 	AURA: 'オーラ',
 	TAMASEED: 'タマシード',
 	DUELIST: 'デュエリスト',
-  DUELMATE: 'デュエルメイト',
+	DUELMATE: 'デュエルメイト',
 	OTHER: 'その他'
 } as const;
