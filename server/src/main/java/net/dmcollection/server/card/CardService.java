@@ -207,7 +207,7 @@ public class CardService {
       return Optional.of(
           new CardDto(
               (long) printingId,
-              htmlEscape(officialSiteId, "UTF-8"),
+              htmlEscape(officialSiteId, StandardCharsets.UTF_8.name()),
               null,
               rarityName,
               setDto,
@@ -308,8 +308,10 @@ public class CardService {
     return Optional.of(
         new CardDto(
             (long) printingId,
-            htmlEscape(officialSiteId, "UTF-8"),
-            collectorNumber != null ? htmlEscape(collectorNumber, "UTF-8") : null,
+            htmlEscape(officialSiteId, StandardCharsets.UTF_8.name()),
+            collectorNumber != null
+                ? htmlEscape(collectorNumber, StandardCharsets.UTF_8.name())
+                : null,
             rarityName,
             setDto,
             allCivilizations,

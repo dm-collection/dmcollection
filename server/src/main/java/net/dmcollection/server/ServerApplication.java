@@ -8,7 +8,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 @EnableConfigurationProperties({AppProperties.class})
 public class ServerApplication {
 
-  public static void main(String[] args) {
+  static void main(String[] args) {
     SpringApplication.run(ServerApplication.class, args);
   }
 }

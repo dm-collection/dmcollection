@@ -78,7 +78,7 @@ public class DeckController {
   }
 
   @DeleteMapping("/api/deck/{id}")
-  ResponseEntity<?> deleteDeck(@CurrentUserId UUID currentUserId, @PathVariable UUID id) {
+  ResponseEntity<Void> deleteDeck(@CurrentUserId UUID currentUserId, @PathVariable UUID id) {
     if (deckService.deleteDeck(currentUserId, id)) {
       return ResponseEntity.noContent().build();
     } else {
@@ -150,7 +150,7 @@ public class DeckController {
   }
 
   @PostMapping(value = "/api/decks/import", consumes = MediaType.APPLICATION_OCTET_STREAM_VALUE)
-  public ResponseEntity<?> importDecks(
+  public ResponseEntity<Void> importDecks(
       @RequestBody byte[] fileBytes, @CurrentUserId UUID currentUserId) {
     try {
       DeckExport toImport =
