@@ -55,16 +55,13 @@ public class CardController {
   }
 
   @GetMapping("/api/card/{id}")
-  ResponseEntity<?> getCard(@PathVariable String id) {
+  ResponseEntity<CardService.CardDto> getCard(@PathVariable String id) {
     var cardDto = cardService.getCardDto(id);
-    if (cardDto.isPresent()) {
-      return ResponseEntity.ok(cardDto.get());
-    }
-    return ResponseEntity.notFound().build();
+    return cardDto.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
   }
 
   @GetMapping("/api/cards")
-  ResponseEntity<?> getCardsById(@RequestParam List<Long> cardIds) {
+  ResponseEntity<List<CardStub>> getCardsById(@RequestParam List<Long> cardIds) {
     var cards = cardService.getByIds(cardIds);
     if (cards.isEmpty()) {
       return ResponseEntity.notFound().build();
