@@ -72,13 +72,7 @@ public class DeckService {
       List<DeckCardExport> cards) {}
 
   public List<DeckInfo> getDecks(UUID userId) {
-    return dsl.select(
-            DECK.ID,
-            DECK.NAME,
-            DECK.UPDATED_AT,
-            DECK.USER_ID,
-            UNIQUE_COUNT,
-            TOTAL_COUNT)
+    return dsl.select(DECK.ID, DECK.NAME, DECK.UPDATED_AT, DECK.USER_ID, UNIQUE_COUNT, TOTAL_COUNT)
         .from(DECK)
         .leftJoin(DECK_VERSION)
         .on(DECK_VERSION.DECK_ID.eq(DECK.ID).and(DECK_VERSION.IS_DRAFT.isTrue()))
@@ -469,13 +463,7 @@ public class DeckService {
 
   private DeckInfo getDeckInfo(UUID deckId) {
     var result =
-        dsl.select(
-                DECK.ID,
-                DECK.NAME,
-                DECK.UPDATED_AT,
-                DECK.USER_ID,
-                UNIQUE_COUNT,
-                TOTAL_COUNT)
+        dsl.select(DECK.ID, DECK.NAME, DECK.UPDATED_AT, DECK.USER_ID, UNIQUE_COUNT, TOTAL_COUNT)
             .from(DECK)
             .leftJoin(DECK_VERSION)
             .on(DECK_VERSION.DECK_ID.eq(DECK.ID).and(DECK_VERSION.IS_DRAFT.isTrue()))
