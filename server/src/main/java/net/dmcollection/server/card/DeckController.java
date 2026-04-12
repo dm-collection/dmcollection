@@ -170,7 +170,7 @@ public class DeckController {
                     .readValue(fileBytes, DeckExport[].class));
         toImport.forEach(i -> deckService.importDeck(currentUserId, i));
         return ResponseEntity.ok().build();
-      } catch (IOException ex) {
+      } catch (IOException _) {
         log.error("Error reading uploaded file: ", e);
         return ResponseEntity.badRequest().build();
       }
