@@ -233,6 +233,8 @@
                     <daos>false</daos>
                     <records>true</records>
                     <fluentSetters>true</fluentSetters>
+                    <generatedAnnotation>true</generatedAnnotation>
+                    <generatedAnnotationType>DETECT_FROM_JDK</generatedAnnotationType>
                   </generate>
                 </generator>
               </jooq>
