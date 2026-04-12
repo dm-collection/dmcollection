@@ -21,6 +21,7 @@ import net.dmcollection.server.card.internal.CardQueryService;
 import net.dmcollection.server.card.internal.CardQueryService.SearchResult;
 import net.dmcollection.server.card.internal.SearchFilter;
 import org.jooq.DSLContext;
+import org.jooq.Field;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.web.PagedModel;
@@ -32,6 +33,9 @@ public class CollectionService {
 
   private static final Logger log = LoggerFactory.getLogger(CollectionService.class);
   private static final int EXPORT_FORMAT_VERSION = 2;
+  private static final Field<Long> UNIQUE_COUNT = count().cast(Long.class).as("unique_count");
+  private static final Field<Long> TOTAL_COUNT =
+      coalesce(sum(COLLECTION_ENTRY.QUANTITY), 0).cast(Long.class).as("total_count");
 
   private final DSLContext dsl;
   private final CardQueryService cardQueryService;
@@ -263,13 +267,10 @@ public class CollectionService {
 
   private CollectionInfo getCollectionInfo(UUID userId) {
     var result =
-        dsl.select(
-                count().as("unique_count"),
-                coalesce(sum(COLLECTION_ENTRY.QUANTITY), 0).as("total_count"))
+        dsl.select(UNIQUE_COUNT, TOTAL_COUNT)
             .from(COLLECTION_ENTRY)
             .where(COLLECTION_ENTRY.USER_ID.eq(userId))
             .fetchOne();
-    return new CollectionInfo(
-        result.get("unique_count", Long.class), result.get("total_count", Long.class), userId);
+    return new CollectionInfo(result.get(UNIQUE_COUNT), result.get(TOTAL_COUNT), userId);
   }
 }

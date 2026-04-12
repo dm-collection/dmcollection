@@ -24,6 +24,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 import net.dmcollection.server.card.CardService.CardStub;
 import org.jooq.DSLContext;
+import org.jooq.Field;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageImpl;
@@ -37,8 +38,10 @@ public class DeckService {
 
   private static final Logger log = LoggerFactory.getLogger(DeckService.class);
   private static final int EXPORT_FORMAT_VERSION = 2;
-  private static final String UNIQUE_COUNT_ALIAS = "unique_count";
-  private static final String TOTAL_COUNT_ALIAS = "total_count";
+  private static final Field<Long> UNIQUE_COUNT =
+      count(DECK_VERSION_ENTRY.ID).cast(Long.class).as("unique_count");
+  private static final Field<Long> TOTAL_COUNT =
+      coalesce(sum(DECK_VERSION_ENTRY.QUANTITY), 0).cast(Long.class).as("total_count");
 
   private final DSLContext dsl;
   private final CollectionService collectionService;
@@ -74,8 +77,8 @@ public class DeckService {
             DECK.NAME,
             DECK.UPDATED_AT,
             DECK.USER_ID,
-            count(DECK_VERSION_ENTRY.ID).as(UNIQUE_COUNT_ALIAS),
-            coalesce(sum(DECK_VERSION_ENTRY.QUANTITY), 0).as(TOTAL_COUNT_ALIAS))
+            UNIQUE_COUNT,
+            TOTAL_COUNT)
         .from(DECK)
         .leftJoin(DECK_VERSION)
         .on(DECK_VERSION.DECK_ID.eq(DECK.ID).and(DECK_VERSION.IS_DRAFT.isTrue()))
@@ -89,8 +92,8 @@ public class DeckService {
                 new DeckInfo(
                     r.get(DECK.ID),
                     r.get(DECK.NAME),
-                    r.get(UNIQUE_COUNT_ALIAS, Long.class),
-                    r.get(TOTAL_COUNT_ALIAS, Long.class),
+                    r.get(UNIQUE_COUNT),
+                    r.get(TOTAL_COUNT),
                     r.get(DECK.UPDATED_AT).toLocalDateTime(),
                     r.get(DECK.USER_ID)));
   }
@@ -471,8 +474,8 @@ public class DeckService {
                 DECK.NAME,
                 DECK.UPDATED_AT,
                 DECK.USER_ID,
-                count(DECK_VERSION_ENTRY.ID).as(UNIQUE_COUNT_ALIAS),
-                coalesce(sum(DECK_VERSION_ENTRY.QUANTITY), 0).as(TOTAL_COUNT_ALIAS))
+                UNIQUE_COUNT,
+                TOTAL_COUNT)
             .from(DECK)
             .leftJoin(DECK_VERSION)
             .on(DECK_VERSION.DECK_ID.eq(DECK.ID).and(DECK_VERSION.IS_DRAFT.isTrue()))
@@ -485,8 +488,8 @@ public class DeckService {
     return new DeckInfo(
         result.get(DECK.ID),
         result.get(DECK.NAME),
-        result.get(UNIQUE_COUNT_ALIAS, Long.class),
-        result.get(TOTAL_COUNT_ALIAS, Long.class),
+        result.get(UNIQUE_COUNT),
+        result.get(TOTAL_COUNT),
         result.get(DECK.UPDATED_AT).toLocalDateTime(),
         result.get(DECK.USER_ID));
   }
