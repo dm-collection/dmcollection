@@ -20,12 +20,11 @@ import static net.dmcollection.server.jooq.generated.Tables.SET_GROUP;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.InputStream;
 import java.util.List;
 import java.util.UUID;
+import net.dmcollection.server.PostgresTestBase;
 import org.jooq.DSLContext;
-import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -38,8 +37,7 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerA
 import org.springframework.boot.autoconfigure.jooq.JooqAutoConfiguration;
 import org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.testcontainers.containers.PostgreSQLContainer;
 
 @SpringBootTest(
@@ -55,25 +53,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CardDataImportServiceIntegrationTest {
 
-  static final PostgreSQLContainer<?> PG =
-      new PostgreSQLContainer<>("postgres:18-alpine")
-          .withDatabaseName("dmcollection_test")
-          .withUsername("test")
-          .withPassword("test");
-
-  static {
-    PG.start();
-  }
-
-  @DynamicPropertySource
-  static void overrideProperties(DynamicPropertyRegistry registry) {
-    registry.add("spring.datasource.url", PG::getJdbcUrl);
-    registry.add("spring.datasource.username", PG::getUsername);
-    registry.add("spring.datasource.password", PG::getPassword);
-    registry.add("spring.datasource.driverClassName", () -> "org.postgresql.Driver");
-    registry.add("spring.flyway.enabled", () -> "true");
-    registry.add("spring.flyway.locations", () -> "classpath:db/migration");
-  }
+  @ServiceConnection static final PostgreSQLContainer<?> PG = PostgresTestBase.PG;
 
   @Autowired DSLContext dsl;
 
@@ -83,13 +63,12 @@ class CardDataImportServiceIntegrationTest {
 
   private CardDataJson data;
 
-  private static final Path CARD_DATA_PATH = Path.of("data/card-data.json");
-
   @BeforeAll
   void importData() throws Exception {
-    Assumptions.assumeTrue(
-        Files.exists(CARD_DATA_PATH), "card-data.json not present — skipping import tests");
-    data = objectMapper.readValue(CARD_DATA_PATH.toFile(), CardDataJson.class);
+    try (InputStream is =
+        getClass().getResourceAsStream("/net/dmcollection/card-data/json/card-data.json")) {
+      data = objectMapper.readValue(is, CardDataJson.class);
+    }
     importService.importCardData(data);
   }
 
