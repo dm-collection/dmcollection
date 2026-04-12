@@ -29,6 +29,7 @@
     <sonar.coverage.jacoco.xmlReportPaths>
       ${maven.multiModuleProjectDirectory}/server/target/site/jacoco/jacoco.xml,${maven.multiModuleProjectDirectory}/server/target/site/jacoco-it/jacoco.xml
     </sonar.coverage.jacoco.xmlReportPaths>
+    <sonar.coverage.exclusions>**/jooq/generated/**</sonar.coverage.exclusions>
     <java.version>25</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <!-- override some dependency versions set by Spring -->
