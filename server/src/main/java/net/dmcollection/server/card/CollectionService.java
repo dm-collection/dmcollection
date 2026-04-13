@@ -1,6 +1,5 @@
 package net.dmcollection.server.card;
 
-import static net.dmcollection.server.jooq.generated.tables.CardSide.CARD_SIDE;
 import static net.dmcollection.server.jooq.generated.tables.CollectionEntry.COLLECTION_ENTRY;
 import static net.dmcollection.server.jooq.generated.tables.CollectionHistoryEntry.COLLECTION_HISTORY_ENTRY;
 import static net.dmcollection.server.jooq.generated.tables.Printing.PRINTING;
@@ -9,17 +8,16 @@ import static org.jooq.impl.DSL.count;
 import static org.jooq.impl.DSL.sum;
 
 import java.time.LocalDateTime;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Collectors;
 import net.dmcollection.server.card.CardService.CardStub;
 import net.dmcollection.server.card.internal.CardQueryService;
 import net.dmcollection.server.card.internal.CardQueryService.SearchResult;
 import net.dmcollection.server.card.internal.SearchFilter;
+import net.dmcollection.server.card.serialization.V2Exporter;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.slf4j.Logger;
@@ -32,17 +30,18 @@ import org.springframework.transaction.annotation.Transactional;
 public class CollectionService {
 
   private static final Logger log = LoggerFactory.getLogger(CollectionService.class);
-  private static final int EXPORT_FORMAT_VERSION = 2;
   private static final Field<Long> UNIQUE_COUNT = count().cast(Long.class).as("unique_count");
   private static final Field<Long> TOTAL_COUNT =
       coalesce(sum(COLLECTION_ENTRY.QUANTITY), 0).cast(Long.class).as("total_count");
 
   private final DSLContext dsl;
   private final CardQueryService cardQueryService;
+  private final V2Exporter exporter;
 
-  public CollectionService(DSLContext dsl, CardQueryService cardQueryService) {
+  public CollectionService(DSLContext dsl, CardQueryService cardQueryService, V2Exporter exporter) {
     this.dsl = dsl;
     this.cardQueryService = cardQueryService;
+    this.exporter = exporter;
   }
 
   public record CollectionInfo(long uniqueCardCount, long totalCardCount, UUID ownerId) {}
@@ -61,61 +60,8 @@ public class CollectionService {
       int countWithoutDuplicates,
       List<CollectionCardExport> cards) {}
 
-  public CollectionExport exportPrimaryCollection(UUID userId) {
-    // Query collection entries with printing and card side names
-    record ExportRow(String officialSiteId, String sideName, short sideOrder, int quantity) {}
-
-    var rows =
-        dsl.select(
-                PRINTING.OFFICIAL_SITE_ID,
-                CARD_SIDE.NAME,
-                CARD_SIDE.SIDE_ORDER,
-                COLLECTION_ENTRY.QUANTITY)
-            .from(COLLECTION_ENTRY)
-            .join(PRINTING)
-            .on(PRINTING.ID.eq(COLLECTION_ENTRY.PRINTING_ID))
-            .join(CARD_SIDE)
-            .on(CARD_SIDE.CARD_ID.eq(PRINTING.CARD_ID))
-            .where(COLLECTION_ENTRY.USER_ID.eq(userId))
-            .orderBy(PRINTING.OFFICIAL_SITE_ID, CARD_SIDE.SIDE_ORDER)
-            .fetch(
-                r ->
-                    new ExportRow(
-                        r.get(PRINTING.OFFICIAL_SITE_ID),
-                        r.get(CARD_SIDE.NAME),
-                        r.get(CARD_SIDE.SIDE_ORDER),
-                        r.get(COLLECTION_ENTRY.QUANTITY)));
-
-    // Group by printing, join side names with "／"
-    Map<String, List<ExportRow>> byPrinting = new LinkedHashMap<>();
-    for (ExportRow row : rows) {
-      byPrinting.computeIfAbsent(row.officialSiteId(), k -> new java.util.ArrayList<>()).add(row);
-    }
-
-    List<CollectionCardExport> cardExports =
-        byPrinting.entrySet().stream()
-            .map(
-                entry -> {
-                  String officialSiteId = entry.getKey();
-                  List<ExportRow> sideRows = entry.getValue();
-                  String cardName =
-                      sideRows.stream()
-                          .map(ExportRow::sideName)
-                          .filter(Objects::nonNull)
-                          .collect(Collectors.joining("／"));
-                  int quantity = sideRows.getFirst().quantity();
-                  return new CollectionCardExport(cardName, officialSiteId, quantity);
-                })
-            .toList();
-
-    int total = cardExports.stream().mapToInt(CollectionCardExport::amount).sum();
-    return new CollectionExport(
-        EXPORT_FORMAT_VERSION,
-        LocalDateTime.now(),
-        "collection",
-        total,
-        cardExports.size(),
-        cardExports);
+  public V2Exporter.V2CollectionExport exportPrimaryCollection(UUID userId) {
+    return exporter.export(userId);
   }
 
   @Transactional
