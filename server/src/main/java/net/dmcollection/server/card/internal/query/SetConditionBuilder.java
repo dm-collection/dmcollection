@@ -7,6 +7,8 @@ import org.jooq.Condition;
 
 public class SetConditionBuilder {
 
+  private SetConditionBuilder() {}
+
   public static Condition build(Long setId) {
     if (setId == null) {
       return noCondition();

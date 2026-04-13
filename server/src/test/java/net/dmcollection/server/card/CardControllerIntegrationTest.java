@@ -8,7 +8,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import net.dmcollection.server.IntegrationTestBase;
 import net.dmcollection.server.TestFixtureBuilder;
 import net.dmcollection.server.card.CardService.CardStub;
-import net.dmcollection.server.card.internal.query.CardTypeResolver;
 import net.dmcollection.server.user.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,7 +21,6 @@ import org.springframework.transaction.annotation.Transactional;
 class CardControllerIntegrationTest extends IntegrationTestBase {
 
   @Autowired MockMvc mockMvc;
-  @Autowired CardTypeResolver cardTypeResolver;
 
   TestFixtureBuilder fixtures;
   User testUser;

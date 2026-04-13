@@ -8,6 +8,8 @@ import org.jooq.Condition;
 
 public class TwinpactConditionBuilder {
 
+  private TwinpactConditionBuilder() {}
+
   public static Condition build(FilterState twinpact) {
     return switch (twinpact) {
       case IN -> noCondition();

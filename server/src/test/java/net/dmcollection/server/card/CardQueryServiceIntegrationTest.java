@@ -23,7 +23,6 @@ import net.dmcollection.server.card.internal.SearchFilter;
 import net.dmcollection.server.card.internal.SearchFilter.CardType;
 import net.dmcollection.server.card.internal.SearchFilter.FilterState;
 import net.dmcollection.server.card.internal.SearchFilter.Range;
-import net.dmcollection.server.card.internal.query.CardTypeResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,7 +36,6 @@ import org.springframework.transaction.annotation.Transactional;
 class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Autowired CardQueryService cardQueryService;
-  @Autowired CardTypeResolver cardTypeResolver;
 
   TestFixtureBuilder utils;
 

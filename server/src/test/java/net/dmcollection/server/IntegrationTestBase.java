@@ -3,6 +3,7 @@ package net.dmcollection.server;
 import static net.dmcollection.server.jooq.generated.Tables.APP_USER;
 
 import java.util.UUID;
+import net.dmcollection.server.card.internal.query.CardTypeResolver;
 import net.dmcollection.server.user.User;
 import org.jooq.DSLContext;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +28,7 @@ public abstract class IntegrationTestBase {
   }
 
   @Autowired protected DSLContext dsl;
+  @Autowired protected CardTypeResolver cardTypeResolver;
 
   protected User createUser(String namePrefix) {
     return dsl.insertInto(APP_USER)

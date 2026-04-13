@@ -18,7 +18,6 @@ import net.dmcollection.server.TestFixtureBuilder;
 import net.dmcollection.server.card.CardService.CardStub;
 import net.dmcollection.server.card.DeckService.DeckCardExport;
 import net.dmcollection.server.card.DeckService.DeckExport;
-import net.dmcollection.server.card.internal.query.CardTypeResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,7 +28,6 @@ class DeckServiceIntegrationTest extends IntegrationTestBase {
 
   @Autowired DeckService deckService;
   @Autowired CollectionService collectionService;
-  @Autowired CardTypeResolver cardTypeResolver;
 
   private UUID userId;
 

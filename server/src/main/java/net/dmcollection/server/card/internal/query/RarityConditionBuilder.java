@@ -9,6 +9,8 @@ import org.jooq.Field;
 
 public class RarityConditionBuilder {
 
+  private RarityConditionBuilder() {}
+
   public static Condition build(short sortOrder, Range range) {
     Field<Short> effectiveSortOrder = coalesce(RARITY.SORT_ORDER, (short) 0);
 

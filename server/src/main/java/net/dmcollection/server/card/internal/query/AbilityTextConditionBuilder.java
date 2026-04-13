@@ -12,6 +12,8 @@ import org.jooq.Condition;
 
 public class AbilityTextConditionBuilder {
 
+  private AbilityTextConditionBuilder() {}
+
   public static Condition build(String abilityTextSearch) {
     if (abilityTextSearch == null || abilityTextSearch.isEmpty()) {
       return noCondition();

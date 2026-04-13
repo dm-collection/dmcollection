@@ -11,6 +11,8 @@ public class NameConditionBuilder {
 
   private static final String COMBINED_NAME_SEPARATOR = "／";
 
+  private NameConditionBuilder() {}
+
   public static Condition build(String nameSearch) {
     if (nameSearch == null || nameSearch.isEmpty()) {
       return noCondition();

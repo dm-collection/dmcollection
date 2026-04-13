@@ -17,7 +17,6 @@ import net.dmcollection.server.TestFixtureBuilder;
 import net.dmcollection.server.card.CardService.CardStub;
 import net.dmcollection.server.card.CollectionService.CollectionCardExport;
 import net.dmcollection.server.card.CollectionService.CollectionExport;
-import net.dmcollection.server.card.internal.query.CardTypeResolver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +26,6 @@ import org.springframework.transaction.annotation.Transactional;
 class CollectionServiceIntegrationTest extends IntegrationTestBase {
 
   @Autowired CollectionService collectionService;
-  @Autowired CardTypeResolver cardTypeResolver;
 
   private TestFixtureBuilder fixtures;
   private UUID userId;

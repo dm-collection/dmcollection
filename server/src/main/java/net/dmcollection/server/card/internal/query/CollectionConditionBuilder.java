@@ -10,6 +10,8 @@ import org.jooq.impl.DSL;
 
 public class CollectionConditionBuilder {
 
+  private CollectionConditionBuilder() {}
+
   public static Condition build(UUID userId, boolean inCollection) {
     if (userId == null) {
       return noCondition();

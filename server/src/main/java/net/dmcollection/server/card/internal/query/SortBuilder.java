@@ -19,6 +19,8 @@ import org.springframework.data.domain.Sort;
 
 public class SortBuilder {
 
+  private SortBuilder() {}
+
   public static List<OrderField<?>> build(Sort sort, UUID userId) {
     List<OrderField<?>> fields = new ArrayList<>();
 

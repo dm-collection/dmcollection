@@ -11,6 +11,8 @@ import org.jooq.Condition;
 
 public class RaceConditionBuilder {
 
+  private RaceConditionBuilder() {}
+
   public static Condition build(String raceSearch) {
     if (raceSearch == null || raceSearch.isEmpty()) {
       return noCondition();

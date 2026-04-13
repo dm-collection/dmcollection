@@ -14,6 +14,8 @@ import org.jooq.Condition;
 
 public class CardTypeConditionBuilder {
 
+  private CardTypeConditionBuilder() {}
+
   public static Condition build(Set<Integer> includedIds, Set<Integer> excludedIds) {
     if (includedIds.isEmpty() && excludedIds.isEmpty()) {
       return noCondition();

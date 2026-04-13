@@ -18,7 +18,6 @@ import net.dmcollection.server.IntegrationTestBase;
 import net.dmcollection.server.TestFixtureBuilder;
 import net.dmcollection.server.card.CardService.CardStub;
 import net.dmcollection.server.card.CollectionService.CollectionExport;
-import net.dmcollection.server.card.internal.query.CardTypeResolver;
 import net.dmcollection.server.jooq.generated.tables.records.CollectionHistoryEntryRecord;
 import net.dmcollection.server.user.User;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,7 +34,6 @@ import org.springframework.transaction.annotation.Transactional;
 class CollectionControllerIntegrationTest extends IntegrationTestBase {
 
   @Autowired MockMvc mockMvc;
-  @Autowired CardTypeResolver cardTypeResolver;
   @Autowired ObjectMapper objectMapper;
 
   TestFixtureBuilder fixtures;

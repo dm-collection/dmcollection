@@ -10,6 +10,8 @@ import org.jooq.Field;
 
 public class RangeConditionBuilder {
 
+  private RangeConditionBuilder() {}
+
   public static Condition build(Field<Integer> field, Integer min, Integer max) {
     if (min == null && max == null) {
       return noCondition();

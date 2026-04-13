@@ -14,6 +14,8 @@ import org.jooq.Condition;
 
 public class CivilizationConditionBuilder {
 
+  private CivilizationConditionBuilder() {}
+
   public static Condition build(
       Set<Civilization> included,
       Set<Civilization> excluded,
