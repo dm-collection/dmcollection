@@ -345,7 +345,7 @@ public class DeckService {
                       sideRows.stream()
                           .map(ExportRow::sideName)
                           .filter(Objects::nonNull)
-                          .collect(Collectors.joining("\uff0f"));
+                          .collect(Collectors.joining("／"));
                   int quantity = sideRows.getFirst().quantity();
                   return new DeckCardExport(cardName, officialSiteId, quantity);
                 })
@@ -357,15 +357,6 @@ public class DeckService {
   }
 
   private DeckDto toDeckDto(UUID deckId, UUID userId) {
-    record EntryRow(
-        int printingId,
-        String officialSiteId,
-        String collectorNumber,
-        int quantity,
-        short sideOrder,
-        List<Short> civilizationIds,
-        String imageFilename) {}
-
     var rows =
         dsl.select(
                 DECK_VERSION_ENTRY.PRINTING_ID,
@@ -401,7 +392,6 @@ public class DeckService {
                         Arrays.stream(r.get(CARD_SIDE.CIVILIZATION_IDS)).toList(),
                         r.get(PRINTING_SIDE.IMAGE_FILENAME)));
 
-    // Group by printing
     Map<Integer, List<EntryRow>> byPrinting = new LinkedHashMap<>();
     for (EntryRow row : rows) {
       byPrinting.computeIfAbsent(row.printingId(), k -> new ArrayList<>()).add(row);
@@ -411,40 +401,7 @@ public class DeckService {
 
     List<CardStub> stubs =
         byPrinting.entrySet().stream()
-            .map(
-                entry -> {
-                  int printingId = entry.getKey();
-                  List<EntryRow> sideRows = entry.getValue();
-                  EntryRow first = sideRows.getFirst();
-
-                  Set<Civilization> civs = EnumSet.noneOf(Civilization.class);
-                  List<String> images = new ArrayList<>();
-                  for (EntryRow row : sideRows) {
-                    if (row.civilizationIds() != null) {
-                      for (Short civId : row.civilizationIds()) {
-                        civs.add(Civilization.values()[civId]);
-                      }
-                    }
-                    if (row.imageFilename() != null) {
-                      images.add("/image/" + row.imageFilename());
-                    }
-                  }
-                  // Add ZERO if no non-zero civs
-                  if (civs.isEmpty()) {
-                    civs.add(Civilization.ZERO);
-                  }
-
-                  int collectionAmount = collectionAmounts.getOrDefault((long) printingId, 0);
-
-                  return new CardStub(
-                      (long) printingId,
-                      first.officialSiteId(),
-                      first.collectorNumber(),
-                      civs,
-                      images,
-                      first.quantity(),
-                      collectionAmount);
-                })
+            .map(entry -> toCardStub(entry.getKey(), entry.getValue(), collectionAmounts))
             .sorted(
                 (c1, c2) -> {
                   int civComparison = compareCivs(c1.civilizations(), c2.civilizations());
@@ -458,6 +415,47 @@ public class DeckService {
     DeckInfo info = getDeckInfo(deckId);
     return new DeckDto(
         info, new PagedModel<>(new PageImpl<>(stubs, Pageable.unpaged(), stubs.size())));
+  }
+
+  private record EntryRow(
+      int printingId,
+      String officialSiteId,
+      String collectorNumber,
+      int quantity,
+      short sideOrder,
+      List<Short> civilizationIds,
+      String imageFilename) {}
+
+  private CardStub toCardStub(
+      int printingId, List<EntryRow> sideRows, Map<Long, Integer> collectionAmounts) {
+    EntryRow first = sideRows.getFirst();
+
+    Set<Civilization> civs = EnumSet.noneOf(Civilization.class);
+    List<String> images = new ArrayList<>();
+    for (EntryRow row : sideRows) {
+      if (row.civilizationIds() != null) {
+        for (Short civId : row.civilizationIds()) {
+          civs.add(Civilization.values()[civId]);
+        }
+      }
+      if (row.imageFilename() != null) {
+        images.add("/image/" + row.imageFilename());
+      }
+    }
+    if (civs.isEmpty()) {
+      civs.add(Civilization.ZERO);
+    }
+
+    int collectionAmount = collectionAmounts.getOrDefault((long) printingId, 0);
+
+    return new CardStub(
+        (long) printingId,
+        first.officialSiteId(),
+        first.collectorNumber(),
+        civs,
+        images,
+        first.quantity(),
+        collectionAmount);
   }
 
   private DeckInfo getDeckInfo(UUID deckId) {

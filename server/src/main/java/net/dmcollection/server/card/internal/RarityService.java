@@ -40,7 +40,7 @@ public class RarityService {
                 Short sortOrder = r.get(RARITY.SORT_ORDER);
                 loaded.add(new Rarity(code, sortOrder, r.get(RARITY.DESCRIPTION)));
                 orders.put(code, sortOrder.intValue());
-              } catch (IllegalArgumentException ignored) {
+              } catch (IllegalArgumentException _) {
                 log.error(
                     "Unable to create rarity {} {} {}",
                     r.get(RARITY.NAME),
