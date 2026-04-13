@@ -1,39 +1,41 @@
 package net.dmcollection.server.card;
 
+import static net.dmcollection.server.jooq.generated.tables.Ability.ABILITY;
+import static net.dmcollection.server.jooq.generated.tables.Card.CARD;
+import static net.dmcollection.server.jooq.generated.tables.CardSet.CARD_SET;
+import static net.dmcollection.server.jooq.generated.tables.CardSide.CARD_SIDE;
+import static net.dmcollection.server.jooq.generated.tables.CardSideCardType.CARD_SIDE_CARD_TYPE;
+import static net.dmcollection.server.jooq.generated.tables.CardSideRace.CARD_SIDE_RACE;
+import static net.dmcollection.server.jooq.generated.tables.CardType.CARD_TYPE;
+import static net.dmcollection.server.jooq.generated.tables.Printing.PRINTING;
+import static net.dmcollection.server.jooq.generated.tables.PrintingSide.PRINTING_SIDE;
+import static net.dmcollection.server.jooq.generated.tables.PrintingSideAbility.PRINTING_SIDE_ABILITY;
+import static net.dmcollection.server.jooq.generated.tables.Race.RACE;
+import static net.dmcollection.server.jooq.generated.tables.Rarity.RARITY;
 import static org.springframework.web.util.HtmlUtils.htmlEscape;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Comparator;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import net.dmcollection.model.card.*;
+import org.jooq.DSLContext;
 import org.springframework.stereotype.Component;
 
 @Component
 public class CardService {
 
-  private final SetService setService;
-  private final CardRepository cardRepository;
-  private final SpeciesRepository speciesRepository;
-  private final EffectRepository effectRepository;
+  private final DSLContext dsl;
   private final ImageService imageService;
 
-  public CardService(
-      SetService setService,
-      CardRepository cardRepository,
-      SpeciesRepository speciesRepository,
-      EffectRepository effectRepository,
-      ImageService imageService) {
-    this.setService = setService;
-    this.cardRepository = cardRepository;
-    this.speciesRepository = speciesRepository;
-    this.effectRepository = effectRepository;
+  public CardService(DSLContext dsl, ImageService imageService) {
+    this.dsl = dsl;
     this.imageService = imageService;
   }
 
@@ -72,172 +74,352 @@ public class CardService {
 
   public record ChildEffectDto(String text, int position) {}
 
-  public List<CardStub> getByIds(List<Long> cardIds) {
-    List<CardEntity> cards = cardRepository.findAllById(cardIds);
-    return cards.stream().map(this::fromCardEntity).toList();
-  }
+  private record SideData(List<Short> civilizationIds, String imageFilename) {}
 
-  public List<CardStub> fromCollectionCards(Set<CollectionCards> cards) {
-    return fromCollectionCards(cards, Map.of());
-  }
+  private record AbilityRow(String text, short position, short indentLevel) {}
 
-  public List<CardStub> fromCollectionCards(
-      Set<CollectionCards> cards, Map<Long, Integer> collectionAmounts) {
-    Map<Long, Integer> amountById =
-        cards.stream()
-            .filter(card -> card.id().getId() != null)
-            .collect(Collectors.toMap(card -> card.id().getId(), CollectionCards::amount));
+  public List<CardStub> getByIds(List<Long> printingIds) {
+    List<Integer> ids = printingIds.stream().map(Long::intValue).toList();
 
-    return cardRepository.findAllById(amountById.keySet()).stream()
-        .map(
-            card ->
-                fromCardEntity(
-                    card, amountById.get(card.id()), collectionAmounts.getOrDefault(card.id(), 0)))
-        .toList();
-  }
+    record PrintingRow(int printingId, String officialSiteId, String collectorNumber) {}
 
-  public List<CardDto> getCards(Set<CollectionCards> collectionCards) {
-    return cardRepository
-        .findAllById(
-            collectionCards.stream()
-                .filter(c -> c.id().getId() != null)
-                .map(c -> c.id().getId())
-                .toList())
-        .stream()
-        .filter(c -> c.set().getId() != null)
-        .map(c -> fromCardEntity(c, setService.getSet(c.set().getId()).orElse(null)))
-        .toList();
-  }
+    Map<Integer, PrintingRow> printings = new LinkedHashMap<>();
+    dsl.select(PRINTING.ID, PRINTING.OFFICIAL_SITE_ID, PRINTING.COLLECTOR_NUMBER)
+        .from(PRINTING)
+        .where(PRINTING.ID.in(ids))
+        .forEach(
+            r ->
+                printings.put(
+                    r.get(PRINTING.ID),
+                    new PrintingRow(
+                        r.get(PRINTING.ID),
+                        r.get(PRINTING.OFFICIAL_SITE_ID),
+                        r.get(PRINTING.COLLECTOR_NUMBER))));
 
-  private CardStub fromCardEntity(CardEntity card) {
-    return this.fromCardEntity(card, 0, 0);
-  }
-
-  private CardStub fromCardEntity(CardEntity card, int amount, int collectionAmount) {
-    List<String> images = null;
-    Set<Civilization> civilizations = null;
-    if (card.facets() != null) {
-      images =
-          card.facets().stream()
-              .map(CardFacet::imageFilename)
-              .map(imageService::makeImageUrl)
-              .filter(Objects::nonNull)
-              .toList();
-      civilizations =
-          card.facets().stream()
-              .flatMap(f -> f.getCivs().stream())
-              .collect(Collectors.toUnmodifiableSet());
+    if (printings.isEmpty()) {
+      return List.of();
     }
-    return new CardStub(
-        card.id(),
-        card.officialId(),
-        card.idText(),
-        civilizations,
-        images,
-        amount,
-        collectionAmount);
+
+    Map<Integer, List<SideData>> sidesByPrinting = fetchSideData(printings.keySet());
+
+    List<CardStub> result = new ArrayList<>(printings.size());
+    for (PrintingRow row : printings.values()) {
+      List<SideData> sides = sidesByPrinting.getOrDefault(row.printingId(), List.of());
+      result.add(
+          new CardStub(
+              (long) row.printingId(),
+              row.officialSiteId(),
+              row.collectorNumber(),
+              collectCivilizations(sides),
+              collectImageUrls(sides),
+              0,
+              0));
+    }
+    return result;
   }
 
   public boolean cardExists(Long id) {
-    return cardRepository.existsById(id);
+    return dsl.fetchExists(dsl.selectOne().from(PRINTING).where(PRINTING.ID.eq(id.intValue())));
   }
 
   public Optional<CardDto> getCardDto(String dmId) {
-    var cardEntity = cardRepository.findByOfficialId(dmId);
-    if (cardEntity.isPresent()) {
-      var card = cardEntity.get();
-      OfficialSet set = null;
-      if (card.set() != null && card.set().getId() != null) {
-        set = setService.getSet(card.set().getId()).orElse(null);
+    // Phase 1: Main printing data
+    var printingRecord =
+        dsl.select(
+                PRINTING.ID,
+                PRINTING.OFFICIAL_SITE_ID,
+                PRINTING.COLLECTOR_NUMBER,
+                CARD_SET.ID,
+                CARD_SET.CODE,
+                CARD_SET.NAME,
+                RARITY.NAME)
+            .from(PRINTING)
+            .join(CARD)
+            .on(CARD.ID.eq(PRINTING.CARD_ID))
+            .join(CARD_SET)
+            .on(CARD_SET.ID.eq(PRINTING.SET_ID))
+            .leftJoin(RARITY)
+            .on(RARITY.ID.eq(PRINTING.RARITY_ID))
+            .where(PRINTING.OFFICIAL_SITE_ID.eq(dmId))
+            .fetchOne();
+
+    if (printingRecord == null) {
+      return Optional.empty();
+    }
+
+    int printingId = printingRecord.get(PRINTING.ID);
+    String officialSiteId = printingRecord.get(PRINTING.OFFICIAL_SITE_ID);
+    String collectorNumber = printingRecord.get(PRINTING.COLLECTOR_NUMBER);
+    String rarityName = printingRecord.get(RARITY.NAME);
+    SetDto setDto =
+        new SetDto(
+            printingRecord.get(CARD_SET.ID).longValue(),
+            printingRecord.get(CARD_SET.CODE),
+            printingRecord.get(CARD_SET.NAME));
+
+    // Phase 2: Side data (card_side + printing_side)
+    record SideRow(
+        int cardSideId,
+        int printingSideId,
+        short sideOrder,
+        String name,
+        Integer cost,
+        boolean costIsInfinity,
+        Integer power,
+        boolean powerIsInfinity,
+        String powerModifier,
+        List<Short> civilizationIds,
+        String imageFilename) {}
+
+    List<SideRow> sideRows =
+        dsl.select(
+                CARD_SIDE.ID,
+                PRINTING_SIDE.ID,
+                CARD_SIDE.SIDE_ORDER,
+                CARD_SIDE.NAME,
+                CARD_SIDE.COST,
+                CARD_SIDE.COST_IS_INFINITY,
+                CARD_SIDE.POWER,
+                CARD_SIDE.POWER_IS_INFINITY,
+                CARD_SIDE.POWER_MODIFIER,
+                CARD_SIDE.CIVILIZATION_IDS,
+                PRINTING_SIDE.IMAGE_FILENAME)
+            .from(PRINTING_SIDE)
+            .join(CARD_SIDE)
+            .on(CARD_SIDE.ID.eq(PRINTING_SIDE.CARD_SIDE_ID))
+            .where(PRINTING_SIDE.PRINTING_ID.eq(printingId))
+            .orderBy(CARD_SIDE.SIDE_ORDER)
+            .fetch(
+                r ->
+                    new SideRow(
+                        r.get(CARD_SIDE.ID),
+                        r.get(PRINTING_SIDE.ID),
+                        r.get(CARD_SIDE.SIDE_ORDER),
+                        r.get(CARD_SIDE.NAME),
+                        r.get(CARD_SIDE.COST),
+                        r.get(CARD_SIDE.COST_IS_INFINITY),
+                        r.get(CARD_SIDE.POWER),
+                        r.get(CARD_SIDE.POWER_IS_INFINITY),
+                        r.get(CARD_SIDE.POWER_MODIFIER),
+                        Arrays.stream(r.get(CARD_SIDE.CIVILIZATION_IDS)).toList(),
+                        r.get(PRINTING_SIDE.IMAGE_FILENAME)));
+
+    if (sideRows.isEmpty()) {
+      return Optional.of(
+          new CardDto(
+              (long) printingId,
+              htmlEscape(officialSiteId, StandardCharsets.UTF_8.name()),
+              null,
+              rarityName,
+              setDto,
+              Set.of(),
+              null));
+    }
+
+    List<Integer> cardSideIds = sideRows.stream().map(SideRow::cardSideId).toList();
+    List<Integer> printingSideIds = sideRows.stream().map(SideRow::printingSideId).toList();
+
+    // Phase 3: Card types per side
+    Map<Integer, List<String>> typesBySide = new LinkedHashMap<>();
+    dsl.select(CARD_SIDE_CARD_TYPE.CARD_SIDE_ID, CARD_TYPE.NAME)
+        .from(CARD_SIDE_CARD_TYPE)
+        .join(CARD_TYPE)
+        .on(CARD_TYPE.ID.eq(CARD_SIDE_CARD_TYPE.CARD_TYPE_ID))
+        .where(CARD_SIDE_CARD_TYPE.CARD_SIDE_ID.in(cardSideIds))
+        .orderBy(CARD_SIDE_CARD_TYPE.CARD_SIDE_ID, CARD_SIDE_CARD_TYPE.POSITION)
+        .forEach(
+            r ->
+                typesBySide
+                    .computeIfAbsent(
+                        r.get(CARD_SIDE_CARD_TYPE.CARD_SIDE_ID), k -> new ArrayList<>())
+                    .add(r.get(CARD_TYPE.NAME)));
+
+    // Phase 4: Races per side
+    Map<Integer, List<String>> racesBySide = new LinkedHashMap<>();
+    dsl.select(CARD_SIDE_RACE.CARD_SIDE_ID, RACE.NAME)
+        .from(CARD_SIDE_RACE)
+        .join(RACE)
+        .on(RACE.ID.eq(CARD_SIDE_RACE.RACE_ID))
+        .where(CARD_SIDE_RACE.CARD_SIDE_ID.in(cardSideIds))
+        .orderBy(CARD_SIDE_RACE.CARD_SIDE_ID, CARD_SIDE_RACE.POSITION)
+        .forEach(
+            r ->
+                racesBySide
+                    .computeIfAbsent(r.get(CARD_SIDE_RACE.CARD_SIDE_ID), k -> new ArrayList<>())
+                    .add(r.get(RACE.NAME)));
+
+    // Phase 5: Abilities per printing side
+    Map<Integer, List<AbilityRow>> abilitiesByPrintingSide = new LinkedHashMap<>();
+    dsl.select(
+            PRINTING_SIDE_ABILITY.PRINTING_SIDE_ID,
+            ABILITY.TEXT,
+            PRINTING_SIDE_ABILITY.POSITION,
+            PRINTING_SIDE_ABILITY.INDENT_LEVEL)
+        .from(PRINTING_SIDE_ABILITY)
+        .join(ABILITY)
+        .on(ABILITY.ID.eq(PRINTING_SIDE_ABILITY.ABILITY_ID))
+        .where(PRINTING_SIDE_ABILITY.PRINTING_SIDE_ID.in(printingSideIds))
+        .orderBy(PRINTING_SIDE_ABILITY.PRINTING_SIDE_ID, PRINTING_SIDE_ABILITY.POSITION)
+        .forEach(
+            r ->
+                abilitiesByPrintingSide
+                    .computeIfAbsent(
+                        r.get(PRINTING_SIDE_ABILITY.PRINTING_SIDE_ID), k -> new ArrayList<>())
+                    .add(
+                        new AbilityRow(
+                            r.get(ABILITY.TEXT),
+                            r.get(PRINTING_SIDE_ABILITY.POSITION),
+                            r.get(PRINTING_SIDE_ABILITY.INDENT_LEVEL))));
+
+    // Assemble facets
+    Set<String> allCivilizations = new java.util.LinkedHashSet<>();
+    List<CardFacetDto> facets = new ArrayList<>(sideRows.size());
+
+    for (SideRow side : sideRows) {
+      List<String> civNames = civilizationNames(side.civilizationIds());
+      allCivilizations.addAll(civNames);
+
+      String typeStr = null;
+      List<String> types = typesBySide.get(side.cardSideId());
+      if (types != null && !types.isEmpty()) {
+        typeStr = htmlEscape(String.join("／", types), StandardCharsets.UTF_8.name());
       }
-      return Optional.of(fromCardEntity(card, set));
+
+      List<String> races =
+          racesBySide.getOrDefault(side.cardSideId(), List.of()).stream()
+              .map(name -> htmlEscape(name, StandardCharsets.UTF_8.name()))
+              .toList();
+
+      List<EffectDto> effects =
+          buildEffects(abilitiesByPrintingSide.getOrDefault(side.printingSideId(), List.of()));
+
+      facets.add(
+          new CardFacetDto(
+              (int) side.sideOrder(),
+              side.name(),
+              formatCost(side.cost(), side.costIsInfinity()),
+              civNames,
+              formatPower(side.power(), side.powerIsInfinity(), side.powerModifier()),
+              typeStr,
+              races,
+              effects,
+              imageService.makeImageUrl(side.imageFilename())));
     }
-    return Optional.empty();
+
+    return Optional.of(
+        new CardDto(
+            (long) printingId,
+            htmlEscape(officialSiteId, StandardCharsets.UTF_8.name()),
+            collectorNumber != null
+                ? htmlEscape(collectorNumber, StandardCharsets.UTF_8.name())
+                : null,
+            rarityName,
+            setDto,
+            allCivilizations,
+            facets));
   }
 
-  private EffectDto fromEffectEntity(Effect effect, int position) {
-    return new EffectDto(
-        effect.text(),
-        position,
-        effect.children() != null
-            ? effect.children().stream()
-                .sorted(Comparator.comparingInt(Effect::position))
-                .map(ce -> new ChildEffectDto(ce.text(), ce.position()))
-                .toList()
-            : null);
+  private Map<Integer, List<SideData>> fetchSideData(Collection<Integer> printingIds) {
+    Map<Integer, List<SideData>> result = new LinkedHashMap<>();
+    dsl.select(PRINTING.ID, CARD_SIDE.CIVILIZATION_IDS, PRINTING_SIDE.IMAGE_FILENAME)
+        .from(PRINTING_SIDE)
+        .join(PRINTING)
+        .on(PRINTING.ID.eq(PRINTING_SIDE.PRINTING_ID))
+        .join(CARD_SIDE)
+        .on(CARD_SIDE.ID.eq(PRINTING_SIDE.CARD_SIDE_ID))
+        .where(PRINTING.ID.in(printingIds))
+        .orderBy(PRINTING.ID, CARD_SIDE.SIDE_ORDER)
+        .forEach(
+            r ->
+                result
+                    .computeIfAbsent(r.get(PRINTING.ID), k -> new ArrayList<>())
+                    .add(
+                        new SideData(
+                            Arrays.stream(r.get(CARD_SIDE.CIVILIZATION_IDS)).toList(),
+                            r.get(PRINTING_SIDE.IMAGE_FILENAME))));
+    return result;
   }
 
-  private CardDto fromCardEntity(CardEntity cardEntity, OfficialSet set) {
-    SetDto setDto;
-    if (set != null) {
-      setDto = new SetDto(set.id(), set.dmId(), set.name());
-    } else {
-      setDto = new SetDto(null, null, null);
+  private static Set<Civilization> collectCivilizations(List<SideData> sides) {
+    Set<Civilization> civilizations = EnumSet.noneOf(Civilization.class);
+    for (SideData side : sides) {
+      if (side.civilizationIds() == null || side.civilizationIds().isEmpty()) {
+        civilizations.add(Civilization.ZERO);
+      } else {
+        for (short civId : side.civilizationIds()) {
+          civilizations.add(Civilization.values()[civId]);
+        }
+      }
+    }
+    return civilizations;
+  }
+
+  private static List<String> collectImageUrls(List<SideData> sides) {
+    return sides.stream()
+        .map(SideData::imageFilename)
+        .filter(Objects::nonNull)
+        .map(filename -> "/image/" + filename)
+        .toList();
+  }
+
+  private static List<String> civilizationNames(List<Short> civilizationIds) {
+    if (civilizationIds == null || civilizationIds.isEmpty()) {
+      return List.of(Civilization.ZERO.toString());
+    }
+    List<String> names = new ArrayList<>(civilizationIds.size());
+    for (short civId : civilizationIds) {
+      names.add(Civilization.values()[civId].toString());
+    }
+    return names;
+  }
+
+  private static String formatCost(Integer cost, boolean isInfinity) {
+    if (isInfinity) return "∞";
+    if (cost == null) return null;
+    return String.valueOf(cost);
+  }
+
+  private static String formatPower(Integer power, boolean isInfinity, String modifier) {
+    if (isInfinity) return "∞";
+    if (power == null) return null;
+    return switch (modifier) {
+      case "leading_plus" -> "+" + power;
+      case "trailing_plus" -> power + "+";
+      case "trailing_minus" -> power + "－";
+      default -> String.valueOf(power);
+    };
+  }
+
+  private static List<EffectDto> buildEffects(List<AbilityRow> abilityRows) {
+    if (abilityRows.isEmpty()) return List.of();
+
+    List<EffectDto> effects = new ArrayList<>();
+    String currentParentText = null;
+    int currentParentPosition = 0;
+    List<ChildEffectDto> currentChildren = null;
+
+    for (AbilityRow row : abilityRows) {
+      if (row.indentLevel() == 0) {
+        // Flush previous parent
+        if (currentParentText != null) {
+          effects.add(new EffectDto(currentParentText, currentParentPosition, currentChildren));
+        }
+        currentParentText = row.text();
+        currentParentPosition = row.position();
+        currentChildren = new ArrayList<>();
+      } else {
+        // Child of current parent
+        if (currentChildren != null) {
+          currentChildren.add(new ChildEffectDto(row.text(), row.position()));
+        }
+      }
     }
 
-    var facets = cardEntity.facets();
-
-    if (facets.isEmpty()) {
-      return new CardDto(
-          cardEntity.id(), cardEntity.officialId(), null, null, setDto, Set.of(), null);
+    // Flush last parent
+    if (currentParentText != null) {
+      effects.add(new EffectDto(currentParentText, currentParentPosition, currentChildren));
     }
 
-    var facetDtos =
-        facets.stream()
-            .map(
-                facet -> {
-                  List<String> species = new ArrayList<>();
-                  if (facet.species() != null && !facet.species().isEmpty()) {
-                    speciesRepository
-                        .findAllById(facet.species().stream().map(fs -> fs.id().getId()).toList())
-                        .forEach(
-                            s ->
-                                species.add(
-                                    htmlEscape(s.species(), StandardCharsets.UTF_8.name())));
-                  }
-                  List<EffectDto> effects = new ArrayList<>();
-                  if (facet.effects() != null && !facet.effects().isEmpty()) {
-                    Map<Long, Effect> facetEffect =
-                        effectRepository
-                            .findAllById(
-                                facet.effects().stream().map(fe -> fe.effect().getId()).toList())
-                            .stream()
-                            .collect(Collectors.toMap(Effect::id, Function.identity()));
-                    facet.effects().stream()
-                        .sorted(Comparator.comparingInt(FacetEffect::position))
-                        .forEach(
-                            fe ->
-                                effects.add(
-                                    fromEffectEntity(
-                                        facetEffect.get(fe.effect().getId()), fe.position())));
-                  }
-                  return new CardFacetDto(
-                      facet.position(),
-                      facet.name(),
-                      facet.cost() == null ? null : facet.cost().toString(),
-                      facet.getCivs().stream()
-                          .sorted(Comparator.comparingInt(Civilization::ordinal))
-                          .map(Civilization::toString)
-                          .toList(),
-                      facet.powerText() == null ? null : facet.powerText().value(),
-                      facet.type() == null
-                          ? null
-                          : htmlEscape(facet.type(), StandardCharsets.UTF_8.name()),
-                      species,
-                      effects,
-                      imageService.makeImageUrl(facet.imageFilename()));
-                })
-            .toList();
-    return new CardDto(
-        cardEntity.id(),
-        htmlEscape(cardEntity.officialId(), "UTF-8"),
-        htmlEscape(cardEntity.idText(), "UTF-8"),
-        cardEntity.rarityCode() == null ? null : cardEntity.rarityCode().name(),
-        setDto,
-        cardEntity.facets().stream()
-            .flatMap(f -> f.getCivs().stream())
-            .map(Civilization::toString)
-            .collect(Collectors.toUnmodifiableSet()),
-        facetDtos);
+    return effects;
   }
 }

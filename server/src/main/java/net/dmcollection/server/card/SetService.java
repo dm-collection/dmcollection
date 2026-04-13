@@ -1,40 +1,27 @@
 package net.dmcollection.server.card;
 
-import jakarta.annotation.Nonnull;
+import static net.dmcollection.server.jooq.generated.tables.CardSet.CARD_SET;
+
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import net.dmcollection.model.card.OfficialSet;
-import net.dmcollection.model.card.SetRepository;
 import net.dmcollection.server.card.CardService.SetDto;
+import org.jooq.DSLContext;
 import org.springframework.stereotype.Service;
 
 @Service
 public class SetService {
-  private final SetRepository setRepository;
+  private final DSLContext dsl;
 
-  public SetService(SetRepository setRepository) {
-    this.setRepository = setRepository;
-  }
-
-  public Map<Long, OfficialSet> getSetsById() {
-    return setRepository.findAll().stream()
-        .collect(Collectors.toMap(OfficialSet::id, Function.identity()));
-  }
-
-  public Optional<OfficialSet> getSet(@Nonnull String dmId) {
-    return setRepository.findByDmId(dmId);
-  }
-
-  public Optional<OfficialSet> getSet(@Nonnull Long id) {
-    return setRepository.findById(id);
+  public SetService(DSLContext dsl) {
+    this.dsl = dsl;
   }
 
   public List<SetDto> getSets() {
-    return setRepository.findByOrderByReleaseDesc().stream()
-        .map(set -> new SetDto(set.id(), set.dmId(), set.name()))
-        .toList();
+    return dsl.select(CARD_SET.ID, CARD_SET.CODE, CARD_SET.NAME)
+        .from(CARD_SET)
+        .orderBy(CARD_SET.RELEASE_DATE.desc())
+        .fetch(
+            r ->
+                new SetDto(
+                    r.get(CARD_SET.ID).longValue(), r.get(CARD_SET.CODE), r.get(CARD_SET.NAME)));
   }
 }

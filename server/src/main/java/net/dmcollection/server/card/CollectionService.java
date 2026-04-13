@@ -1,70 +1,57 @@
 package net.dmcollection.server.card;
 
+import static net.dmcollection.server.jooq.generated.tables.CardSide.CARD_SIDE;
+import static net.dmcollection.server.jooq.generated.tables.CollectionEntry.COLLECTION_ENTRY;
+import static net.dmcollection.server.jooq.generated.tables.CollectionHistoryEntry.COLLECTION_HISTORY_ENTRY;
+import static net.dmcollection.server.jooq.generated.tables.Printing.PRINTING;
+import static org.jooq.impl.DSL.coalesce;
+import static org.jooq.impl.DSL.count;
+import static org.jooq.impl.DSL.sum;
+
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import net.dmcollection.model.card.Civilization;
-import net.dmcollection.server.card.CardCollection.CollectionIds;
-import net.dmcollection.server.card.CardService.CardDto;
-import net.dmcollection.server.card.CardService.CardFacetDto;
 import net.dmcollection.server.card.CardService.CardStub;
 import net.dmcollection.server.card.internal.CardQueryService;
 import net.dmcollection.server.card.internal.CardQueryService.SearchResult;
 import net.dmcollection.server.card.internal.SearchFilter;
+import org.jooq.DSLContext;
+import org.jooq.Field;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PagedModel;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class CollectionService {
 
   private static final Logger log = LoggerFactory.getLogger(CollectionService.class);
-  private final CollectionRepository collectionRepository;
-  private final CardService cardService;
-  private final CardQueryService cardQueryService;
-  private static final int EXPORT_FORMAT_VERSION = 1;
+  private static final int EXPORT_FORMAT_VERSION = 2;
+  private static final Field<Long> UNIQUE_COUNT = count().cast(Long.class).as("unique_count");
+  private static final Field<Long> TOTAL_COUNT =
+      coalesce(sum(COLLECTION_ENTRY.QUANTITY), 0).cast(Long.class).as("total_count");
 
-  public CollectionService(
-      CollectionRepository collectionRepository,
-      CardService cardService,
-      CardQueryService cardQueryService) {
-    this.collectionRepository = collectionRepository;
-    this.cardService = cardService;
+  private final DSLContext dsl;
+  private final CardQueryService cardQueryService;
+
+  public CollectionService(DSLContext dsl, CardQueryService cardQueryService) {
+    this.dsl = dsl;
     this.cardQueryService = cardQueryService;
   }
 
-  public record CollectionInfo(
-      UUID id,
-      String name,
-      long uniqueCardCount,
-      long totalCardCount,
-      LocalDateTime lastModified,
-      UUID ownerId) {
-    static CollectionInfo ofCollection(CardCollection collection) {
-      return new CollectionInfo(
-          collection.getPublicId(),
-          collection.getName(),
-          collection.cards.size(),
-          collection.cards.stream().mapToInt(CollectionCards::amount).sum(),
-          collection.updatedAt,
-          collection.owner.getId());
-    }
-  }
+  public record CollectionInfo(long uniqueCardCount, long totalCardCount, UUID ownerId) {}
 
   public record CollectionDto(CollectionInfo info, PagedModel<CardStub> cardPage) {}
 
   public record CollectionCardStub(long cardId, int amount) {}
 
-  public record CollectionCardExport(long Id, String name, String shortName, int amount) {}
+  public record CollectionCardExport(String name, String shortName, int amount) {}
 
   public record CollectionExport(
       int version,
@@ -74,250 +61,216 @@ public class CollectionService {
       int countWithoutDuplicates,
       List<CollectionCardExport> cards) {}
 
-  public List<CollectionInfo> getCollections(UUID userId) {
-    return collectionRepository.findByOwnerAndPrimaryIsFalseOrderByUpdatedAtDesc(userId).stream()
-        .map(CollectionInfo::ofCollection)
-        .toList();
-  }
-
   public CollectionExport exportPrimaryCollection(UUID userId) {
-    return forExport(getPrimary(userId), "collection");
-  }
+    // Query collection entries with printing and card side names
+    record ExportRow(String officialSiteId, String sideName, short sideOrder, int quantity) {}
 
-  public Optional<CollectionExport> exportDeck(UUID userId, UUID collectionId) {
-    return collectionRepository
-        .findByPublicIdAndOwnerAndPrimaryIsFalse(collectionId, userId)
-        .map(c -> forExport(c, c.getName()));
-  }
+    var rows =
+        dsl.select(
+                PRINTING.OFFICIAL_SITE_ID,
+                CARD_SIDE.NAME,
+                CARD_SIDE.SIDE_ORDER,
+                COLLECTION_ENTRY.QUANTITY)
+            .from(COLLECTION_ENTRY)
+            .join(PRINTING)
+            .on(PRINTING.ID.eq(COLLECTION_ENTRY.PRINTING_ID))
+            .join(CARD_SIDE)
+            .on(CARD_SIDE.CARD_ID.eq(PRINTING.CARD_ID))
+            .where(COLLECTION_ENTRY.USER_ID.eq(userId))
+            .orderBy(PRINTING.OFFICIAL_SITE_ID, CARD_SIDE.SIDE_ORDER)
+            .fetch(
+                r ->
+                    new ExportRow(
+                        r.get(PRINTING.OFFICIAL_SITE_ID),
+                        r.get(CARD_SIDE.NAME),
+                        r.get(CARD_SIDE.SIDE_ORDER),
+                        r.get(COLLECTION_ENTRY.QUANTITY)));
 
-  public List<CollectionExport> exportDecks(UUID userId) {
-    return collectionRepository.findByOwnerAndPrimaryIsFalseOrderByUpdatedAtDesc(userId).stream()
-        .map(c -> forExport(c, c.getName()))
-        .toList();
-  }
+    // Group by printing, join side names with "／"
+    Map<String, List<ExportRow>> byPrinting = new LinkedHashMap<>();
+    for (ExportRow row : rows) {
+      byPrinting.computeIfAbsent(row.officialSiteId(), k -> new java.util.ArrayList<>()).add(row);
+    }
 
-  public void importPrimaryCollection(UUID userId, CollectionExport toImport) {
-    CardCollection collection = getPrimary(userId);
-    collection.removeAllCards();
-    toImport.cards.forEach(c -> collection.setCardAmount(c.Id(), c.amount()));
-    collectionRepository.save(collection);
-  }
-
-  public void importDeck(UUID userId, CollectionExport toImport) {
-    CardCollection newCollection = new CardCollection(false);
-    newCollection.setOwner(userId);
-    newCollection.setName(toImport.title);
-    toImport.cards().forEach(c -> newCollection.setCardAmount(c.Id(), c.amount()));
-    collectionRepository.save(newCollection);
-  }
-
-  private CollectionExport forExport(CardCollection collection, String title) {
-    Map<Long, Integer> amountsById =
-        collection.getCards().stream()
-            .collect(Collectors.toMap(c -> c.id().getId(), CollectionCards::amount));
-    List<CardDto> cards = cardService.getCards(collection.getCards());
-    List<CollectionCardExport> cardExport =
-        cards.stream()
+    List<CollectionCardExport> cardExports =
+        byPrinting.entrySet().stream()
             .map(
-                c -> {
+                entry -> {
+                  String officialSiteId = entry.getKey();
+                  List<ExportRow> sideRows = entry.getValue();
                   String cardName =
-                      String.join(
-                          "／",
-                          c.facets().stream()
-                              .map(CardFacetDto::name)
-                              .filter(Objects::nonNull)
-                              .toList());
-
-                  return new CollectionCardExport(
-                      c.id(), cardName, c.dmId(), amountsById.get(c.id()));
+                      sideRows.stream()
+                          .map(ExportRow::sideName)
+                          .filter(Objects::nonNull)
+                          .collect(Collectors.joining("／"));
+                  int quantity = sideRows.getFirst().quantity();
+                  return new CollectionCardExport(cardName, officialSiteId, quantity);
                 })
             .toList();
-    int total = cardExport.stream().mapToInt(c -> c.amount).sum();
+
+    int total = cardExports.stream().mapToInt(CollectionCardExport::amount).sum();
     return new CollectionExport(
-        EXPORT_FORMAT_VERSION, LocalDateTime.now(), title, total, cardExport.size(), cardExport);
+        EXPORT_FORMAT_VERSION,
+        LocalDateTime.now(),
+        "collection",
+        total,
+        cardExports.size(),
+        cardExports);
   }
 
-  public Optional<CollectionDto> getCollection(UUID userId, UUID collectionId) {
-    var collection =
-        collectionRepository.findByPublicIdAndOwnerAndPrimaryIsFalse(collectionId, userId);
-    return collection.map(c -> forTransfer(c, userId));
+  @Transactional
+  public void importPrimaryCollection(UUID userId, CollectionExport toImport) {
+    // Delete existing collection entries
+    dsl.deleteFrom(COLLECTION_ENTRY).where(COLLECTION_ENTRY.USER_ID.eq(userId)).execute();
+
+    // Collect shortNames from import
+    List<String> shortNames =
+        toImport.cards().stream()
+            .map(CollectionCardExport::shortName)
+            .filter(Objects::nonNull)
+            .toList();
+
+    if (shortNames.isEmpty()) {
+      return;
+    }
+
+    // Look up printing IDs by official_site_id
+    Map<String, Integer> printingIdByOfficialSiteId =
+        dsl.select(PRINTING.ID, PRINTING.OFFICIAL_SITE_ID)
+            .from(PRINTING)
+            .where(PRINTING.OFFICIAL_SITE_ID.in(shortNames))
+            .fetchMap(PRINTING.OFFICIAL_SITE_ID, PRINTING.ID);
+
+    // Insert matching entries
+    var insert =
+        dsl.insertInto(
+            COLLECTION_ENTRY,
+            COLLECTION_ENTRY.USER_ID,
+            COLLECTION_ENTRY.PRINTING_ID,
+            COLLECTION_ENTRY.QUANTITY);
+
+    int matched = 0;
+    for (CollectionCardExport card : toImport.cards()) {
+      Integer printingId = printingIdByOfficialSiteId.get(card.shortName());
+      if (printingId != null && card.amount() > 0) {
+        insert = insert.values(userId, printingId, card.amount());
+        matched++;
+      } else if (printingId == null) {
+        log.warn("Import: no printing found for shortName '{}'", card.shortName());
+      }
+    }
+
+    if (matched > 0) {
+      insert.execute();
+    }
   }
 
   public CollectionDto getPrimaryCollection(UUID userId, SearchFilter searchFilter) {
-    Optional<CollectionIds> collectionIds = getPrimaryCollectionIds(userId);
-    if (collectionIds.isEmpty()) {
-      CardCollection collection = makePrimaryCollection(userId);
-      return forTransfer(collection);
-    }
-    searchFilter = searchFilter.withCollectionFilter(collectionIds.get().internalId(), true);
+    searchFilter = searchFilter.withCollectionFilter(userId, true);
     SearchResult searchResult = cardQueryService.search(searchFilter);
     CollectionInfo ci =
         new CollectionInfo(
-            collectionIds.get().publicId(),
-            null,
-            searchResult.pageOfCards().getTotalElements(),
-            searchResult.totalCollected(),
-            null,
-            userId);
+            searchResult.pageOfCards().getTotalElements(), searchResult.totalCollected(), userId);
     return new CollectionDto(ci, new PagedModel<>(searchResult.pageOfCards()));
   }
 
-  public Optional<CollectionIds> getPrimaryCollectionIds(UUID userId) {
-    return collectionRepository.findIdsByOwnerAndPrimaryIsTrue(userId);
-  }
-
   public Map<Long, Integer> getPrimaryStub(UUID userId) {
-    var collection = collectionRepository.findByOwnerAndPrimaryIsTrue(userId);
-    if (collection.isEmpty()) {
-      var newCollection = new CardCollection(true);
-      newCollection.setOwner(userId);
-      newCollection.setName("Collection");
-      collection = Optional.of(collectionRepository.save(newCollection));
+    return dsl.select(COLLECTION_ENTRY.PRINTING_ID, COLLECTION_ENTRY.QUANTITY)
+        .from(COLLECTION_ENTRY)
+        .where(COLLECTION_ENTRY.USER_ID.eq(userId))
+        .fetchMap(
+            r -> r.get(COLLECTION_ENTRY.PRINTING_ID).longValue(),
+            r -> r.get(COLLECTION_ENTRY.QUANTITY));
+  }
+
+  @Transactional
+  public Optional<Map<Long, Integer>> setCardAmountOnStub(
+      UUID userId, Long printingId, int amount) {
+    if (!printingExists(printingId)) {
+      return Optional.empty();
     }
-    return fromCollection(collection.get());
+    upsertCollectionEntry(userId, printingId.intValue(), amount);
+    return Optional.of(getPrimaryStub(userId));
   }
 
-  private static Map<Long, Integer> fromCollection(CardCollection collection) {
-    return collection.cards.stream()
-        .filter(CollectionService::hasCardId)
-        .collect(Collectors.toMap(c -> c.id().getId(), CollectionCards::amount));
-  }
-
-  private static boolean hasCardId(CollectionCards card) {
-    return card.id().getId() != null;
-  }
-
-  private CardCollection getPrimary(UUID userId) {
-    var collection = collectionRepository.findByOwnerAndPrimaryIsTrue(userId);
-    return collection.orElseGet(() -> makePrimaryCollection(userId));
-  }
-
-  public boolean deleteCollection(UUID userId, UUID collectionId) {
-    return collectionRepository
-        .findByPublicIdAndOwnerAndPrimaryIsFalse(collectionId, userId)
-        .map(
-            c -> {
-              collectionRepository.deleteById(c.getInternalId());
-              return true;
-            })
-        .orElse(false);
-  }
-
-  private CardCollection makePrimaryCollection(UUID userId) {
-    var newCollection = new CardCollection(true);
-    newCollection.setOwner(userId);
-    newCollection.setName("Collection");
-    collectionRepository.save(newCollection);
-    return collectionRepository
-        .findById(collectionRepository.save(newCollection).getInternalId())
-        .orElseThrow(IllegalStateException::new);
-  }
-
-  public CollectionInfo createCollection(UUID userId, String name) {
-    var collection = new CardCollection();
-    collection.setName(name);
-    collection.setOwner(userId);
-    collection = collectionRepository.save(collection);
-    return CollectionInfo.ofCollection(
-        collectionRepository
-            .findById(collection.getInternalId())
-            .orElseThrow(IllegalStateException::new));
-  }
-
-  public Optional<CollectionInfo> renameCollection(UUID userId, UUID collectionId, String name) {
-    var collection =
-        collectionRepository.findByPublicIdAndOwnerAndPrimaryIsFalse(collectionId, userId);
-    if (collection.isPresent()) {
-      collection.get().setName(name);
-      return Optional.of(CollectionInfo.ofCollection(collectionRepository.save(collection.get())));
+  @Transactional
+  public Optional<CollectionCardStub> setSingleCardAmount(
+      UUID userId, Long printingId, int amount) {
+    if (!printingExists(printingId)) {
+      return Optional.empty();
     }
-    return Optional.empty();
+    upsertCollectionEntry(userId, printingId.intValue(), amount);
+    int actualAmount = getQuantity(userId, printingId.intValue());
+    return Optional.of(new CollectionCardStub(printingId, actualAmount));
   }
 
-  public Optional<Map<Long, Integer>> setCardAmountOnStub(UUID userId, Long cardId, int amount) {
-    if (cardService.cardExists(cardId)) {
-      CardCollection primary = getPrimary(userId);
-      primary.setCardAmount(cardId, amount);
-      primary = collectionRepository.save(primary);
-      return Optional.of(fromCollection(primary));
+  public Optional<CollectionCardStub> getSingleCardAmount(UUID userId, Long printingId) {
+    if (!printingExists(printingId)) {
+      return Optional.empty();
     }
-    return Optional.empty();
+    int amount = getQuantity(userId, printingId.intValue());
+    return Optional.of(new CollectionCardStub(printingId, amount));
   }
 
-  public Optional<CollectionCardStub> setSingleCardAmount(UUID userId, Long cardId, int amount) {
-    if (cardService.cardExists(cardId)) {
-      CardCollection primary = getPrimary(userId);
-      primary.setCardAmount(cardId, amount);
-      primary = collectionRepository.save(primary);
-      return Optional.of(new CollectionCardStub(cardId, primary.getCardAmount(cardId)));
+  @Transactional
+  public Optional<CollectionInfo> setCardAmount(UUID userId, Long printingId, int amount) {
+    if (!printingExists(printingId)) {
+      return Optional.empty();
     }
-    return Optional.empty();
+    upsertCollectionEntry(userId, printingId.intValue(), amount);
+    return Optional.of(getCollectionInfo(userId));
   }
 
-  public Optional<CollectionCardStub> getSingleCardAmount(UUID userId, Long cardId) {
-    if (cardService.cardExists(cardId)) {
-      return Optional.of(new CollectionCardStub(cardId, getPrimary(userId).getCardAmount(cardId)));
-    }
-    return Optional.empty();
+  private boolean printingExists(Long printingId) {
+    return dsl.fetchExists(
+        dsl.selectOne().from(PRINTING).where(PRINTING.ID.eq(printingId.intValue())));
   }
 
-  public Optional<CollectionInfo> setCardAmount(UUID userId, Long cardId, int amount) {
-    if (cardService.cardExists(cardId)) {
-      var primary = getPrimary(userId);
-      primary.setCardAmount(cardId, amount);
-      return Optional.of(CollectionInfo.ofCollection(collectionRepository.save(primary)));
-    }
-    return Optional.empty();
-  }
+  private void upsertCollectionEntry(UUID userId, int printingId, int amount) {
+    int previousQty = getQuantity(userId, printingId);
 
-  public Optional<CollectionInfo> setCardAmount(
-      UUID userId, UUID collectionId, Long cardId, int amount) {
-    var collection =
-        collectionRepository.findByPublicIdAndOwnerAndPrimaryIsFalse(collectionId, userId);
-    if (collection.isPresent()) {
-      var cc = collection.get();
-      if (cardService.cardExists(cardId)) {
-        cc.setCardAmount(cardId, amount);
-        return Optional.of(CollectionInfo.ofCollection(collectionRepository.save(cc)));
-      }
-    }
-    return Optional.empty();
-  }
-
-  private CollectionDto forTransfer(@NonNull CardCollection collection) {
-    List<CardStub> cardStubs = cardService.fromCollectionCards(collection.cards);
-    return new CollectionDto(
-        CollectionInfo.ofCollection(collection),
-        new PagedModel<>(new PageImpl<>(cardStubs, Pageable.unpaged(), cardStubs.size())));
-  }
-
-  private CollectionDto forTransfer(@NonNull CardCollection collection, UUID userId) {
-    Map<Long, Integer> primaryCollectionAmounts = getPrimaryStub(userId);
-    List<CardStub> cardStubs =
-        cardService.fromCollectionCards(collection.cards, primaryCollectionAmounts).stream()
-            .sorted(
-                (c1, c2) -> {
-                  int civComparison = compareCivs(c1.civilizations(), c2.civilizations());
-                  if (civComparison != 0) {
-                    return civComparison;
-                  }
-                  return c1.dmId().compareTo(c2.dmId());
-                })
-            .toList();
-    return new CollectionDto(
-        CollectionInfo.ofCollection(collection),
-        new PagedModel<>(new PageImpl<>(cardStubs, Pageable.unpaged(), cardStubs.size())));
-  }
-
-  private int compareCivs(Set<Civilization> c1, Set<Civilization> c2) {
-    if ((c1.size() == 1 || c2.size() == 1) && c1.size() != c2.size()) {
-      return Integer.compare(c1.size(), c2.size());
+    if (amount <= 0) {
+      dsl.deleteFrom(COLLECTION_ENTRY)
+          .where(COLLECTION_ENTRY.USER_ID.eq(userId))
+          .and(COLLECTION_ENTRY.PRINTING_ID.eq(printingId))
+          .execute();
+    } else {
+      dsl.insertInto(COLLECTION_ENTRY)
+          .set(COLLECTION_ENTRY.USER_ID, userId)
+          .set(COLLECTION_ENTRY.PRINTING_ID, printingId)
+          .set(COLLECTION_ENTRY.QUANTITY, amount)
+          .onConflict(COLLECTION_ENTRY.USER_ID, COLLECTION_ENTRY.PRINTING_ID)
+          .doUpdate()
+          .set(COLLECTION_ENTRY.QUANTITY, amount)
+          .execute();
     }
 
-    String civString1 =
-        Civilization.toInts(c1).stream().map(Objects::toString).collect(Collectors.joining());
-    String civString2 =
-        Civilization.toInts(c2).stream().map(Objects::toString).collect(Collectors.joining());
-    return civString1.compareTo(civString2);
+    if (previousQty != amount) {
+      dsl.insertInto(COLLECTION_HISTORY_ENTRY)
+          .set(COLLECTION_HISTORY_ENTRY.USER_ID, userId)
+          .set(COLLECTION_HISTORY_ENTRY.PRINTING_ID, printingId)
+          .set(COLLECTION_HISTORY_ENTRY.PREVIOUS_QTY, previousQty)
+          .set(COLLECTION_HISTORY_ENTRY.NEW_QTY, amount)
+          .execute();
+    }
+  }
+
+  private int getQuantity(UUID userId, int printingId) {
+    Integer qty =
+        dsl.select(COLLECTION_ENTRY.QUANTITY)
+            .from(COLLECTION_ENTRY)
+            .where(COLLECTION_ENTRY.USER_ID.eq(userId))
+            .and(COLLECTION_ENTRY.PRINTING_ID.eq(printingId))
+            .fetchOne(COLLECTION_ENTRY.QUANTITY);
+    return qty != null ? qty : 0;
+  }
+
+  private CollectionInfo getCollectionInfo(UUID userId) {
+    var result =
+        dsl.select(UNIQUE_COUNT, TOTAL_COUNT)
+            .from(COLLECTION_ENTRY)
+            .where(COLLECTION_ENTRY.USER_ID.eq(userId))
+            .fetchOne();
+    return new CollectionInfo(result.get(UNIQUE_COUNT), result.get(TOTAL_COUNT), userId);
   }
 }

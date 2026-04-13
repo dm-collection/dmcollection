@@ -1,165 +1,108 @@
 package net.dmcollection.server.card;
 
-import static net.dmcollection.model.card.Civilization.DARK;
-import static net.dmcollection.model.card.Civilization.FIRE;
-import static net.dmcollection.model.card.Civilization.LIGHT;
-import static net.dmcollection.model.card.Civilization.NATURE;
-import static net.dmcollection.model.card.Civilization.WATER;
-import static net.dmcollection.model.card.Civilization.ZERO;
-import static net.dmcollection.server.TestUtils.D2_FIELD;
-import static net.dmcollection.server.TestUtils.search;
+import static net.dmcollection.server.card.Civilization.FIRE;
+import static net.dmcollection.server.card.Civilization.LIGHT;
+import static net.dmcollection.server.card.Civilization.WATER;
+import static net.dmcollection.server.card.Civilization.ZERO;
+import static net.dmcollection.server.jooq.generated.Tables.COLLECTION_ENTRY;
+import static net.dmcollection.server.jooq.generated.Tables.COLLECTION_HISTORY_ENTRY;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.Arrays;
-import java.util.Collection;
+import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
 import java.util.UUID;
-import net.dmcollection.model.card.CardRepository;
-import net.dmcollection.model.card.RarityCode;
-import net.dmcollection.server.TestUtils;
-import net.dmcollection.server.card.CollectionService.CollectionInfo;
-import net.dmcollection.server.user.User;
-import net.dmcollection.server.user.UserRepository;
+import net.dmcollection.server.IntegrationTestBase;
+import net.dmcollection.server.TestFixtureBuilder;
+import net.dmcollection.server.card.CardService.CardStub;
+import net.dmcollection.server.card.CollectionService.CollectionCardExport;
+import net.dmcollection.server.card.CollectionService.CollectionExport;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
-@SpringBootTest
 @Transactional
-@ActiveProfiles("test")
-class CollectionServiceIntegrationTest {
+class CollectionServiceIntegrationTest extends IntegrationTestBase {
 
-  @Autowired CardRepository cardRepository;
   @Autowired CollectionService collectionService;
-  @Autowired UserRepository userRepository;
-  @Autowired JdbcTemplate jdbcTemplate;
 
-  private User user;
+  private TestFixtureBuilder fixtures;
+  private UUID userId;
 
   @BeforeEach
   void setup() {
-    user = new User(null, "user");
-    user.setPassword("password");
-    user.setEnabled(true);
-    user = userRepository.save(user);
-    TestUtils utils = new TestUtils(jdbcTemplate);
-    utils.monoCard("dm01-001", 6, LIGHT);
-    utils.card(
-        "dm24ex2-040",
-        "DM24EX2 40/100",
-        false,
-        RarityCode.VR,
-        350L,
-        List.of("dm24ex2-040"),
-        List.of(Set.of(LIGHT, WATER, DARK, FIRE, NATURE)),
-        null,
-        null,
-        List.of(D2_FIELD));
-    utils.monoCard("dmc36-003", 7, 7000, FIRE);
-    utils.monoCard("dmr08-021", 5, 2000, ZERO);
+    fixtures = new TestFixtureBuilder(dsl, cardTypeResolver);
+
+    userId = createUser("testuser").getId();
   }
 
   @Test
-  void createsNewCollections() {
-    var stub = collectionService.createCollection(user.getId(), "New Collection");
-    assertThat(stub.name()).isEqualTo("New Collection");
-    assertThat(stub.uniqueCardCount()).isEqualTo(0);
+  void stubReturnsEmptyMapForNewUser() {
+    Map<Long, Integer> stub = collectionService.getPrimaryStub(userId);
+    assertThat(stub).isEmpty();
   }
 
   @Test
-  void createsNewCollectionAndFindsId() {
-    var collection = collectionService.getPrimaryCollection(user.getId(), search().build());
-    assertThat(collectionService.getPrimaryCollectionIds(user.getId()))
-        .hasValueSatisfying(ids -> assertThat(ids.publicId()).isEqualTo(collection.info().id()));
+  void setAndGetSingleCardAmount() {
+    CardStub card = fixtures.monoCard("dm01-001", LIGHT);
+
+    collectionService.setCardAmount(userId, card.id(), 3);
+
+    var result = collectionService.getSingleCardAmount(userId, card.id());
+    assertThat(result)
+        .hasValueSatisfying(
+            stub -> {
+              assertThat(stub.cardId()).isEqualTo(card.id());
+              assertThat(stub.amount()).isEqualTo(3);
+            });
   }
 
   @Test
-  void idIsEmptyIfCollectionDoesNotExist() {
-    assertThat(collectionService.getPrimaryCollectionIds(user.getId())).isEmpty();
+  void upsertUpdatesExistingEntry() {
+    CardStub card = fixtures.monoCard("dm01-001", LIGHT);
+
+    collectionService.setCardAmount(userId, card.id(), 2);
+    collectionService.setCardAmount(userId, card.id(), 5);
+
+    var result = collectionService.getSingleCardAmount(userId, card.id());
+    assertThat(result).hasValueSatisfying(stub -> assertThat(stub.amount()).isEqualTo(5));
   }
 
   @Test
-  void cardsCanBeAddedToDeck() {
-    var userId = user.getId();
-    var info = collectionService.createCollection(userId, "New Collection");
-    addToDeck(info, new CardIdAndAmount("dm01-001", 5));
-    var result = collectionService.getCollection(userId, info.id());
-    assertThat(result).isNotEmpty();
-    assertThat(result.get().info().uniqueCardCount()).isEqualTo(1);
-    addToDeck(info, new CardIdAndAmount("dm24ex2-040", 1));
-    result = collectionService.getCollection(userId, info.id());
-    assertThat(result).isNotEmpty();
-    assertThat(result.get().info().uniqueCardCount()).isEqualTo(2);
-  }
+  void deleteEntryWhenAmountIsZero() {
+    CardStub card = fixtures.monoCard("dm01-001", LIGHT);
 
-  @Test
-  void cardsCanBeRemoved() {
-    var userId = user.getId();
-    var info = collectionService.createCollection(userId, "New Collection");
-    List<CardIdAndAmount> testCards =
-        Arrays.asList(
-            new CardIdAndAmount("dm24ex2-040", 1),
-            new CardIdAndAmount("dm01-001", 5),
-            new CardIdAndAmount("dm01-001", 0));
-    addToDeck(info, testCards);
-    var result = collectionService.getCollection(userId, info.id());
-    assertThat(result.get().info().uniqueCardCount()).isEqualTo(1);
-  }
+    collectionService.setCardAmount(userId, card.id(), 3);
+    collectionService.setCardAmount(userId, card.id(), 0);
 
-  @Test
-  void cardsAreCounted() {
-    var userId = user.getId();
-    var info = collectionService.createCollection(userId, "New Collection");
-    List<CardIdAndAmount> testCards =
-        Arrays.asList(
-            new CardIdAndAmount("dm24ex2-040", 2),
-            new CardIdAndAmount("dm01-001", 5),
-            new CardIdAndAmount("dmc36-003", 0),
-            new CardIdAndAmount("dmr08-021", 5000));
-    addToDeck(info, testCards);
-    var result = collectionService.getCollection(userId, info.id());
-    assertThat(result.get().info().totalCardCount()).isEqualTo(5007);
-    assertThat(result.get().info().uniqueCardCount()).isEqualTo(3);
-  }
+    var result = collectionService.getSingleCardAmount(userId, card.id());
+    assertThat(result).hasValueSatisfying(stub -> assertThat(stub.amount()).isZero());
 
-  @Test
-  void deckCanBeRetrieved() {
-    var userId = user.getId();
-    var collectionInfo = collectionService.createCollection(userId, "New Collection");
-    List<CardIdAndAmount> testCards =
-        Arrays.asList(
-            new CardIdAndAmount("dm24ex2-040", 2),
-            new CardIdAndAmount("dm01-001", 5),
-            new CardIdAndAmount("dmc36-003", 28),
-            new CardIdAndAmount("dmr08-021", 5000));
-    addToDeck(collectionInfo, testCards);
-    var result = collectionService.getCollection(userId, collectionInfo.id());
-    assertThat(result).isNotEmpty();
-    var collection = result.get();
-    assertThat(
-            collection.cardPage().getContent().stream()
-                .map(ccard -> new CardIdAndAmount(ccard.dmId(), ccard.amount())))
-        .containsExactlyInAnyOrderElementsOf(testCards);
+    int rowCount =
+        dsl.fetchCount(
+            COLLECTION_ENTRY,
+            COLLECTION_ENTRY
+                .USER_ID
+                .eq(userId)
+                .and(COLLECTION_ENTRY.PRINTING_ID.eq(card.id().intValue())));
+    assertThat(rowCount).isZero();
   }
 
   @Test
   void collectionCanBeFiltered() {
-    var userId = user.getId();
-    List<CardIdAndAmount> testCards =
-        Arrays.asList(
-            new CardIdAndAmount("dm24ex2-040", 2),
-            new CardIdAndAmount("dm01-001", 5),
-            new CardIdAndAmount("dmc36-003", 28),
-            new CardIdAndAmount("dmr08-021", 5000));
-    addToCollection(userId, testCards);
+    CardStub lightCard = fixtures.monoCard("dm01-001", LIGHT);
+    CardStub fireCard = fixtures.monoCard("dmc36-003", 7, 7000, FIRE);
+    CardStub zeroCard = fixtures.monoCard("dmr08-021", 5, 2000, ZERO);
+
+    collectionService.setCardAmount(userId, lightCard.id(), 5);
+    collectionService.setCardAmount(userId, fireCard.id(), 28);
+    collectionService.setCardAmount(userId, zeroCard.id(), 5000);
+
     var result =
         collectionService.getPrimaryCollection(
-            userId, TestUtils.search().addIncludedCivs(ZERO).build());
+            userId, TestFixtureBuilder.search().addIncludedCivs(ZERO).build());
+
     assertThat(result.info().uniqueCardCount()).isEqualTo(1);
     assertThat(result.cardPage().getContent())
         .hasSize(1)
@@ -171,79 +114,92 @@ class CollectionServiceIntegrationTest {
   }
 
   @Test
-  void deckResponseIncludesCollectionAmounts() {
-    var userId = user.getId();
+  void exportAndImportV2RoundTrip() {
+    CardStub card1 = fixtures.monoCard("dm01-001", LIGHT);
+    CardStub card2 = fixtures.monoCard("dm02-002", WATER);
 
-    List<CardIdAndAmount> collectionCards =
-        Arrays.asList(
-            new CardIdAndAmount("dm01-001", 10),
-            new CardIdAndAmount("dm24ex2-040", 3),
-            new CardIdAndAmount("dmc36-003", 7));
-    addToCollection(userId, collectionCards);
+    collectionService.setCardAmount(userId, card1.id(), 3);
+    collectionService.setCardAmount(userId, card2.id(), 7);
 
-    var deckInfo = collectionService.createCollection(userId, "Test Deck");
-    List<CardIdAndAmount> deckCards =
-        Arrays.asList(
-            new CardIdAndAmount("dm01-001", 4),
-            new CardIdAndAmount("dm24ex2-040", 2),
-            new CardIdAndAmount("dmr08-021", 1)); // Not in collection
-    addToDeck(deckInfo, deckCards);
+    CollectionExport export = collectionService.exportPrimaryCollection(userId);
 
-    // Retrieve the deck
-    var result = collectionService.getCollection(userId, deckInfo.id());
-    assertThat(result).isNotEmpty();
-    var deck = result.get();
+    assertThat(export.version()).isEqualTo(2);
+    assertThat(export.countWithoutDuplicates()).isEqualTo(2);
+    assertThat(export.cardCount()).isEqualTo(10);
+    assertThat(export.cards()).hasSize(2);
 
-    // Verify each card has the correct deck amount and collection amount
-    assertThat(deck.cardPage().getContent()).hasSize(3);
-    deck.cardPage()
-        .getContent()
-        .forEach(
-            cardStub -> {
-              switch (cardStub.dmId()) {
-                case "dm01-001":
-                  assertThat(cardStub.amount()).isEqualTo(4);
-                  assertThat(cardStub.collectionAmount()).isEqualTo(10);
-                  break;
-                case "dm24ex2-040":
-                  assertThat(cardStub.amount()).isEqualTo(2);
-                  assertThat(cardStub.collectionAmount()).isEqualTo(3);
-                  break;
-                case "dmr08-021":
-                  assertThat(cardStub.amount()).isEqualTo(1);
-                  assertThat(cardStub.collectionAmount()).isZero();
-                  break;
-                default:
-                  throw new AssertionError("Unexpected card: " + cardStub.dmId());
-              }
-            });
+    // Import into a different user
+    UUID otherUserId = createUser("other").getId();
+
+    collectionService.importPrimaryCollection(otherUserId, export);
+
+    Map<Long, Integer> otherStub = collectionService.getPrimaryStub(otherUserId);
+    assertThat(otherStub).hasSize(2).containsEntry(card1.id(), 3).containsEntry(card2.id(), 7);
   }
 
-  private void addToDeck(CollectionInfo info, CardIdAndAmount card) {
-    if (cardRepository.existsByOfficialId(card.cardId())) {
-      long id = cardRepository.findByOfficialId(card.cardId()).get().id();
-      collectionService.setCardAmount(info.ownerId(), info.id(), id, card.amount);
-    } else {
-      throw new IllegalStateException("Card with id " + card.cardId() + " missing in test db");
-    }
+  @Test
+  void importV1MatchesByShortName() {
+    CardStub card = fixtures.monoCard("dm01-001", LIGHT);
+
+    // Simulate a v1 export with the old Id field (ignored) and shortName for matching
+    // v1 CollectionCardExport had: long Id, String name, String shortName, int amount
+    // Our new record doesn't have Id, but Jackson ignores unknown fields on import
+    // We construct a CollectionExport with the v2 record shape using shortName for matching
+    CollectionExport v1Export =
+        new CollectionExport(
+            1,
+            LocalDateTime.now(),
+            "collection",
+            4,
+            1,
+            List.of(new CollectionCardExport("Test Card", "dm01-001", 4)));
+
+    collectionService.importPrimaryCollection(userId, v1Export);
+
+    Map<Long, Integer> stub = collectionService.getPrimaryStub(userId);
+    assertThat(stub).containsEntry(card.id(), 4);
   }
 
-  private void addToDeck(CollectionInfo info, Collection<CardIdAndAmount> cards) {
-    cards.forEach(card -> addToDeck(info, card));
+  @Test
+  void importClearsExistingCollection() {
+    CardStub card1 = fixtures.monoCard("dm01-001", LIGHT);
+    CardStub card2 = fixtures.monoCard("dm02-002", WATER);
+
+    collectionService.setCardAmount(userId, card1.id(), 10);
+
+    CollectionExport importData =
+        new CollectionExport(
+            2,
+            LocalDateTime.now(),
+            "collection",
+            5,
+            1,
+            List.of(new CollectionCardExport("Card 2", "dm02-002", 5)));
+
+    collectionService.importPrimaryCollection(userId, importData);
+
+    Map<Long, Integer> stub = collectionService.getPrimaryStub(userId);
+    assertThat(stub).hasSize(1).doesNotContainKey(card1.id()).containsEntry(card2.id(), 5);
   }
 
-  private void addToCollection(UUID userId, Collection<CardIdAndAmount> cards) {
-    cards.forEach(card -> addToCollection(userId, card));
-  }
+  @Test
+  void historyEntryCreatedOnQuantityChange() {
+    CardStub card = fixtures.monoCard("dm01-001", LIGHT);
 
-  private void addToCollection(UUID userId, CardIdAndAmount card) {
-    if (cardRepository.existsByOfficialId(card.cardId())) {
-      long id = cardRepository.findByOfficialId(card.cardId()).get().id();
-      collectionService.setCardAmount(userId, id, card.amount);
-    } else {
-      throw new IllegalStateException("Card with id " + card.cardId() + " missing in test db");
-    }
-  }
+    collectionService.setCardAmount(userId, card.id(), 3);
+    collectionService.setCardAmount(userId, card.id(), 5);
 
-  private record CardIdAndAmount(String cardId, int amount) {}
+    var history =
+        dsl.selectFrom(COLLECTION_HISTORY_ENTRY)
+            .where(COLLECTION_HISTORY_ENTRY.USER_ID.eq(userId))
+            .and(COLLECTION_HISTORY_ENTRY.PRINTING_ID.eq(card.id().intValue()))
+            .orderBy(COLLECTION_HISTORY_ENTRY.CHANGED_AT.asc())
+            .fetch();
+
+    assertThat(history).hasSize(2);
+    assertThat(history.get(0).getPreviousQty()).isZero();
+    assertThat(history.get(0).getNewQty()).isEqualTo(3);
+    assertThat(history.get(1).getPreviousQty()).isEqualTo(3);
+    assertThat(history.get(1).getNewQty()).isEqualTo(5);
+  }
 }

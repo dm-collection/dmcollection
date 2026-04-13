@@ -2,9 +2,9 @@ package net.dmcollection.server.card.internal;
 
 import java.util.EnumSet;
 import java.util.Set;
-import java.util.stream.Collectors;
-import net.dmcollection.model.card.Civilization;
-import net.dmcollection.model.card.RarityCode;
+import java.util.UUID;
+import net.dmcollection.server.card.Civilization;
+import net.dmcollection.server.card.RarityCode;
 import org.springframework.data.domain.Pageable;
 import org.springframework.lang.NonNull;
 
@@ -132,10 +132,6 @@ public record SearchFilter(
     }
   }
 
-  public Set<Civilization> includedCivsWithoutZero() {
-    return includedCivs().stream().filter(c -> c != Civilization.ZERO).collect(Collectors.toSet());
-  }
-
   public boolean isInvalid() {
     long rainbowCivsCount = includedCivs().stream().filter(c -> c != Civilization.ZERO).count();
     if (!includeMono) {
@@ -165,10 +161,6 @@ public record SearchFilter(
     return includeRainbow;
   }
 
-  public boolean needsCardColumnsFilter() {
-    return setId != null || (rarityFilter != null) || twinpact != FilterState.IN;
-  }
-
   public boolean needsCivFilter() {
     boolean isDefault =
         includedCivs().size() == Civilization.values().length
@@ -178,18 +170,9 @@ public record SearchFilter(
     return !isDefault;
   }
 
-  public boolean needsFacetColumnFilter() {
-    return minCost != null
-        || maxCost != null
-        || minPower != null
-        || maxPower != null
-        || cardType != null
-        || (nameSearch != null && !nameSearch.isBlank());
-  }
+  public record CollectionFilter(UUID userId, boolean searchCollection) {}
 
-  public record CollectionFilter(long internalId, boolean searchCollection) {}
-
-  public SearchFilter withCollectionFilter(long internalId, boolean searchCollection) {
+  public SearchFilter withCollectionFilter(UUID userId, boolean searchCollection) {
     return new SearchFilter(
         this.setId,
         this.includedCivs,
@@ -207,7 +190,7 @@ public record SearchFilter(
         this.speciesSearch,
         this.nameSearch,
         this.effectSearch,
-        new CollectionFilter(internalId, searchCollection),
+        new CollectionFilter(userId, searchCollection),
         this.pageable);
   }
 
@@ -238,6 +221,8 @@ public record SearchFilter(
     GACHALLENGE("GR"),
     AURA("オーラ"),
     TAMASEED("タマシード"),
+    DUELIST("デュエリスト"),
+    DUELMATE("デュエルメイト"),
     OTHER("その他");
 
     private final String keyWord;

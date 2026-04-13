@@ -1,5 +1,8 @@
 package net.dmcollection.server.user;
 
+import static net.dmcollection.server.jooq.generated.tables.AppUser.APP_USER;
+
+import org.jooq.DSLContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -11,35 +14,50 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 @Transactional
 public class UserService implements UserDetailsService {
-  private final UserRepository userRepository;
+  private final DSLContext dsl;
   private final PasswordEncoder passwordEncoder;
 
-  public UserService(UserRepository userRepository) {
-    this.userRepository = userRepository;
+  public UserService(DSLContext dsl) {
+    this.dsl = dsl;
     this.passwordEncoder = passwordEncoder();
   }
 
   @Override
   public User loadUserByUsername(String username) throws UsernameNotFoundException {
-    return userRepository
-        .findByUsername(username)
+    return dsl.selectFrom(APP_USER)
+        .where(APP_USER.USERNAME.eq(username))
+        .fetchOptional(
+            r ->
+                new User(
+                    r.get(APP_USER.ID),
+                    r.get(APP_USER.USERNAME),
+                    r.get(APP_USER.PASSWORD_HASH),
+                    r.get(APP_USER.DISPLAY_NAME),
+                    r.get(APP_USER.AVATAR_PATH),
+                    r.get(APP_USER.IS_ADMIN)))
         .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
   }
 
-  public void createUser(String username, String password) {
-    // Check if user already exists
-    if (userRepository.findByUsername(username).isPresent()) {
-      throw new IllegalArgumentException("Username already exists: " + username);
-    }
-
-    User user = new User(null, username);
-    user.setPassword(passwordEncoder.encode(password));
-    user.setEnabled(true);
-    userRepository.save(user);
+  public User createUser(String username, String password) {
+    return dsl.insertInto(APP_USER)
+        .set(APP_USER.USERNAME, username)
+        .set(APP_USER.PASSWORD_HASH, passwordEncoder.encode(password))
+        .set(APP_USER.DISPLAY_NAME, username)
+        .returning()
+        .fetchOne(
+            r ->
+                new User(
+                    r.get(APP_USER.ID),
+                    r.get(APP_USER.USERNAME),
+                    r.get(APP_USER.PASSWORD_HASH),
+                    r.get(APP_USER.DISPLAY_NAME),
+                    r.get(APP_USER.AVATAR_PATH),
+                    r.get(APP_USER.IS_ADMIN)));
   }
 
   public boolean existsByUsername(String username) {
-    return userRepository.findByUsername(username).isPresent();
+    return dsl.fetchExists(
+        dsl.selectOne().from(APP_USER).where(APP_USER.USERNAME.equalIgnoreCase(username)));
   }
 
   @Bean

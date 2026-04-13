@@ -23,16 +23,11 @@ public class CardController {
   private final CardService cardService;
   private final CardQueryService cardQueryService;
   private final AppProperties appProperties;
-  private final CollectionService collectionService;
 
   public CardController(
-      CardService cardService,
-      CardQueryService cardQueryService,
-      CollectionService collectionService,
-      AppProperties appProperties) {
+      CardService cardService, CardQueryService cardQueryService, AppProperties appProperties) {
     this.cardService = cardService;
     this.cardQueryService = cardQueryService;
-    this.collectionService = collectionService;
     this.appProperties = appProperties;
   }
 
@@ -46,11 +41,10 @@ public class CardController {
       pageSize =
           Math.min(appProperties.cardPage().defaultSize(), appProperties.cardPage().maxSize());
     }
-    var searchFilter = searchParams.toSearchFilter(pageNumber, pageSize);
-    var collectionIds = collectionService.getPrimaryCollectionIds(currentUserId);
-    if (collectionIds.isPresent()) {
-      searchFilter = searchFilter.withCollectionFilter(collectionIds.get().internalId(), false);
-    }
+    var searchFilter =
+        searchParams
+            .toSearchFilter(pageNumber, pageSize)
+            .withCollectionFilter(currentUserId, false);
     try {
       return ResponseEntity.ok(
           new PagedModel<>(cardQueryService.search(searchFilter).pageOfCards()));
@@ -61,16 +55,13 @@ public class CardController {
   }
 
   @GetMapping("/api/card/{id}")
-  ResponseEntity<?> getCard(@PathVariable String id) {
+  ResponseEntity<CardService.CardDto> getCard(@PathVariable String id) {
     var cardDto = cardService.getCardDto(id);
-    if (cardDto.isPresent()) {
-      return ResponseEntity.ok(cardDto.get());
-    }
-    return ResponseEntity.notFound().build();
+    return cardDto.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
   }
 
   @GetMapping("/api/cards")
-  ResponseEntity<?> getCardsById(@RequestParam List<Long> cardIds) {
+  ResponseEntity<List<CardStub>> getCardsById(@RequestParam List<Long> cardIds) {
     var cards = cardService.getByIds(cardIds);
     if (cards.isEmpty()) {
       return ResponseEntity.notFound().build();

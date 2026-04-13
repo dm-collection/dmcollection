@@ -31,8 +31,9 @@ target/
 **/db.mv.db
 **/db.trace.db
 
-# CSV file for db import/export
+# files for db import/export
 server/data/*.csv
+server/data/*.json
 
 # IntelliJ IDEA project files
 .idea/

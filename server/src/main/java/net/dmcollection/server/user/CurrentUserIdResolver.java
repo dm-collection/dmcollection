@@ -9,13 +9,12 @@ import org.springframework.web.context.request.NativeWebRequest;
 import org.springframework.web.method.support.HandlerMethodArgumentResolver;
 import org.springframework.web.method.support.ModelAndViewContainer;
 
-// Argument resolver that handles the @CurrentUserId annotation
 public class CurrentUserIdResolver implements HandlerMethodArgumentResolver {
 
-  private final UserRepository userRepository;
+  private final UserService userService;
 
-  public CurrentUserIdResolver(UserRepository userRepository) {
-    this.userRepository = userRepository;
+  public CurrentUserIdResolver(UserService userService) {
+    this.userService = userService;
   }
 
   @Override
@@ -35,9 +34,6 @@ public class CurrentUserIdResolver implements HandlerMethodArgumentResolver {
         ((UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal())
             .getUsername();
 
-    return userRepository
-        .findByUsername(username)
-        .map(User::getId)
-        .orElseThrow(() -> new IllegalStateException("Current user not found"));
+    return userService.loadUserByUsername(username).getId();
   }
 }

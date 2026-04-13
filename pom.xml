@@ -18,22 +18,24 @@
   </parent>
 
   <modules>
-    <module>model</module>
     <module>server</module>
-    <module>coverage-aggregate</module>
   </modules>
 
   <properties>
     <revision>0.0.1-SNAPSHOT</revision>
-    <card-data-version>1.10.0</card-data-version>
     <sonar.organization>dm-collection</sonar.organization>
     <sonar.projectName>DM Collection Server</sonar.projectName>
     <sonar.host.url>https://sonarcloud.io</sonar.host.url>
     <sonar.coverage.jacoco.xmlReportPaths>
-      ${maven.multiModuleProjectDirectory}/coverage-aggregate/target/site/jacoco-aggregate/jacoco.xml
+      ${maven.multiModuleProjectDirectory}/server/target/site/jacoco/jacoco.xml,${maven.multiModuleProjectDirectory}/server/target/site/jacoco-it/jacoco.xml
     </sonar.coverage.jacoco.xmlReportPaths>
+    <sonar.coverage.exclusions>**/jooq/generated/**</sonar.coverage.exclusions>
     <java.version>25</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <!-- override some dependency versions set by Spring -->
+    <jooq.version>3.21.1</jooq.version>
+    <postgresql.version>42.7.7</postgresql.version>
+    <testcontainers.version>2.0.4</testcontainers.version>
   </properties>
 
   <repositories>
@@ -45,6 +47,18 @@
       </snapshots>
     </repository>
   </repositories>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>testcontainers-bom</artifactId>
+        <version>${testcontainers.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <build>
     <pluginManagement>
@@ -153,5 +167,83 @@
     </plugins>
   </build>
 
+  <profiles>
+    <profile>
+      <id>jooq-codegen</id>
+      <modules>
+        <module>server</module>
+      </modules>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>dev.sivalabs</groupId>
+            <artifactId>testcontainers-jooq-codegen-maven-plugin</artifactId>
+            <version>1.0.0</version>
+            <dependencies>
+              <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-postgresql</artifactId>
+                <version>${testcontainers.version}</version>
+              </dependency>
+              <dependency>
+                <groupId>org.postgresql</groupId>
+                <artifactId>postgresql</artifactId>
+                <version>${postgresql.version}</version>
+              </dependency>
+              <dependency>
+                <groupId>org.jooq</groupId>
+                <artifactId>jooq-codegen</artifactId>
+                <version>${jooq.version}</version>
+              </dependency>
+              <dependency>
+                <groupId>org.jooq</groupId>
+                <artifactId>jooq-meta</artifactId>
+                <version>${jooq.version}</version>
+              </dependency>
+            </dependencies>
+            <executions>
+              <execution>
+                <id>generate-jooq-sources</id>
+                <goals>
+                  <goal>generate</goal>
+                </goals>
+                <phase>generate-sources</phase>
+              </execution>
+            </executions>
+            <configuration>
+              <database>
+                <type>POSTGRES</type>
+                <containerImage>postgres:18-alpine</containerImage>
+              </database>
+              <flyway>
+                <locations>filesystem:${project.basedir}/src/main/resources/db/migration</locations>
+              </flyway>
+              <jooq>
+                <generator>
+                  <database>
+                    <includes>.*</includes>
+                    <excludes>flyway_schema_history</excludes>
+                    <inputSchema>public</inputSchema>
+                  </database>
+                  <target>
+                    <packageName>net.dmcollection.server.jooq.generated</packageName>
+                    <directory>src/main/generated</directory>
+                  </target>
+                  <generate>
+                    <pojos>false</pojos>
+                    <daos>false</daos>
+                    <records>true</records>
+                    <fluentSetters>true</fluentSetters>
+                    <generatedAnnotation>true</generatedAnnotation>
+                    <generatedAnnotationType>DETECT_FROM_JDK</generatedAnnotationType>
+                  </generate>
+                </generator>
+              </jooq>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 
 </project>

@@ -3,14 +3,6 @@ package net.dmcollection.server.card;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import net.dmcollection.model.card.CardEntity;
-import net.dmcollection.model.card.CardEntity.Columns;
-import net.dmcollection.model.card.CardFacet;
-import net.dmcollection.model.card.Civilization;
-import net.dmcollection.model.card.OfficialSet;
-import net.dmcollection.model.card.Rarity;
-import net.dmcollection.model.card.RarityCode;
-import net.dmcollection.server.card.internal.CardQueryService;
 import net.dmcollection.server.card.internal.SearchFilter;
 import net.dmcollection.server.card.internal.SearchFilter.CardType;
 import net.dmcollection.server.card.internal.SearchFilter.FilterState;
@@ -75,11 +67,16 @@ public record SearchFilterApi(
         pageable);
   }
 
+  private static final String SORT_RELEASE = "RELEASE";
+  private static final String SORT_OFFICIAL_ID = "OFFICIAL_ID";
+  private static final String SORT_AMOUNT = "AMOUNT";
+  private static final String SORT_COST = "COST";
+  private static final String SORT_POWER = "POWER_SORT";
+  private static final String SORT_RARITY = "ORDER";
+
   private Sort parseSort() {
     if (sort == null || sort.trim().isBlank()) {
-      return Sort.by(OfficialSet.Columns.RELEASE)
-          .descending()
-          .and(Sort.by(CardEntity.Columns.OFFICIAL_ID).ascending());
+      return Sort.by(SORT_RELEASE).descending().and(Sort.by(SORT_OFFICIAL_ID).ascending());
     }
     String[] sortParts = sort.split(",");
     List<Order> orders = new ArrayList<>(sortParts.length);
@@ -102,13 +99,12 @@ public record SearchFilterApi(
       }
     }
 
-    if (orders.stream()
-        .noneMatch(order -> OfficialSet.Columns.RELEASE.equals(order.getProperty()))) {
-      orders.add(Order.desc(OfficialSet.Columns.RELEASE));
+    if (orders.stream().noneMatch(order -> SORT_RELEASE.equals(order.getProperty()))) {
+      orders.add(Order.desc(SORT_RELEASE));
     }
 
-    if (orders.stream().noneMatch(order -> Columns.OFFICIAL_ID.equals(order.getProperty()))) {
-      orders.add(Order.asc(Columns.OFFICIAL_ID));
+    if (orders.stream().noneMatch(order -> SORT_OFFICIAL_ID.equals(order.getProperty()))) {
+      orders.add(Order.asc(SORT_OFFICIAL_ID));
     }
 
     return Sort.by(orders);
@@ -116,12 +112,12 @@ public record SearchFilterApi(
 
   private String mapColumn(String parameter) {
     return switch (parameter.toLowerCase()) {
-      case "rel" -> OfficialSet.Columns.RELEASE;
-      case "id" -> Columns.OFFICIAL_ID;
-      case "amt" -> CardQueryService.AMOUNT;
-      case "cost" -> CardFacet.Columns.COST;
-      case "pwr" -> CardFacet.Columns.POWER_SORT;
-      case "rar" -> Rarity.Columns.ORDER;
+      case "rel" -> SORT_RELEASE;
+      case "id" -> SORT_OFFICIAL_ID;
+      case "amt" -> SORT_AMOUNT;
+      case "cost" -> SORT_COST;
+      case "pwr" -> SORT_POWER;
+      case "rar" -> SORT_RARITY;
       default -> null;
     };
   }
