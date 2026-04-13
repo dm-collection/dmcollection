@@ -58,11 +58,6 @@ public class User implements UserDetails, CredentialsContainer {
   }
 
   @Override
-  public boolean isEnabled() {
-    return true;
-  }
-
-  @Override
   public Collection<? extends GrantedAuthority> getAuthorities() {
     return Collections.emptyList();
   }

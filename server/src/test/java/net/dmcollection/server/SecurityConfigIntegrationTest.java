@@ -13,7 +13,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.test.web.servlet.MockMvc;
 
 @AutoConfigureMockMvc
-class SecurityConfigIntegrationTest extends PostgresTestBase {
+class SecurityConfigIntegrationTest extends IntegrationTestBase {
 
   @Autowired private MockMvc mockMvc;
 

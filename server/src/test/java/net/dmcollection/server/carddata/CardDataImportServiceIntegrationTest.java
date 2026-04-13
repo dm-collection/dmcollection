@@ -23,7 +23,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.InputStream;
 import java.util.List;
 import java.util.UUID;
-import net.dmcollection.server.PostgresTestBase;
+import net.dmcollection.server.IntegrationTestBase;
 import org.jooq.DSLContext;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
@@ -38,7 +38,7 @@ import org.springframework.boot.autoconfigure.jooq.JooqAutoConfiguration;
 import org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @SpringBootTest(
     classes = {
@@ -53,7 +53,7 @@ import org.testcontainers.containers.PostgreSQLContainer;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class CardDataImportServiceIntegrationTest {
 
-  @ServiceConnection static final PostgreSQLContainer<?> PG = PostgresTestBase.PG;
+  @ServiceConnection static final PostgreSQLContainer PG = IntegrationTestBase.PG;
 
   @Autowired DSLContext dsl;
 
@@ -161,7 +161,7 @@ class CardDataImportServiceIntegrationTest {
             .orderBy(PRINTING_SIDE_ABILITY.POSITION)
             .fetch();
     assertThat(abilities).hasSize(2);
-    assertThat(abilities.getFirst().getPosition()).isEqualTo((short) 0);
+    assertThat(abilities.getFirst().getPosition()).isZero();
     assertThat(abilities.get(1).getPosition()).isEqualTo((short) 1);
   }
 
@@ -193,8 +193,7 @@ class CardDataImportServiceIntegrationTest {
 
   @Test
   void printingWithNullRarity() {
-    long nullRarityCount =
-        dsl.selectCount().from(PRINTING).where(PRINTING.RARITY_ID.isNull()).fetchOne(0, long.class);
+    long nullRarityCount = dsl.fetchCount(PRINTING, PRINTING.RARITY_ID.isNull());
     assertThat(nullRarityCount).isGreaterThan(0);
   }
 
@@ -286,8 +285,9 @@ class CardDataImportServiceIntegrationTest {
       assertThat(dsl.fetchCount(CARD, CARD.ID.eq(oldCardId))).isZero();
 
       // Printing should now point to survivor
-      var printing = dsl.selectFrom(PRINTING).where(PRINTING.ID.eq(printingId)).fetchOne();
-      assertThat(printing.getCardId()).isEqualTo(survivorCardId);
+      var cardId =
+          dsl.selectFrom(PRINTING).where(PRINTING.ID.eq(printingId)).fetchOne(PRINTING.CARD_ID);
+      assertThat(cardId).isEqualTo(survivorCardId);
 
       // Cleanup
       dsl.deleteFrom(PRINTING).where(PRINTING.ID.eq(printingId)).execute();
@@ -407,12 +407,12 @@ class CardDataImportServiceIntegrationTest {
       assertThat(dsl.fetchCount(CARD, CARD.ID.eq(oldCardId))).isZero();
 
       // Survivor's entry should have summed quantity (2 + 3 = 5)
-      var entry =
+      var entryQuantity =
           dsl.selectFrom(DECK_VERSION_ENTRY)
               .where(DECK_VERSION_ENTRY.DECK_VERSION_ID.eq(deckVersionId))
               .and(DECK_VERSION_ENTRY.CARD_ID.eq(survivorCardId))
-              .fetchOne();
-      assertThat(entry.getQuantity()).isEqualTo(5);
+              .fetchOne(DECK_VERSION_ENTRY.QUANTITY);
+      assertThat(entryQuantity).isEqualTo(5);
 
       // Only one entry for this deck version
       assertThat(

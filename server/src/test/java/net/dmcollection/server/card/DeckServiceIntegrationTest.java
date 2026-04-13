@@ -7,14 +7,13 @@ import static net.dmcollection.server.card.Civilization.LIGHT;
 import static net.dmcollection.server.card.Civilization.NATURE;
 import static net.dmcollection.server.card.Civilization.WATER;
 import static net.dmcollection.server.card.Civilization.ZERO;
-import static net.dmcollection.server.jooq.generated.Tables.APP_USER;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
-import net.dmcollection.server.PostgresTestBase;
+import net.dmcollection.server.IntegrationTestBase;
 import net.dmcollection.server.TestFixtureBuilder;
 import net.dmcollection.server.card.CardService.CardStub;
 import net.dmcollection.server.card.DeckService.DeckCardExport;
@@ -26,13 +25,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
-class DeckServiceIntegrationTest extends PostgresTestBase {
+class DeckServiceIntegrationTest extends IntegrationTestBase {
 
   @Autowired DeckService deckService;
   @Autowired CollectionService collectionService;
   @Autowired CardTypeResolver cardTypeResolver;
 
-  private TestFixtureBuilder fixtures;
   private UUID userId;
 
   private CardStub lightCard;
@@ -42,16 +40,9 @@ class DeckServiceIntegrationTest extends PostgresTestBase {
 
   @BeforeEach
   void setup() {
-    fixtures = new TestFixtureBuilder(dsl, cardTypeResolver);
+    TestFixtureBuilder fixtures = new TestFixtureBuilder(dsl, cardTypeResolver);
 
-    userId =
-        dsl.insertInto(APP_USER)
-            .set(APP_USER.USERNAME, "testuser-" + UUID.randomUUID())
-            .set(APP_USER.PASSWORD_HASH, "$2a$10$test")
-            .set(APP_USER.DISPLAY_NAME, "Test User")
-            .returningResult(APP_USER.ID)
-            .fetchOne()
-            .value1();
+    userId = createUser("testuser").getId();
 
     lightCard = fixtures.monoCard("dm01-001", 6, LIGHT);
     rainbowCard =
@@ -98,6 +89,7 @@ class DeckServiceIntegrationTest extends PostgresTestBase {
     deckService.setCardAmount(userId, info.id(), lightCard.id(), 5);
     deckService.setCardAmount(userId, info.id(), lightCard.id(), 0);
     var result = deckService.getDeck(userId, info.id());
+    assertThat(result).isPresent();
     assertThat(result.get().info().uniqueCardCount()).isEqualTo(1);
   }
 
@@ -109,6 +101,7 @@ class DeckServiceIntegrationTest extends PostgresTestBase {
     deckService.setCardAmount(userId, info.id(), fireCard.id(), 0);
     deckService.setCardAmount(userId, info.id(), zeroCard.id(), 5000);
     var result = deckService.getDeck(userId, info.id());
+    assertThat(result).isPresent();
     assertThat(result.get().info().totalCardCount()).isEqualTo(5007);
     assertThat(result.get().info().uniqueCardCount()).isEqualTo(3);
   }

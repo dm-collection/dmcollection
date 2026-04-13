@@ -5,7 +5,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON;
 
 import java.util.ArrayList;
 import java.util.List;
-import net.dmcollection.server.PostgresTestBase;
+import net.dmcollection.server.IntegrationTestBase;
 import net.dmcollection.server.user.AuthenticationController.LoginRequest;
 import net.dmcollection.server.user.AuthenticationController.RegistrationRequest;
 import net.dmcollection.server.user.AuthenticationController.UsernameRequest;
@@ -26,7 +26,7 @@ import org.springframework.util.MultiValueMap;
 
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 @TestPropertySource(properties = {"dmcollection.registrationCode=test123"})
-public class AuthenticationControllerIntegrationTest extends PostgresTestBase {
+public class AuthenticationControllerIntegrationTest extends IntegrationTestBase {
 
   public static final String USERNAME = "existingUser";
   public static final String PASSWORD = "thatUsersSecretPassword";

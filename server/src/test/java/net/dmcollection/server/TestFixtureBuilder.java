@@ -23,6 +23,7 @@ import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashSet;
@@ -56,7 +57,7 @@ public class TestFixtureBuilder {
   private final Map<String, Short> cardTypes = new HashMap<>();
   private final Map<String, Short> races = new HashMap<>();
   private final Map<String, Integer> abilities = new HashMap<>();
-  private final Map<RarityCode, Short> rarities = new HashMap<>();
+  private final Map<RarityCode, Short> rarities = new EnumMap<>(RarityCode.class);
   private final CardTypeResolver cardTypeResolver;
 
   private Short defaultProductTypeId;
@@ -501,7 +502,7 @@ public class TestFixtureBuilder {
             .toArray(Short[]::new);
 
     // Insert card
-    int cardId =
+    Integer cardId =
         dsl.insertInto(CARD)
             .set(CARD.NAME, officialId) // use officialId as card name for test fixtures
             .set(CARD.IS_TWINPACT, twinpact)
@@ -509,8 +510,7 @@ public class TestFixtureBuilder {
             .set(CARD.SORT_POWER, sortPower)
             .set(CARD.SORT_CIVILIZATION, sortCivilization)
             .returningResult(CARD.ID)
-            .fetchOne()
-            .value1();
+            .fetchOne(CARD.ID);
 
     // Insert card sides and collect their IDs
     List<Integer> cardSideIds = new ArrayList<>();
@@ -527,7 +527,7 @@ public class TestFixtureBuilder {
               .sorted()
               .toArray(Short[]::new);
 
-      int cardSideId =
+      Integer cardSideId =
           dsl.insertInto(CARD_SIDE)
               .set(CARD_SIDE.CARD_ID, cardId)
               .set(CARD_SIDE.SIDE_ORDER, (short) i)
@@ -538,8 +538,7 @@ public class TestFixtureBuilder {
               .set(CARD_SIDE.POWER_IS_INFINITY, powerIsInfinity)
               .set(CARD_SIDE.CIVILIZATION_IDS, civIds)
               .returningResult(CARD_SIDE.ID)
-              .fetchOne()
-              .value1();
+              .fetchOne(CARD_SIDE.ID);
       cardSideIds.add(cardSideId);
 
       // Insert card_side_card_type
@@ -568,7 +567,7 @@ public class TestFixtureBuilder {
     insertCivGroups(cardId, twinpact, facetCivs);
 
     // Insert printing
-    int printingId =
+    Integer printingId =
         dsl.insertInto(PRINTING)
             .set(PRINTING.CARD_ID, cardId)
             .set(PRINTING.SET_ID, cardSetId)
@@ -576,21 +575,19 @@ public class TestFixtureBuilder {
             .set(PRINTING.COLLECTOR_NUMBER, idText)
             .set(PRINTING.RARITY_ID, rarityId)
             .returningResult(PRINTING.ID)
-            .fetchOne()
-            .value1();
+            .fetchOne(PRINTING.ID);
 
     // Insert printing sides
     List<Integer> printingSideIds = new ArrayList<>();
     for (int i = 0; i < cardSideIds.size(); i++) {
       String imageFile = imageFiles != null && imageFiles.size() > i ? imageFiles.get(i) : null;
-      int printingSideId =
+      Integer printingSideId =
           dsl.insertInto(PRINTING_SIDE)
               .set(PRINTING_SIDE.PRINTING_ID, printingId)
               .set(PRINTING_SIDE.CARD_SIDE_ID, cardSideIds.get(i))
               .set(PRINTING_SIDE.IMAGE_FILENAME, imageFile)
               .returningResult(PRINTING_SIDE.ID)
-              .fetchOne()
-              .value1();
+              .fetchOne(PRINTING_SIDE.ID);
       printingSideIds.add(printingSideId);
     }
 
@@ -643,8 +640,6 @@ public class TestFixtureBuilder {
     return stub;
   }
 
-  // --- Civ group computation ---
-
   private void insertCivGroups(int cardId, boolean twinpact, List<Set<Civilization>> facetCivs) {
     if (twinpact) {
       // Twinpact: single row with union of all sides' civilizations
@@ -681,8 +676,6 @@ public class TestFixtureBuilder {
     }
   }
 
-  // --- Lookup table helpers ---
-
   private void ensureDefaultLookups() {
     if (defaultProductTypeId == null) {
       defaultProductTypeId =
@@ -695,8 +688,7 @@ public class TestFixtureBuilder {
             dsl.insertInto(PRODUCT_TYPE)
                 .set(PRODUCT_TYPE.NAME, "ブースターパック")
                 .returningResult(PRODUCT_TYPE.ID)
-                .fetchOne()
-                .value1();
+                .fetchOne(PRODUCT_TYPE.ID);
       }
     }
     if (defaultSetGroupId == null) {
@@ -711,8 +703,7 @@ public class TestFixtureBuilder {
                 .set(SET_GROUP.NAME, "Test Group")
                 .set(SET_GROUP.SORT_ORDER, 1)
                 .returningResult(SET_GROUP.ID)
-                .fetchOne()
-                .value1();
+                .fetchOne(SET_GROUP.ID);
       }
     }
   }
@@ -737,8 +728,7 @@ public class TestFixtureBuilder {
               .set(CARD_SET.PRODUCT_TYPE_ID, defaultProductTypeId)
               .set(CARD_SET.SET_GROUP_ID, defaultSetGroupId)
               .returningResult(CARD_SET.ID)
-              .fetchOne()
-              .value1();
+              .fetchOne(CARD_SET.ID);
         });
   }
 
@@ -757,8 +747,7 @@ public class TestFixtureBuilder {
               .set(RARITY.NAME, name)
               .set(RARITY.SORT_ORDER, (short) order)
               .returningResult(RARITY.ID)
-              .fetchOne()
-              .value1();
+              .fetchOne(RARITY.ID);
         });
   }
 
@@ -777,8 +766,7 @@ public class TestFixtureBuilder {
               dsl.insertInto(CARD_TYPE)
                   .set(CARD_TYPE.NAME, name)
                   .returningResult(CARD_TYPE.ID)
-                  .fetchOne()
-                  .value1();
+                  .fetchOne(CARD_TYPE.ID);
           cardTypeResolver.loadNameToId();
           return id;
         });
@@ -795,8 +783,7 @@ public class TestFixtureBuilder {
           return dsl.insertInto(RACE)
               .set(RACE.NAME, name)
               .returningResult(RACE.ID)
-              .fetchOne()
-              .value1();
+              .fetchOne(RACE.ID);
         });
   }
 
@@ -812,8 +799,7 @@ public class TestFixtureBuilder {
               .set(ABILITY.TEXT, t)
               .set(ABILITY.SEARCH_TEXT, t) // for test fixtures, search_text = text
               .returningResult(ABILITY.ID)
-              .fetchOne()
-              .value1();
+              .fetchOne(ABILITY.ID);
         });
   }
 

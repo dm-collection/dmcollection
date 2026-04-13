@@ -15,7 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-import net.dmcollection.server.PostgresTestBase;
+import net.dmcollection.server.IntegrationTestBase;
 import net.dmcollection.server.TestFixtureBuilder;
 import net.dmcollection.server.card.CardService.CardStub;
 import net.dmcollection.server.card.internal.CardQueryService;
@@ -34,7 +34,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.transaction.annotation.Transactional;
 
 @Transactional
-class CardQueryServiceIntegrationTest extends PostgresTestBase {
+class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Autowired CardQueryService cardQueryService;
   @Autowired CardTypeResolver cardTypeResolver;

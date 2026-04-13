@@ -209,12 +209,12 @@ public class CardDataImportService {
     for (var row : oldEntries) {
       P parentId = row.get(parentIdField);
       int existingCount =
-          dsl.selectCount()
-              .from(table)
-              .where(cardIdField.eq(survivorCardId))
-              .and(parentIdField.eq(parentId))
-              .and(printingIdField.isNotDistinctFrom(row.get(printingIdField)))
-              .fetchOne(0, int.class);
+          dsl.fetchCount(
+              table,
+              cardIdField
+                  .eq(survivorCardId)
+                  .and(parentIdField.eq(parentId))
+                  .and(printingIdField.isNotDistinctFrom(row.get(printingIdField))));
 
       if (existingCount > 0) {
         // Conflict: add quantity to survivor's entry and delete old entry

@@ -1,13 +1,11 @@
 package net.dmcollection.server.card;
 
-import static net.dmcollection.server.jooq.generated.Tables.APP_USER;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import java.util.UUID;
-import net.dmcollection.server.PostgresTestBase;
+import net.dmcollection.server.IntegrationTestBase;
 import net.dmcollection.server.TestFixtureBuilder;
 import net.dmcollection.server.card.CardService.CardStub;
 import net.dmcollection.server.card.internal.query.CardTypeResolver;
@@ -21,7 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @AutoConfigureMockMvc
 @Transactional
-class CardControllerIntegrationTest extends PostgresTestBase {
+class CardControllerIntegrationTest extends IntegrationTestBase {
 
   @Autowired MockMvc mockMvc;
   @Autowired CardTypeResolver cardTypeResolver;
@@ -32,22 +30,7 @@ class CardControllerIntegrationTest extends PostgresTestBase {
   @BeforeEach
   void setup() {
     fixtures = new TestFixtureBuilder(dsl, cardTypeResolver);
-
-    var user =
-        dsl.insertInto(APP_USER)
-            .set(APP_USER.USERNAME, "cardtest-" + UUID.randomUUID())
-            .set(APP_USER.PASSWORD_HASH, "$2a$10$test")
-            .set(APP_USER.DISPLAY_NAME, "Test User")
-            .returning()
-            .fetchOne();
-    testUser =
-        new User(
-            user.get(APP_USER.ID),
-            user.get(APP_USER.USERNAME),
-            user.get(APP_USER.PASSWORD_HASH),
-            user.get(APP_USER.DISPLAY_NAME),
-            user.get(APP_USER.AVATAR_PATH),
-            user.get(APP_USER.IS_ADMIN));
+    testUser = createUser("cardtest");
   }
 
   @Test
