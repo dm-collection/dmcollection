@@ -13,6 +13,7 @@ import static org.jooq.impl.DSL.sum;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -242,16 +243,14 @@ public class DeckService {
             .set(DECK.USER_ID, userId)
             .set(DECK.NAME, toImport.title())
             .returningResult(DECK.ID)
-            .fetchOne()
-            .value1();
+            .fetchOne(DECK.ID);
 
     UUID draftVersionId =
         dsl.insertInto(DECK_VERSION)
             .set(DECK_VERSION.DECK_ID, deckId)
             .set(DECK_VERSION.IS_DRAFT, true)
             .returningResult(DECK_VERSION.ID)
-            .fetchOne()
-            .value1();
+            .fetchOne(DECK_VERSION.ID);
 
     // Collect shortNames for lookup
     List<String> shortNames =
@@ -364,7 +363,7 @@ public class DeckService {
         String collectorNumber,
         int quantity,
         short sideOrder,
-        Short[] civilizationIds,
+        List<Short> civilizationIds,
         String imageFilename) {}
 
     var rows =
@@ -399,7 +398,7 @@ public class DeckService {
                         r.get(PRINTING.COLLECTOR_NUMBER),
                         r.get(DECK_VERSION_ENTRY.QUANTITY),
                         r.get(CARD_SIDE.SIDE_ORDER),
-                        r.get(CARD_SIDE.CIVILIZATION_IDS),
+                        Arrays.stream(r.get(CARD_SIDE.CIVILIZATION_IDS)).toList(),
                         r.get(PRINTING_SIDE.IMAGE_FILENAME)));
 
     // Group by printing

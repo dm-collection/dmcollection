@@ -16,6 +16,7 @@ import static org.springframework.web.util.HtmlUtils.htmlEscape;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
@@ -73,7 +74,7 @@ public class CardService {
 
   public record ChildEffectDto(String text, int position) {}
 
-  private record SideData(Short[] civilizationIds, String imageFilename) {}
+  private record SideData(List<Short> civilizationIds, String imageFilename) {}
 
   private record AbilityRow(String text, short position, short indentLevel) {}
 
@@ -167,7 +168,7 @@ public class CardService {
         Integer power,
         boolean powerIsInfinity,
         String powerModifier,
-        Short[] civilizationIds,
+        List<Short> civilizationIds,
         String imageFilename) {}
 
     List<SideRow> sideRows =
@@ -200,7 +201,7 @@ public class CardService {
                         r.get(CARD_SIDE.POWER),
                         r.get(CARD_SIDE.POWER_IS_INFINITY),
                         r.get(CARD_SIDE.POWER_MODIFIER),
-                        r.get(CARD_SIDE.CIVILIZATION_IDS),
+                        Arrays.stream(r.get(CARD_SIDE.CIVILIZATION_IDS)).toList(),
                         r.get(PRINTING_SIDE.IMAGE_FILENAME)));
 
     if (sideRows.isEmpty()) {
@@ -318,8 +319,6 @@ public class CardService {
             facets));
   }
 
-  // -- Helper methods --
-
   private Map<Integer, List<SideData>> fetchSideData(Collection<Integer> printingIds) {
     Map<Integer, List<SideData>> result = new LinkedHashMap<>();
     dsl.select(PRINTING.ID, CARD_SIDE.CIVILIZATION_IDS, PRINTING_SIDE.IMAGE_FILENAME)
@@ -336,7 +335,7 @@ public class CardService {
                     .computeIfAbsent(r.get(PRINTING.ID), k -> new ArrayList<>())
                     .add(
                         new SideData(
-                            r.get(CARD_SIDE.CIVILIZATION_IDS),
+                            Arrays.stream(r.get(CARD_SIDE.CIVILIZATION_IDS)).toList(),
                             r.get(PRINTING_SIDE.IMAGE_FILENAME))));
     return result;
   }
@@ -344,7 +343,7 @@ public class CardService {
   private static Set<Civilization> collectCivilizations(List<SideData> sides) {
     Set<Civilization> civilizations = EnumSet.noneOf(Civilization.class);
     for (SideData side : sides) {
-      if (side.civilizationIds() == null || side.civilizationIds().length == 0) {
+      if (side.civilizationIds() == null || side.civilizationIds().isEmpty()) {
         civilizations.add(Civilization.ZERO);
       } else {
         for (short civId : side.civilizationIds()) {
@@ -363,11 +362,11 @@ public class CardService {
         .toList();
   }
 
-  private static List<String> civilizationNames(Short[] civilizationIds) {
-    if (civilizationIds == null || civilizationIds.length == 0) {
+  private static List<String> civilizationNames(List<Short> civilizationIds) {
+    if (civilizationIds == null || civilizationIds.isEmpty()) {
       return List.of(Civilization.ZERO.toString());
     }
-    List<String> names = new ArrayList<>(civilizationIds.length);
+    List<String> names = new ArrayList<>(civilizationIds.size());
     for (short civId : civilizationIds) {
       names.add(Civilization.values()[civId].toString());
     }

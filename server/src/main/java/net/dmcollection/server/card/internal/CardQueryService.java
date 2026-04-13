@@ -13,6 +13,7 @@ import static org.jooq.impl.DSL.count;
 import static org.jooq.impl.DSL.sum;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -156,7 +157,7 @@ public class CardQueryService {
         hasCollection ? matchedPrintings.values().iterator().next().totalCollected() : 0;
 
     // Phase 2: Enrich with side data
-    record SideData(Short[] civilizationIds, String imageFilename) {}
+    record SideData(List<Short> civilizationIds, String imageFilename) {}
 
     Map<Integer, List<SideData>> sidesByPrinting = new LinkedHashMap<>();
     dsl.select(
@@ -177,7 +178,7 @@ public class CardQueryService {
                     .computeIfAbsent(r.get(PRINTING.ID), k -> new ArrayList<>())
                     .add(
                         new SideData(
-                            r.get(CARD_SIDE.CIVILIZATION_IDS),
+                            Arrays.stream(r.get(CARD_SIDE.CIVILIZATION_IDS)).toList(),
                             r.get(PRINTING_SIDE.IMAGE_FILENAME))));
 
     // Phase 3: Assemble CardStub records
@@ -187,7 +188,7 @@ public class CardQueryService {
 
       Set<Civilization> civilizations = EnumSet.noneOf(Civilization.class);
       for (SideData side : sides) {
-        if (side.civilizationIds() == null || side.civilizationIds().length == 0) {
+        if (side.civilizationIds() == null || side.civilizationIds().isEmpty()) {
           civilizations.add(Civilization.ZERO);
         } else {
           for (short civId : side.civilizationIds()) {
