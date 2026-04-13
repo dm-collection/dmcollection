@@ -50,31 +50,10 @@ public class CivilizationConditionBuilder {
       List<Condition> colorBranches = new ArrayList<>();
 
       if (includeMono) {
-        if (allIncluded) {
-          // All civs included, just filter by count
-          colorBranches.add(CARD_CIV_GROUP.CIV_COUNT.eq((short) 1));
-        } else {
-          colorBranches.add(
-              CARD_CIV_GROUP
-                  .CIV_COUNT
-                  .eq((short) 1)
-                  .and(arrayOverlap(CARD_CIV_GROUP.CIVILIZATION_IDS, colorCivIds)));
-        }
+        colorBranches.add(monoCondition(allIncluded, colorCivIds));
       }
-
       if (includeRainbow) {
-        if (matchExactRainbowCivs) {
-          colorBranches.add(CARD_CIV_GROUP.CIVILIZATION_IDS.eq(colorCivIds));
-        } else if (allIncluded) {
-          // All civs included, just filter by count > 1
-          colorBranches.add(CARD_CIV_GROUP.CIV_COUNT.gt((short) 1));
-        } else {
-          colorBranches.add(
-              CARD_CIV_GROUP
-                  .CIV_COUNT
-                  .gt((short) 1)
-                  .and(arrayOverlap(CARD_CIV_GROUP.CIVILIZATION_IDS, colorCivIds)));
-        }
+        colorBranches.add(rainbowCondition(allIncluded, colorCivIds, matchExactRainbowCivs));
       }
 
       if (!colorBranches.isEmpty()) {
@@ -85,11 +64,39 @@ public class CivilizationConditionBuilder {
     Condition result = branches.isEmpty() ? noCondition() : or(branches);
 
     if (!excluded.isEmpty()) {
-      Short[] excludedIds = toColorIds(excluded);
-      result = result.and(not(arrayOverlap(CARD_CIV_GROUP.CIVILIZATION_IDS, excludedIds)));
+      result = result.and(excludedCondition(excluded));
     }
 
     return result;
+  }
+
+  private static Condition monoCondition(boolean allIncluded, Short[] colorCivIds) {
+    if (allIncluded) {
+      return CARD_CIV_GROUP.CIV_COUNT.eq((short) 1);
+    }
+    return CARD_CIV_GROUP
+        .CIV_COUNT
+        .eq((short) 1)
+        .and(arrayOverlap(CARD_CIV_GROUP.CIVILIZATION_IDS, colorCivIds));
+  }
+
+  private static Condition rainbowCondition(
+      boolean allIncluded, Short[] colorCivIds, boolean matchExact) {
+    if (matchExact) {
+      return CARD_CIV_GROUP.CIVILIZATION_IDS.eq(colorCivIds);
+    }
+    if (allIncluded) {
+      return CARD_CIV_GROUP.CIV_COUNT.gt((short) 1);
+    }
+    return CARD_CIV_GROUP
+        .CIV_COUNT
+        .gt((short) 1)
+        .and(arrayOverlap(CARD_CIV_GROUP.CIVILIZATION_IDS, colorCivIds));
+  }
+
+  private static Condition excludedCondition(Set<Civilization> excluded) {
+    Short[] excludedIds = toColorIds(excluded);
+    return not(arrayOverlap(CARD_CIV_GROUP.CIVILIZATION_IDS, excludedIds));
   }
 
   private static Short[] toColorIds(Set<Civilization> civs) {
