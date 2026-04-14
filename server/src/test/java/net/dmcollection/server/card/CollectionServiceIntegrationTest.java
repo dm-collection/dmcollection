@@ -17,9 +17,9 @@ import java.util.UUID;
 import net.dmcollection.server.IntegrationTestBase;
 import net.dmcollection.server.TestFixtureBuilder;
 import net.dmcollection.server.card.CardService.CardStub;
-import net.dmcollection.server.card.serialization.format.v1.V1CollectionCardExport;
-import net.dmcollection.server.card.serialization.format.v1.V1CollectionExport;
-import net.dmcollection.server.card.serialization.format.v2.V2CollectionExport;
+import net.dmcollection.server.card.serialization.collection.format.v1.V1CollectionCardExport;
+import net.dmcollection.server.card.serialization.collection.format.v1.V1CollectionExport;
+import net.dmcollection.server.card.serialization.collection.format.v2.V2CollectionExport;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -163,6 +163,63 @@ class CollectionServiceIntegrationTest extends IntegrationTestBase {
         .containsEntry(card1.id(), 6)
         .containsEntry(card3.id(), 4)
         .doesNotContainKey(card2.id());
+  }
+
+  @Test
+  void importWritesHistoryForChanges() {
+    CardStub unchanged = fixtures.monoCard("dm01-001", LIGHT);
+    CardStub updated = fixtures.monoCard("dm02-002", WATER);
+    CardStub removed = fixtures.monoCard("dm03-003", FIRE);
+    CardStub added = fixtures.monoCard("dm04-004", LIGHT);
+
+    collectionService.setCardAmount(userId, unchanged.id(), 2);
+    collectionService.setCardAmount(userId, updated.id(), 3);
+    collectionService.setCardAmount(userId, removed.id(), 4);
+
+    dsl.deleteFrom(COLLECTION_HISTORY_ENTRY)
+        .where(COLLECTION_HISTORY_ENTRY.USER_ID.eq(userId))
+        .execute();
+
+    V1CollectionExport importData =
+        new V1CollectionExport(
+            2,
+            LocalDateTime.now(),
+            "collection",
+            0,
+            0,
+            List.of(
+                new V1CollectionCardExport("Unchanged", unchanged.dmId(), 2),
+                new V1CollectionCardExport("Updated", updated.dmId(), 9),
+                new V1CollectionCardExport("Added", added.dmId(), 5)));
+
+    collectionService.importCollection(userId, importData);
+
+    var history =
+        dsl.selectFrom(COLLECTION_HISTORY_ENTRY)
+            .where(COLLECTION_HISTORY_ENTRY.USER_ID.eq(userId))
+            .fetch();
+
+    assertThat(history)
+        .hasSize(3)
+        .anySatisfy(
+            h -> {
+              assertThat(h.getPrintingId()).isEqualTo(updated.id().intValue());
+              assertThat(h.getPreviousQty()).isEqualTo(3);
+              assertThat(h.getNewQty()).isEqualTo(9);
+            })
+        .anySatisfy(
+            h -> {
+              assertThat(h.getPrintingId()).isEqualTo(added.id().intValue());
+              assertThat(h.getPreviousQty()).isZero();
+              assertThat(h.getNewQty()).isEqualTo(5);
+            })
+        .anySatisfy(
+            h -> {
+              assertThat(h.getPrintingId()).isEqualTo(removed.id().intValue());
+              assertThat(h.getPreviousQty()).isEqualTo(4);
+              assertThat(h.getNewQty()).isZero();
+            })
+        .noneSatisfy(h -> assertThat(h.getPrintingId()).isEqualTo(unchanged.id().intValue()));
   }
 
   @Test

@@ -4,11 +4,17 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Map;
+import java.util.UUID;
 import net.dmcollection.server.AppProperties;
 import net.dmcollection.server.card.CollectionService.CollectionDto;
 import net.dmcollection.server.card.CollectionService.CollectionInfo;
 import net.dmcollection.server.card.internal.SearchFilter;
-import net.dmcollection.server.card.serialization.format.v2.V2CollectionExport;
+import net.dmcollection.server.card.serialization.collection.format.v2.V2CollectionExport;
 import net.dmcollection.server.user.CurrentUserId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,13 +30,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Map;
-import java.util.UUID;
 
 @Controller
 public class CollectionController {

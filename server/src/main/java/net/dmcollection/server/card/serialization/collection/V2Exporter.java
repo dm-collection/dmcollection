@@ -1,13 +1,13 @@
-package net.dmcollection.server.card.serialization;
+package net.dmcollection.server.card.serialization.collection;
 
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
-import net.dmcollection.server.card.serialization.format.Header;
-import net.dmcollection.server.card.serialization.format.MetaData;
-import net.dmcollection.server.card.serialization.format.v2.V2CollectionEntry;
-import net.dmcollection.server.card.serialization.format.v2.V2CollectionExport;
-import net.dmcollection.server.card.serialization.format.v2.V2Printing;
+import net.dmcollection.server.card.serialization.collection.format.Header;
+import net.dmcollection.server.card.serialization.collection.format.MetaData;
+import net.dmcollection.server.card.serialization.collection.format.v2.V2CollectionEntry;
+import net.dmcollection.server.card.serialization.collection.format.v2.V2CollectionExport;
+import net.dmcollection.server.card.serialization.collection.format.v2.V2Printing;
 import org.springframework.stereotype.Component;
 
 @Component

@@ -24,6 +24,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import net.dmcollection.server.card.CardService.CardStub;
+import net.dmcollection.server.card.serialization.deck.format.v1.DeckCardExport;
+import net.dmcollection.server.card.serialization.deck.format.v1.DeckExport;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.slf4j.Logger;
@@ -61,16 +63,6 @@ public class DeckService {
       UUID ownerId) {}
 
   public record DeckDto(DeckInfo info, PagedModel<CardStub> cardPage) {}
-
-  public record DeckCardExport(String name, String shortName, int amount) {}
-
-  public record DeckExport(
-      int version,
-      LocalDateTime exportDateTime,
-      String title,
-      int cardCount,
-      int countWithoutDuplicates,
-      List<DeckCardExport> cards) {}
 
   public List<DeckInfo> getDecks(UUID userId) {
     return dsl.select(DECK.ID, DECK.NAME, DECK.UPDATED_AT, DECK.USER_ID, UNIQUE_COUNT, TOTAL_COUNT)

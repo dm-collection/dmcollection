@@ -1,4 +1,4 @@
-package net.dmcollection.server.card.serialization;
+package net.dmcollection.server.card.serialization.collection;
 
 import static net.dmcollection.server.jooq.generated.Tables.COLLECTION_ENTRY;
 import static net.dmcollection.server.jooq.generated.Tables.COLLECTION_HISTORY_ENTRY;
@@ -10,8 +10,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import net.dmcollection.server.card.serialization.format.v2.V2CollectionExport;
-import net.dmcollection.server.card.serialization.format.v2.V2Printing;
+import net.dmcollection.server.card.serialization.collection.format.v2.V2CollectionExport;
+import net.dmcollection.server.card.serialization.collection.format.v2.V2Printing;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;

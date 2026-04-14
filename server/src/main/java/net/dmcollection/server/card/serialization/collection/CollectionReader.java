@@ -1,10 +1,4 @@
-package net.dmcollection.server.card.serialization;
-
-import org.jooq.DSLContext;
-import org.springframework.stereotype.Component;
-
-import java.util.List;
-import java.util.UUID;
+package net.dmcollection.server.card.serialization.collection;
 
 import static net.dmcollection.server.jooq.generated.Tables.CARD;
 import static net.dmcollection.server.jooq.generated.Tables.COLLECTION_ENTRY;
@@ -12,6 +6,11 @@ import static net.dmcollection.server.jooq.generated.Tables.PRINTING;
 import static org.jooq.Records.mapping;
 import static org.jooq.impl.DSL.multiset;
 import static org.jooq.impl.DSL.select;
+
+import java.util.List;
+import java.util.UUID;
+import org.jooq.DSLContext;
+import org.springframework.stereotype.Component;
 
 @Component
 public class CollectionReader {

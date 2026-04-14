@@ -1,4 +1,4 @@
-package net.dmcollection.server.card.serialization.format.v1;
+package net.dmcollection.server.card.serialization.collection.format.v1;
 
 import java.time.LocalDateTime;
 import java.util.List;

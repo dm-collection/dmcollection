@@ -17,7 +17,7 @@ import java.util.UUID;
 import net.dmcollection.server.IntegrationTestBase;
 import net.dmcollection.server.TestFixtureBuilder;
 import net.dmcollection.server.card.CardService.CardStub;
-import net.dmcollection.server.card.serialization.format.v2.V2CollectionExport;
+import net.dmcollection.server.card.serialization.collection.format.v2.V2CollectionExport;
 import net.dmcollection.server.jooq.generated.tables.records.CollectionHistoryEntryRecord;
 import net.dmcollection.server.user.User;
 import org.junit.jupiter.api.BeforeEach;

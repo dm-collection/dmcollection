@@ -1,4 +1,4 @@
-package net.dmcollection.server.card.serialization.format;
+package net.dmcollection.server.card.serialization.collection.format;
 
 import java.time.OffsetDateTime;
 
