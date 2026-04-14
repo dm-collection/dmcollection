@@ -7,7 +7,6 @@ import static org.jooq.impl.DSL.coalesce;
 import static org.jooq.impl.DSL.count;
 import static org.jooq.impl.DSL.sum;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -18,6 +17,9 @@ import net.dmcollection.server.card.internal.CardQueryService;
 import net.dmcollection.server.card.internal.CardQueryService.SearchResult;
 import net.dmcollection.server.card.internal.SearchFilter;
 import net.dmcollection.server.card.serialization.V2Exporter;
+import net.dmcollection.server.card.serialization.format.v1.V1CollectionCardExport;
+import net.dmcollection.server.card.serialization.format.v1.V1CollectionExport;
+import net.dmcollection.server.card.serialization.format.v2.V2CollectionExport;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.slf4j.Logger;
@@ -50,29 +52,19 @@ public class CollectionService {
 
   public record CollectionCardStub(long cardId, int amount) {}
 
-  public record CollectionCardExport(String name, String shortName, int amount) {}
-
-  public record CollectionExport(
-      int version,
-      LocalDateTime exportDateTime,
-      String title,
-      int cardCount,
-      int countWithoutDuplicates,
-      List<CollectionCardExport> cards) {}
-
-  public V2Exporter.V2CollectionExport exportPrimaryCollection(UUID userId) {
+  public V2CollectionExport exportCollection(UUID userId) {
     return exporter.export(userId);
   }
 
   @Transactional
-  public void importPrimaryCollection(UUID userId, CollectionExport toImport) {
+  public void importCollection(UUID userId, V1CollectionExport toImport) {
     // Delete existing collection entries
     dsl.deleteFrom(COLLECTION_ENTRY).where(COLLECTION_ENTRY.USER_ID.eq(userId)).execute();
 
     // Collect shortNames from import
     List<String> shortNames =
         toImport.cards().stream()
-            .map(CollectionCardExport::shortName)
+            .map(V1CollectionCardExport::shortName)
             .filter(Objects::nonNull)
             .toList();
 
@@ -96,7 +88,7 @@ public class CollectionService {
             COLLECTION_ENTRY.QUANTITY);
 
     int matched = 0;
-    for (CollectionCardExport card : toImport.cards()) {
+    for (V1CollectionCardExport card : toImport.cards()) {
       Integer printingId = printingIdByOfficialSiteId.get(card.shortName());
       if (printingId != null && card.amount() > 0) {
         insert = insert.values(userId, printingId, card.amount());

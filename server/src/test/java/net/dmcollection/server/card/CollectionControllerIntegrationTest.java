@@ -17,7 +17,7 @@ import java.util.UUID;
 import net.dmcollection.server.IntegrationTestBase;
 import net.dmcollection.server.TestFixtureBuilder;
 import net.dmcollection.server.card.CardService.CardStub;
-import net.dmcollection.server.card.CollectionService.CollectionExport;
+import net.dmcollection.server.card.serialization.format.v1.V1CollectionExport;
 import net.dmcollection.server.jooq.generated.tables.records.CollectionHistoryEntryRecord;
 import net.dmcollection.server.user.User;
 import org.junit.jupiter.api.BeforeEach;
@@ -150,7 +150,7 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
             .getResponse()
             .getContentAsByteArray();
 
-    CollectionExport export = objectMapper.readValue(responseBytes, CollectionExport.class);
+    V1CollectionExport export = objectMapper.readValue(responseBytes, V1CollectionExport.class);
     assertThat(export.version()).isEqualTo(2);
     assertThat(export.cards()).hasSize(1);
     assertThat(export.cards().getFirst().amount()).isEqualTo(3);

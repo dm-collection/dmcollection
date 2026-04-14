@@ -15,8 +15,8 @@ import java.util.UUID;
 import net.dmcollection.server.IntegrationTestBase;
 import net.dmcollection.server.TestFixtureBuilder;
 import net.dmcollection.server.card.CardService.CardStub;
-import net.dmcollection.server.card.CollectionService.CollectionCardExport;
-import net.dmcollection.server.card.CollectionService.CollectionExport;
+import net.dmcollection.server.card.serialization.format.v1.V1CollectionCardExport;
+import net.dmcollection.server.card.serialization.format.v1.V1CollectionExport;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -121,7 +121,7 @@ class CollectionServiceIntegrationTest extends IntegrationTestBase {
     collectionService.setCardAmount(userId, card1.id(), 3);
     collectionService.setCardAmount(userId, card2.id(), 7);
 
-    CollectionExport export = collectionService.exportPrimaryCollection(userId);
+    V1CollectionExport export = collectionService.exportCollection(userId);
 
     assertThat(export.version()).isEqualTo(2);
     assertThat(export.countWithoutDuplicates()).isEqualTo(2);
@@ -131,7 +131,7 @@ class CollectionServiceIntegrationTest extends IntegrationTestBase {
     // Import into a different user
     UUID otherUserId = createUser("other").getId();
 
-    collectionService.importPrimaryCollection(otherUserId, export);
+    collectionService.importCollection(otherUserId, export);
 
     Map<Long, Integer> otherStub = collectionService.getPrimaryStub(otherUserId);
     assertThat(otherStub).hasSize(2).containsEntry(card1.id(), 3).containsEntry(card2.id(), 7);
@@ -145,16 +145,16 @@ class CollectionServiceIntegrationTest extends IntegrationTestBase {
     // v1 CollectionCardExport had: long Id, String name, String shortName, int amount
     // Our new record doesn't have Id, but Jackson ignores unknown fields on import
     // We construct a CollectionExport with the v2 record shape using shortName for matching
-    CollectionExport v1Export =
-        new CollectionExport(
+    V1CollectionExport v1Export =
+        new V1CollectionExport(
             1,
             LocalDateTime.now(),
             "collection",
             4,
             1,
-            List.of(new CollectionCardExport("Test Card", "dm01-001", 4)));
+            List.of(new V1CollectionCardExport("Test Card", "dm01-001", 4)));
 
-    collectionService.importPrimaryCollection(userId, v1Export);
+    collectionService.importCollection(userId, v1Export);
 
     Map<Long, Integer> stub = collectionService.getPrimaryStub(userId);
     assertThat(stub).containsEntry(card.id(), 4);
@@ -167,16 +167,16 @@ class CollectionServiceIntegrationTest extends IntegrationTestBase {
 
     collectionService.setCardAmount(userId, card1.id(), 10);
 
-    CollectionExport importData =
-        new CollectionExport(
+    V1CollectionExport importData =
+        new V1CollectionExport(
             2,
             LocalDateTime.now(),
             "collection",
             5,
             1,
-            List.of(new CollectionCardExport("Card 2", "dm02-002", 5)));
+            List.of(new V1CollectionCardExport("Card 2", "dm02-002", 5)));
 
-    collectionService.importPrimaryCollection(userId, importData);
+    collectionService.importCollection(userId, importData);
 
     Map<Long, Integer> stub = collectionService.getPrimaryStub(userId);
     assertThat(stub).hasSize(1).doesNotContainKey(card1.id()).containsEntry(card2.id(), 5);

@@ -1,9 +1,14 @@
 package net.dmcollection.server.card.serialization;
 
+import java.time.ZoneId;
 import java.util.List;
 import java.util.UUID;
-import net.dmcollection.server.card.CollectionService;
 import net.dmcollection.server.card.serialization.format.Header;
+import net.dmcollection.server.card.serialization.format.v1.V1CollectionCardExport;
+import net.dmcollection.server.card.serialization.format.v1.V1CollectionExport;
+import net.dmcollection.server.card.serialization.format.v2.V2CollectionEntry;
+import net.dmcollection.server.card.serialization.format.v2.V2CollectionExport;
+import net.dmcollection.server.card.serialization.format.v2.V2Printing;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -15,22 +20,23 @@ public class V1Importer {
     this.v2Importer = v2Importer;
   }
 
-  public void importCollection(CollectionService.CollectionExport exported, UUID userId) {
-    // TODO: use a Map<String, Integer> printing official id -> amount instead somehow
-    // migrate to v2 schema equivalent
-    V2Exporter.V2CollectionExport v2Export =
-        new V2Exporter.V2CollectionExport(
-            new Header(2, exported.exportDateTime(), exported.title()),
+  public void importCollection(V1CollectionExport exported, UUID userId) {
+    // migrate to v2 schema equivalent, might introduce common import format to migrate to when V3
+    // is necessary
+    V2CollectionExport v2Export =
+        new V2CollectionExport(
+            new Header(
+                2,
+                exported.exportDateTime().atZone(ZoneId.systemDefault()).toOffsetDateTime(),
+                exported.title()),
             null,
             exported.cards().stream().map(this::fromCardExport).toList());
     // use v2 importer
     v2Importer.importCollection(v2Export, userId);
   }
 
-  private V2Exporter.V2CollectionEntry fromCardExport(
-      CollectionService.CollectionCardExport cardExport) {
-    return new V2Exporter.V2CollectionEntry(
-        cardExport.name(),
-        List.of(new V2Exporter.V2Printing(cardExport.shortName(), cardExport.amount())));
+  private V2CollectionEntry fromCardExport(V1CollectionCardExport cardExport) {
+    return new V2CollectionEntry(
+        cardExport.name(), List.of(new V2Printing(cardExport.shortName(), cardExport.amount())));
   }
 }

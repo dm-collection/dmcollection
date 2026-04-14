@@ -13,9 +13,9 @@ import java.util.Map;
 import java.util.UUID;
 import net.dmcollection.server.AppProperties;
 import net.dmcollection.server.card.CollectionService.CollectionDto;
-import net.dmcollection.server.card.CollectionService.CollectionExport;
 import net.dmcollection.server.card.CollectionService.CollectionInfo;
 import net.dmcollection.server.card.internal.SearchFilter;
+import net.dmcollection.server.card.serialization.format.v1.V1CollectionExport;
 import net.dmcollection.server.user.CurrentUserId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -69,7 +69,7 @@ public class CollectionController {
   @GetMapping("/api/collection/export")
   public ResponseEntity<byte[]> exportCollection(@CurrentUserId UUID currentUserId) {
     try {
-      CollectionExport export = collectionService.exportPrimaryCollection(currentUserId);
+      V1CollectionExport export = collectionService.exportCollection(currentUserId);
       String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
       byte[] jsonBytes = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(export);
       String filename = export.title() + "-export-" + timestamp + ".json";
@@ -96,12 +96,12 @@ public class CollectionController {
   public ResponseEntity<?> importCollection(
       @RequestBody byte[] fileBytes, @CurrentUserId UUID currentUserId) {
     try {
-      CollectionExport toImport =
+      V1CollectionExport toImport =
           objectMapper
-              .readerFor(CollectionExport.class)
+              .readerFor(V1CollectionExport.class)
               .without(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
               .readValue(fileBytes);
-      collectionService.importPrimaryCollection(currentUserId, toImport);
+      collectionService.importCollection(currentUserId, toImport);
       return ResponseEntity.ok().build();
     } catch (IOException e) {
       log.error("Error reading uploaded file: ", e);
