@@ -1,21 +1,14 @@
 package net.dmcollection.server.card;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Map;
-import java.util.UUID;
 import net.dmcollection.server.AppProperties;
 import net.dmcollection.server.card.CollectionService.CollectionDto;
 import net.dmcollection.server.card.CollectionService.CollectionInfo;
 import net.dmcollection.server.card.internal.SearchFilter;
-import net.dmcollection.server.card.serialization.format.v1.V1CollectionExport;
+import net.dmcollection.server.card.serialization.format.v2.V2CollectionExport;
 import net.dmcollection.server.user.CurrentUserId;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +24,13 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Map;
+import java.util.UUID;
 
 @Controller
 public class CollectionController {
@@ -69,10 +69,10 @@ public class CollectionController {
   @GetMapping("/api/collection/export")
   public ResponseEntity<byte[]> exportCollection(@CurrentUserId UUID currentUserId) {
     try {
-      V1CollectionExport export = collectionService.exportCollection(currentUserId);
+      V2CollectionExport export = collectionService.exportCollection(currentUserId);
       String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
       byte[] jsonBytes = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(export);
-      String filename = export.title() + "-export-" + timestamp + ".json";
+      String filename = export.version().type() + "-export-" + timestamp + ".json";
 
       HttpHeaders headers = new HttpHeaders();
       headers.setContentType(MediaType.APPLICATION_JSON);
@@ -96,13 +96,11 @@ public class CollectionController {
   public ResponseEntity<?> importCollection(
       @RequestBody byte[] fileBytes, @CurrentUserId UUID currentUserId) {
     try {
-      V1CollectionExport toImport =
-          objectMapper
-              .readerFor(V1CollectionExport.class)
-              .without(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-              .readValue(fileBytes);
-      collectionService.importCollection(currentUserId, toImport);
+      collectionService.importCollection(currentUserId, fileBytes);
       return ResponseEntity.ok().build();
+    } catch (IllegalArgumentException e) {
+      log.warn("Unrecognized collection import format: {}", e.getMessage());
+      return ResponseEntity.badRequest().build();
     } catch (IOException e) {
       log.error("Error reading uploaded file: ", e);
       return ResponseEntity.badRequest().build();

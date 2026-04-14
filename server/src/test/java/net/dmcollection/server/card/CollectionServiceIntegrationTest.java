@@ -9,9 +9,8 @@ import static net.dmcollection.server.jooq.generated.Tables.COLLECTION_HISTORY_E
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
-import java.io.InputStream;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -143,14 +142,27 @@ class CollectionServiceIntegrationTest extends IntegrationTestBase {
   }
 
   @Test
-  void importV1isSupported() throws IOException {
-    V1CollectionExport data;
-    try (InputStream is = getClass().getResourceAsStream("/v1-collection-export-sample.json")) {
-      data = objectMapper.readValue(is, V1CollectionExport.class);
-    }
-    collectionService.importCollection(userId, data);
+  void importV1isSupported() {
+    CardStub card1 = fixtures.monoCard("dm01-001", LIGHT);
+    CardStub card2 = fixtures.monoCard("dm02-002", WATER);
+    CardStub card3 = fixtures.monoCard("dm03-005", FIRE);
 
-    // TODO: assert collection is imported
+    collectionService.setCardAmount(userId, card1.id(), 3);
+    collectionService.setCardAmount(userId, card2.id(), 7);
+    List<V1CollectionCardExport> importCards =
+        Arrays.asList(
+            new V1CollectionCardExport("first card", card1.dmId(), 6),
+            new V1CollectionCardExport("third card", card3.dmId(), 4));
+    V1CollectionExport toImport =
+        new V1CollectionExport(
+            1, LocalDateTime.now().minusDays(1), "collection", 10, 2, importCards);
+    collectionService.importCollection(userId, toImport);
+
+    Map<Long, Integer> result = collectionService.getPrimaryStub(userId);
+    assertThat(result)
+        .containsEntry(card1.id(), 6)
+        .containsEntry(card3.id(), 4)
+        .doesNotContainKey(card2.id());
   }
 
   @Test

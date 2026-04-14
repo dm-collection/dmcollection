@@ -7,23 +7,24 @@ import static org.jooq.impl.DSL.coalesce;
 import static org.jooq.impl.DSL.count;
 import static org.jooq.impl.DSL.sum;
 
-import java.util.List;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import java.io.IOException;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import net.dmcollection.server.card.CardService.CardStub;
 import net.dmcollection.server.card.internal.CardQueryService;
 import net.dmcollection.server.card.internal.CardQueryService.SearchResult;
 import net.dmcollection.server.card.internal.SearchFilter;
+import net.dmcollection.server.card.serialization.V1Importer;
 import net.dmcollection.server.card.serialization.V2Exporter;
-import net.dmcollection.server.card.serialization.format.v1.V1CollectionCardExport;
+import net.dmcollection.server.card.serialization.V2Importer;
 import net.dmcollection.server.card.serialization.format.v1.V1CollectionExport;
 import net.dmcollection.server.card.serialization.format.v2.V2CollectionExport;
 import org.jooq.DSLContext;
 import org.jooq.Field;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.web.PagedModel;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,7 +32,6 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class CollectionService {
 
-  private static final Logger log = LoggerFactory.getLogger(CollectionService.class);
   private static final Field<Long> UNIQUE_COUNT = count().cast(Long.class).as("unique_count");
   private static final Field<Long> TOTAL_COUNT =
       coalesce(sum(COLLECTION_ENTRY.QUANTITY), 0).cast(Long.class).as("total_count");
@@ -39,11 +39,23 @@ public class CollectionService {
   private final DSLContext dsl;
   private final CardQueryService cardQueryService;
   private final V2Exporter exporter;
+  private final V1Importer v1Importer;
+  private final V2Importer v2Importer;
+  private final ObjectMapper objectMapper;
 
-  public CollectionService(DSLContext dsl, CardQueryService cardQueryService, V2Exporter exporter) {
+  public CollectionService(
+      DSLContext dsl,
+      CardQueryService cardQueryService,
+      V2Exporter exporter,
+      V1Importer v1Importer,
+      V2Importer v2Importer,
+      ObjectMapper objectMapper) {
     this.dsl = dsl;
     this.cardQueryService = cardQueryService;
     this.exporter = exporter;
+    this.v1Importer = v1Importer;
+    this.v2Importer = v2Importer;
+    this.objectMapper = objectMapper;
   }
 
   public record CollectionInfo(long uniqueCardCount, long totalCardCount, UUID ownerId) {}
@@ -56,51 +68,31 @@ public class CollectionService {
     return exporter.export(userId);
   }
 
-  @Transactional
+  public void importCollection(UUID userId, byte[] fileBytes) throws IOException {
+    JsonNode root = objectMapper.readTree(fileBytes);
+    JsonNode versionNode = root.get("version");
+    if (versionNode != null && versionNode.isNumber()) {
+      importCollection(userId, readAs(root, V1CollectionExport.class));
+    } else if (versionNode != null && versionNode.isObject()) {
+      importCollection(userId, readAs(root, V2CollectionExport.class));
+    } else {
+      throw new IllegalArgumentException("Unknown collection export format");
+    }
+  }
+
   public void importCollection(UUID userId, V1CollectionExport toImport) {
-    // Delete existing collection entries
-    dsl.deleteFrom(COLLECTION_ENTRY).where(COLLECTION_ENTRY.USER_ID.eq(userId)).execute();
+    v1Importer.importCollection(toImport, userId);
+  }
 
-    // Collect shortNames from import
-    List<String> shortNames =
-        toImport.cards().stream()
-            .map(V1CollectionCardExport::shortName)
-            .filter(Objects::nonNull)
-            .toList();
+  public void importCollection(UUID userId, V2CollectionExport toImport) {
+    v2Importer.importCollection(toImport, userId);
+  }
 
-    if (shortNames.isEmpty()) {
-      return;
-    }
-
-    // Look up printing IDs by official_site_id
-    Map<String, Integer> printingIdByOfficialSiteId =
-        dsl.select(PRINTING.ID, PRINTING.OFFICIAL_SITE_ID)
-            .from(PRINTING)
-            .where(PRINTING.OFFICIAL_SITE_ID.in(shortNames))
-            .fetchMap(PRINTING.OFFICIAL_SITE_ID, PRINTING.ID);
-
-    // Insert matching entries
-    var insert =
-        dsl.insertInto(
-            COLLECTION_ENTRY,
-            COLLECTION_ENTRY.USER_ID,
-            COLLECTION_ENTRY.PRINTING_ID,
-            COLLECTION_ENTRY.QUANTITY);
-
-    int matched = 0;
-    for (V1CollectionCardExport card : toImport.cards()) {
-      Integer printingId = printingIdByOfficialSiteId.get(card.shortName());
-      if (printingId != null && card.amount() > 0) {
-        insert = insert.values(userId, printingId, card.amount());
-        matched++;
-      } else if (printingId == null) {
-        log.warn("Import: no printing found for shortName '{}'", card.shortName());
-      }
-    }
-
-    if (matched > 0) {
-      insert.execute();
-    }
+  private <T> T readAs(JsonNode node, Class<T> type) throws IOException {
+    return objectMapper
+        .readerFor(type)
+        .without(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
+        .readValue(node);
   }
 
   public CollectionDto getPrimaryCollection(UUID userId, SearchFilter searchFilter) {
