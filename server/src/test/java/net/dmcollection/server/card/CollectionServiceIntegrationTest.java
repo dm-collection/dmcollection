@@ -8,15 +8,18 @@ import static net.dmcollection.server.jooq.generated.Tables.COLLECTION_ENTRY;
 import static net.dmcollection.server.jooq.generated.Tables.COLLECTION_HISTORY_ENTRY;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import net.dmcollection.server.IntegrationTestBase;
 import net.dmcollection.server.TestFixtureBuilder;
 import net.dmcollection.server.card.CardService.CardStub;
-import net.dmcollection.server.card.CollectionService.CollectionCardExport;
-import net.dmcollection.server.card.CollectionService.CollectionExport;
+import net.dmcollection.server.card.serialization.collection.format.v1.V1CollectionCardExport;
+import net.dmcollection.server.card.serialization.collection.format.v1.V1CollectionExport;
+import net.dmcollection.server.card.serialization.collection.format.v2.V2CollectionExport;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -26,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 class CollectionServiceIntegrationTest extends IntegrationTestBase {
 
   @Autowired CollectionService collectionService;
+  @Autowired ObjectMapper objectMapper;
 
   private TestFixtureBuilder fixtures;
   private UUID userId;
@@ -121,43 +125,101 @@ class CollectionServiceIntegrationTest extends IntegrationTestBase {
     collectionService.setCardAmount(userId, card1.id(), 3);
     collectionService.setCardAmount(userId, card2.id(), 7);
 
-    CollectionExport export = collectionService.exportPrimaryCollection(userId);
+    V2CollectionExport export = collectionService.exportCollection(userId);
 
-    assertThat(export.version()).isEqualTo(2);
-    assertThat(export.countWithoutDuplicates()).isEqualTo(2);
-    assertThat(export.cardCount()).isEqualTo(10);
+    assertThat(export.version().version()).isEqualTo(2);
+    assertThat(export.meta().countWithoutDuplicates()).isEqualTo(2);
+    assertThat(export.meta().cardCount()).isEqualTo(10);
     assertThat(export.cards()).hasSize(2);
 
     // Import into a different user
     UUID otherUserId = createUser("other").getId();
 
-    collectionService.importPrimaryCollection(otherUserId, export);
+    collectionService.importCollection(otherUserId, export);
 
     Map<Long, Integer> otherStub = collectionService.getPrimaryStub(otherUserId);
     assertThat(otherStub).hasSize(2).containsEntry(card1.id(), 3).containsEntry(card2.id(), 7);
   }
 
   @Test
-  void importV1MatchesByShortName() {
-    CardStub card = fixtures.monoCard("dm01-001", LIGHT);
+  void importV1isSupported() {
+    CardStub card1 = fixtures.monoCard("dm01-001", LIGHT);
+    CardStub card2 = fixtures.monoCard("dm02-002", WATER);
+    CardStub card3 = fixtures.monoCard("dm03-005", FIRE);
 
-    // Simulate a v1 export with the old Id field (ignored) and shortName for matching
-    // v1 CollectionCardExport had: long Id, String name, String shortName, int amount
-    // Our new record doesn't have Id, but Jackson ignores unknown fields on import
-    // We construct a CollectionExport with the v2 record shape using shortName for matching
-    CollectionExport v1Export =
-        new CollectionExport(
-            1,
+    collectionService.setCardAmount(userId, card1.id(), 3);
+    collectionService.setCardAmount(userId, card2.id(), 7);
+    List<V1CollectionCardExport> importCards =
+        Arrays.asList(
+            new V1CollectionCardExport("first card", card1.dmId(), 6),
+            new V1CollectionCardExport("third card", card3.dmId(), 4));
+    V1CollectionExport toImport =
+        new V1CollectionExport(
+            1, LocalDateTime.now().minusDays(1), "collection", 10, 2, importCards);
+    collectionService.importCollection(userId, toImport);
+
+    Map<Long, Integer> result = collectionService.getPrimaryStub(userId);
+    assertThat(result)
+        .containsEntry(card1.id(), 6)
+        .containsEntry(card3.id(), 4)
+        .doesNotContainKey(card2.id());
+  }
+
+  @Test
+  void importWritesHistoryForChanges() {
+    CardStub unchanged = fixtures.monoCard("dm01-001", LIGHT);
+    CardStub updated = fixtures.monoCard("dm02-002", WATER);
+    CardStub removed = fixtures.monoCard("dm03-003", FIRE);
+    CardStub added = fixtures.monoCard("dm04-004", LIGHT);
+
+    collectionService.setCardAmount(userId, unchanged.id(), 2);
+    collectionService.setCardAmount(userId, updated.id(), 3);
+    collectionService.setCardAmount(userId, removed.id(), 4);
+
+    dsl.deleteFrom(COLLECTION_HISTORY_ENTRY)
+        .where(COLLECTION_HISTORY_ENTRY.USER_ID.eq(userId))
+        .execute();
+
+    V1CollectionExport importData =
+        new V1CollectionExport(
+            2,
             LocalDateTime.now(),
             "collection",
-            4,
-            1,
-            List.of(new CollectionCardExport("Test Card", "dm01-001", 4)));
+            0,
+            0,
+            List.of(
+                new V1CollectionCardExport("Unchanged", unchanged.dmId(), 2),
+                new V1CollectionCardExport("Updated", updated.dmId(), 9),
+                new V1CollectionCardExport("Added", added.dmId(), 5)));
 
-    collectionService.importPrimaryCollection(userId, v1Export);
+    collectionService.importCollection(userId, importData);
 
-    Map<Long, Integer> stub = collectionService.getPrimaryStub(userId);
-    assertThat(stub).containsEntry(card.id(), 4);
+    var history =
+        dsl.selectFrom(COLLECTION_HISTORY_ENTRY)
+            .where(COLLECTION_HISTORY_ENTRY.USER_ID.eq(userId))
+            .fetch();
+
+    assertThat(history)
+        .hasSize(3)
+        .anySatisfy(
+            h -> {
+              assertThat(h.getPrintingId()).isEqualTo(updated.id().intValue());
+              assertThat(h.getPreviousQty()).isEqualTo(3);
+              assertThat(h.getNewQty()).isEqualTo(9);
+            })
+        .anySatisfy(
+            h -> {
+              assertThat(h.getPrintingId()).isEqualTo(added.id().intValue());
+              assertThat(h.getPreviousQty()).isZero();
+              assertThat(h.getNewQty()).isEqualTo(5);
+            })
+        .anySatisfy(
+            h -> {
+              assertThat(h.getPrintingId()).isEqualTo(removed.id().intValue());
+              assertThat(h.getPreviousQty()).isEqualTo(4);
+              assertThat(h.getNewQty()).isZero();
+            })
+        .noneSatisfy(h -> assertThat(h.getPrintingId()).isEqualTo(unchanged.id().intValue()));
   }
 
   @Test
@@ -167,16 +229,16 @@ class CollectionServiceIntegrationTest extends IntegrationTestBase {
 
     collectionService.setCardAmount(userId, card1.id(), 10);
 
-    CollectionExport importData =
-        new CollectionExport(
+    V1CollectionExport importData =
+        new V1CollectionExport(
             2,
             LocalDateTime.now(),
             "collection",
             5,
             1,
-            List.of(new CollectionCardExport("Card 2", "dm02-002", 5)));
+            List.of(new V1CollectionCardExport("Card 2", "dm02-002", 5)));
 
-    collectionService.importPrimaryCollection(userId, importData);
+    collectionService.importCollection(userId, importData);
 
     Map<Long, Integer> stub = collectionService.getPrimaryStub(userId);
     assertThat(stub).hasSize(1).doesNotContainKey(card1.id()).containsEntry(card2.id(), 5);

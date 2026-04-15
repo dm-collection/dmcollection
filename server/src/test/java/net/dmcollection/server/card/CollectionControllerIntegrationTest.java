@@ -17,7 +17,7 @@ import java.util.UUID;
 import net.dmcollection.server.IntegrationTestBase;
 import net.dmcollection.server.TestFixtureBuilder;
 import net.dmcollection.server.card.CardService.CardStub;
-import net.dmcollection.server.card.CollectionService.CollectionExport;
+import net.dmcollection.server.card.serialization.collection.format.v2.V2CollectionExport;
 import net.dmcollection.server.jooq.generated.tables.records.CollectionHistoryEntryRecord;
 import net.dmcollection.server.user.User;
 import org.junit.jupiter.api.BeforeEach;
@@ -150,10 +150,10 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
             .getResponse()
             .getContentAsByteArray();
 
-    CollectionExport export = objectMapper.readValue(responseBytes, CollectionExport.class);
-    assertThat(export.version()).isEqualTo(2);
+    V2CollectionExport export = objectMapper.readValue(responseBytes, V2CollectionExport.class);
+    assertThat(export.version().version()).isEqualTo(2);
     assertThat(export.cards()).hasSize(1);
-    assertThat(export.cards().getFirst().amount()).isEqualTo(3);
+    assertThat(export.cards().getFirst().prints().getFirst().amount()).isEqualTo(3);
   }
 
   @Test
@@ -219,6 +219,18 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
     assertThat(history.get(0).getNewQty()).isEqualTo(2);
     assertThat(history.get(1).getPreviousQty()).isEqualTo(2);
     assertThat(history.get(1).getNewQty()).isEqualTo(5);
+  }
+
+  @Test
+  void importRejectsUnknownFormat() throws Exception {
+    mockMvc
+        .perform(
+            post("/api/collection/import")
+                .with(user(testUser))
+                .with(csrf())
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .content("{\"version\":\"garbage\"}".getBytes()))
+        .andExpect(status().isBadRequest());
   }
 
   @Test
