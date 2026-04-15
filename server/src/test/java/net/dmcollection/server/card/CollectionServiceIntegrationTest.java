@@ -4,6 +4,7 @@ import static net.dmcollection.server.card.Civilization.FIRE;
 import static net.dmcollection.server.card.Civilization.LIGHT;
 import static net.dmcollection.server.card.Civilization.WATER;
 import static net.dmcollection.server.card.Civilization.ZERO;
+import static net.dmcollection.server.card.serialization.collection.V2Importer.HISTORY_LABEL_IMPORT;
 import static net.dmcollection.server.jooq.generated.Tables.COLLECTION_ENTRY;
 import static net.dmcollection.server.jooq.generated.Tables.COLLECTION_HISTORY_ENTRY;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -219,6 +220,7 @@ class CollectionServiceIntegrationTest extends IntegrationTestBase {
               assertThat(h.getPreviousQty()).isEqualTo(4);
               assertThat(h.getNewQty()).isZero();
             })
+        .allSatisfy(h -> assertThat(h.getLabel()).isEqualTo(HISTORY_LABEL_IMPORT))
         .noneSatisfy(h -> assertThat(h.getPrintingId()).isEqualTo(unchanged.id().intValue()));
   }
 

@@ -366,6 +366,7 @@ CREATE TABLE collection_entry (
 CREATE TABLE collection_history_entry (
     id              bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
     user_id         uuid        NOT NULL REFERENCES app_user (id),
+    label           text,
     printing_id     integer     NOT NULL REFERENCES printing (id),
     previous_qty    integer     NOT NULL,
     new_qty         integer     NOT NULL,
