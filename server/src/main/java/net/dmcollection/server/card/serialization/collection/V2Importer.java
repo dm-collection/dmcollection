@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Component
 public class V2Importer {
+  public static final String HISTORY_LABEL_IMPORT = "import";
   private final DSLContext dsl;
 
   V2Importer(DSLContext dsl) {
@@ -58,6 +59,7 @@ public class V2Importer {
           dsl.insertInto(
               COLLECTION_HISTORY_ENTRY,
               COLLECTION_HISTORY_ENTRY.USER_ID,
+              COLLECTION_HISTORY_ENTRY.LABEL,
               COLLECTION_HISTORY_ENTRY.PRINTING_ID,
               COLLECTION_HISTORY_ENTRY.PREVIOUS_QTY,
               COLLECTION_HISTORY_ENTRY.NEW_QTY,
@@ -65,7 +67,7 @@ public class V2Importer {
       for (ChangeEntry change : changes) {
         historyInsert =
             historyInsert.values(
-                userId, change.printingId(), change.previousQty(), change.newQty(), now);
+                userId, HISTORY_LABEL_IMPORT, change.printingId(), change.previousQty(), change.newQty(), now);
       }
       historyInsert.execute();
     }

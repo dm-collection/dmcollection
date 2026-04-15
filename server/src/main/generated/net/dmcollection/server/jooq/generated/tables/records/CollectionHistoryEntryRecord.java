@@ -61,10 +61,25 @@ public class CollectionHistoryEntryRecord extends UpdatableRecordImpl<Collection
     }
 
     /**
+     * Setter for <code>public.collection_history_entry.label</code>.
+     */
+    public CollectionHistoryEntryRecord setLabel(String value) {
+        set(2, value);
+        return this;
+    }
+
+    /**
+     * Getter for <code>public.collection_history_entry.label</code>.
+     */
+    public String getLabel() {
+        return (String) get(2);
+    }
+
+    /**
      * Setter for <code>public.collection_history_entry.printing_id</code>.
      */
     public CollectionHistoryEntryRecord setPrintingId(Integer value) {
-        set(2, value);
+        set(3, value);
         return this;
     }
 
@@ -72,14 +87,14 @@ public class CollectionHistoryEntryRecord extends UpdatableRecordImpl<Collection
      * Getter for <code>public.collection_history_entry.printing_id</code>.
      */
     public Integer getPrintingId() {
-        return (Integer) get(2);
+        return (Integer) get(3);
     }
 
     /**
      * Setter for <code>public.collection_history_entry.previous_qty</code>.
      */
     public CollectionHistoryEntryRecord setPreviousQty(Integer value) {
-        set(3, value);
+        set(4, value);
         return this;
     }
 
@@ -87,14 +102,14 @@ public class CollectionHistoryEntryRecord extends UpdatableRecordImpl<Collection
      * Getter for <code>public.collection_history_entry.previous_qty</code>.
      */
     public Integer getPreviousQty() {
-        return (Integer) get(3);
+        return (Integer) get(4);
     }
 
     /**
      * Setter for <code>public.collection_history_entry.new_qty</code>.
      */
     public CollectionHistoryEntryRecord setNewQty(Integer value) {
-        set(4, value);
+        set(5, value);
         return this;
     }
 
@@ -102,14 +117,14 @@ public class CollectionHistoryEntryRecord extends UpdatableRecordImpl<Collection
      * Getter for <code>public.collection_history_entry.new_qty</code>.
      */
     public Integer getNewQty() {
-        return (Integer) get(4);
+        return (Integer) get(5);
     }
 
     /**
      * Setter for <code>public.collection_history_entry.changed_at</code>.
      */
     public CollectionHistoryEntryRecord setChangedAt(OffsetDateTime value) {
-        set(5, value);
+        set(6, value);
         return this;
     }
 
@@ -117,7 +132,7 @@ public class CollectionHistoryEntryRecord extends UpdatableRecordImpl<Collection
      * Getter for <code>public.collection_history_entry.changed_at</code>.
      */
     public OffsetDateTime getChangedAt() {
-        return (OffsetDateTime) get(5);
+        return (OffsetDateTime) get(6);
     }
 
     // -------------------------------------------------------------------------
@@ -143,11 +158,12 @@ public class CollectionHistoryEntryRecord extends UpdatableRecordImpl<Collection
     /**
      * Create a detached, initialised CollectionHistoryEntryRecord
      */
-    public CollectionHistoryEntryRecord(Long id, UUID userId, Integer printingId, Integer previousQty, Integer newQty, OffsetDateTime changedAt) {
+    public CollectionHistoryEntryRecord(Long id, UUID userId, String label, Integer printingId, Integer previousQty, Integer newQty, OffsetDateTime changedAt) {
         super(CollectionHistoryEntry.COLLECTION_HISTORY_ENTRY);
 
         setId(id);
         setUserId(userId);
+        setLabel(label);
         setPrintingId(printingId);
         setPreviousQty(previousQty);
         setNewQty(newQty);

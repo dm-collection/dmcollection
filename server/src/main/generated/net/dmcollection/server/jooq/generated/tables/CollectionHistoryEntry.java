@@ -83,6 +83,11 @@ public class CollectionHistoryEntry extends TableImpl<CollectionHistoryEntryReco
     public final TableField<CollectionHistoryEntryRecord, UUID> USER_ID = createField(DSL.name("user_id"), SQLDataType.UUID.nullable(false), this, "");
 
     /**
+     * The column <code>public.collection_history_entry.label</code>.
+     */
+    public final TableField<CollectionHistoryEntryRecord, String> LABEL = createField(DSL.name("label"), SQLDataType.CLOB, this, "");
+
+    /**
      * The column <code>public.collection_history_entry.printing_id</code>.
      */
     public final TableField<CollectionHistoryEntryRecord, Integer> PRINTING_ID = createField(DSL.name("printing_id"), SQLDataType.INTEGER.nullable(false), this, "");
