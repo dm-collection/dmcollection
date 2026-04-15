@@ -4,7 +4,8 @@
     "config:recommended"
   ],
   "ignoreDeps": [
-    "net.dmcollection:parent"
+    "net.dmcollection:parent",
+    "net.dmcollection:card-data"
   ],
   "lockFileMaintenance": {
     "enabled": true
