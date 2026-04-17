@@ -357,6 +357,55 @@ class CardDataImportServiceIntegrationTest {
     }
 
     @Test
+    void mergePrintingSidesRePointedToSurvivorSides() {
+      int oldCardId = insertTestCard("__test_ps_old__");
+      int survivorCardId = insertTestCard("__test_ps_survivor__");
+
+      int oldSideId =
+          dsl.insertInto(CARD_SIDE)
+              .columns(CARD_SIDE.CARD_ID, CARD_SIDE.SIDE_ORDER, CARD_SIDE.NAME)
+              .values(oldCardId, (short) 0, "__old_side__")
+              .returning(CARD_SIDE.ID)
+              .fetchOne(CARD_SIDE.ID);
+      int survivorSideId =
+          dsl.insertInto(CARD_SIDE)
+              .columns(CARD_SIDE.CARD_ID, CARD_SIDE.SIDE_ORDER, CARD_SIDE.NAME)
+              .values(survivorCardId, (short) 0, "__survivor_side__")
+              .returning(CARD_SIDE.ID)
+              .fetchOne(CARD_SIDE.ID);
+
+      int printingId = insertTestPrinting("__test-ps-001__", oldCardId);
+      int printingSideId =
+          dsl.insertInto(PRINTING_SIDE)
+              .columns(PRINTING_SIDE.PRINTING_ID, PRINTING_SIDE.CARD_SIDE_ID)
+              .values(printingId, oldSideId)
+              .returning(PRINTING_SIDE.ID)
+              .fetchOne(PRINTING_SIDE.ID);
+
+      importService.importCardData(
+          new CardDataJson(
+              List.of(),
+              List.of(),
+              List.of(),
+              List.of(),
+              List.of(new CardDataJson.CardAliasJson("__test_ps_old__", "__test_ps_survivor__")),
+              List.of(),
+              List.of(),
+              List.of()));
+
+      assertThat(dsl.fetchCount(CARD, CARD.ID.eq(oldCardId))).isZero();
+      var actualCardSideId =
+          dsl.selectFrom(PRINTING_SIDE)
+              .where(PRINTING_SIDE.ID.eq(printingSideId))
+              .fetchOne(PRINTING_SIDE.CARD_SIDE_ID);
+      assertThat(actualCardSideId).isEqualTo(survivorSideId);
+
+      // Cleanup
+      dsl.deleteFrom(PRINTING).where(PRINTING.ID.eq(printingId)).execute();
+      dsl.deleteFrom(CARD).where(CARD.ID.eq(survivorCardId)).execute();
+    }
+
+    @Test
     void mergeSumsDeckVersionEntryQuantities() {
       int oldCardId = insertTestCard("__test_deck_old__");
       int survivorCardId = insertTestCard("__test_deck_survivor__");
