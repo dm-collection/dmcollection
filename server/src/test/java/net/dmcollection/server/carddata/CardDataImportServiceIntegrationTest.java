@@ -169,7 +169,8 @@ class CardDataImportServiceIntegrationTest {
   void productTypesImportedFromJson() {
     var productTypes = dsl.select(PRODUCT_TYPE.NAME).from(PRODUCT_TYPE).fetchSet(PRODUCT_TYPE.NAME);
     assertThat(productTypes)
-        .containsExactlyInAnyOrder("expansion", "special", "deck", "promo", "starter", "art");
+        .containsExactlyInAnyOrder(
+            "expansion", "special", "deck", "promo", "promo_deck", "starter", "art");
   }
 
   @Test
