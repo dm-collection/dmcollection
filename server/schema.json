@@ -215,6 +215,17 @@
         }
       }
     },
+    "SetAlias" : {
+      "type" : "object",
+      "properties" : {
+        "new_code" : {
+          "type" : "string"
+        },
+        "old_code" : {
+          "type" : "string"
+        }
+      }
+    },
     "SetGroup" : {
       "type" : "object",
       "properties" : {
@@ -263,6 +274,12 @@
       "type" : "array",
       "items" : {
         "$ref" : "#/$defs/Rarity"
+      }
+    },
+    "set_aliases" : {
+      "type" : "array",
+      "items" : {
+        "$ref" : "#/$defs/SetAlias"
       }
     },
     "set_groups" : {

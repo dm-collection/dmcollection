@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import net.dmcollection.server.card.RarityCode;
 import net.dmcollection.server.carddata.CardDataJson.CardAliasJson;
 import net.dmcollection.server.carddata.CardDataJson.CardJson;
+import net.dmcollection.server.carddata.CardDataJson.SetAliasJson;
 import net.dmcollection.server.carddata.CardDataJson.CardSetJson;
 import net.dmcollection.server.carddata.CardDataJson.CivGroupJson;
 import net.dmcollection.server.carddata.CardDataJson.PrintingJson;
@@ -66,6 +67,7 @@ public class CardDataImportService {
 
   @Transactional
   public void importCardData(CardDataJson data) {
+    processSetAliases(data.setAliases());
     processAliases(data.cardAliases());
 
     // create lookup tables
@@ -108,6 +110,33 @@ public class CardDataImportService {
 
     log.info(
         "Import complete: {} cards, {} printings", data.cards().size(), data.printings().size());
+  }
+
+  private void processSetAliases(List<SetAliasJson> aliases) {
+    if (aliases == null || aliases.isEmpty()) return;
+    for (var alias : aliases) {
+      Integer oldSetId =
+          dsl.select(CARD_SET.ID)
+              .from(CARD_SET)
+              .where(CARD_SET.CODE.eq(alias.oldCode()))
+              .fetchOne(CARD_SET.ID);
+      if (oldSetId == null) continue;
+
+      Integer survivorSetId =
+          dsl.select(CARD_SET.ID)
+              .from(CARD_SET)
+              .where(CARD_SET.CODE.eq(alias.newCode()))
+              .fetchOne(CARD_SET.ID);
+
+      if (survivorSetId == null) {
+        dsl.update(CARD_SET).set(CARD_SET.CODE, alias.newCode()).where(CARD_SET.ID.eq(oldSetId)).execute();
+        log.info("Renamed set '{}' to '{}'", alias.oldCode(), alias.newCode());
+      } else {
+        dsl.update(PRINTING).set(PRINTING.SET_ID, survivorSetId).where(PRINTING.SET_ID.eq(oldSetId)).execute();
+        dsl.deleteFrom(CARD_SET).where(CARD_SET.ID.eq(oldSetId)).execute();
+        log.info("Merged set '{}' (id={}) into '{}' (id={})", alias.oldCode(), oldSetId, alias.newCode(), survivorSetId);
+      }
+    }
   }
 
   private void processAliases(List<CardAliasJson> aliases) {
