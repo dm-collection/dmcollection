@@ -1,4 +1,4 @@
-FROM docker.io/library/node:22-alpine AS ui-builder
+FROM docker.io/library/node:24-alpine AS ui-builder
 WORKDIR /app
 COPY ui/package.json ui/package-lock.json ./
 RUN npm ci
