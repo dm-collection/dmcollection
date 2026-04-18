@@ -35,6 +35,7 @@ import net.dmcollection.server.carddata.CardDataJson.CardSetJson;
 import net.dmcollection.server.carddata.CardDataJson.CivGroupJson;
 import net.dmcollection.server.carddata.CardDataJson.PrintingJson;
 import net.dmcollection.server.carddata.CardDataJson.RarityJson;
+import net.dmcollection.server.carddata.CardDataJson.SetAliasJson;
 import net.dmcollection.server.carddata.CardDataJson.SetGroupJson;
 import org.jooq.DSLContext;
 import org.jooq.Field;
@@ -66,6 +67,7 @@ public class CardDataImportService {
 
   @Transactional
   public void importCardData(CardDataJson data) {
+    processSetAliases(data.setAliases());
     processAliases(data.cardAliases());
 
     // create lookup tables
@@ -108,6 +110,33 @@ public class CardDataImportService {
 
     log.info(
         "Import complete: {} cards, {} printings", data.cards().size(), data.printings().size());
+  }
+
+  private void processSetAliases(List<SetAliasJson> aliases) {
+    if (aliases == null || aliases.isEmpty()) return;
+    for (var alias : aliases) {
+      Integer oldSetId =
+          dsl.select(CARD_SET.ID)
+              .from(CARD_SET)
+              .where(CARD_SET.CODE.eq(alias.oldCode()))
+              .fetchOne(CARD_SET.ID);
+      if (oldSetId == null) continue;
+
+      Integer survivorSetId =
+          dsl.select(CARD_SET.ID)
+              .from(CARD_SET)
+              .where(CARD_SET.CODE.eq(alias.newCode()))
+              .fetchOne(CARD_SET.ID);
+
+      if (survivorSetId == null) {
+        dsl.update(CARD_SET).set(CARD_SET.CODE, alias.newCode()).where(CARD_SET.ID.eq(oldSetId)).execute();
+        log.info("Renamed set '{}' to '{}'", alias.oldCode(), alias.newCode());
+      } else {
+        dsl.update(PRINTING).set(PRINTING.SET_ID, survivorSetId).where(PRINTING.SET_ID.eq(oldSetId)).execute();
+        dsl.deleteFrom(CARD_SET).where(CARD_SET.ID.eq(oldSetId)).execute();
+        log.info("Merged set '{}' (id={}) into '{}' (id={})", alias.oldCode(), oldSetId, alias.newCode(), survivorSetId);
+      }
+    }
   }
 
   private void processAliases(List<CardAliasJson> aliases) {
@@ -180,6 +209,32 @@ public class CardDataImportService {
         WISHLIST_ENTRY.PRINTING_ID,
         WISHLIST_ENTRY.QUANTITY,
         WISHLIST_ENTRY.WISHLIST_ID);
+
+    // Re-point printing_side rows from old card's sides to survivor's sides (matched by side_order).
+    // Without this, the CASCADE delete of card_side would violate printing_side's FK.
+    var survivorSidesByOrder =
+        dsl.select(CARD_SIDE.ID, CARD_SIDE.SIDE_ORDER)
+            .from(CARD_SIDE)
+            .where(CARD_SIDE.CARD_ID.eq(survivorCardId))
+            .fetchMap(CARD_SIDE.SIDE_ORDER, CARD_SIDE.ID);
+    var oldSides =
+        dsl.select(CARD_SIDE.ID, CARD_SIDE.SIDE_ORDER)
+            .from(CARD_SIDE)
+            .where(CARD_SIDE.CARD_ID.eq(oldCardId))
+            .fetch();
+    for (var oldSide : oldSides) {
+      Integer survivorSideId = survivorSidesByOrder.get(oldSide.get(CARD_SIDE.SIDE_ORDER));
+      if (survivorSideId != null) {
+        dsl.update(PRINTING_SIDE)
+            .set(PRINTING_SIDE.CARD_SIDE_ID, survivorSideId)
+            .where(PRINTING_SIDE.CARD_SIDE_ID.eq(oldSide.get(CARD_SIDE.ID)))
+            .execute();
+      } else {
+        dsl.deleteFrom(PRINTING_SIDE)
+            .where(PRINTING_SIDE.CARD_SIDE_ID.eq(oldSide.get(CARD_SIDE.ID)))
+            .execute();
+      }
+    }
 
     // Delete old card (CASCADE handles card_side, card_civ_group, card_keyword_ability,
     // card_public_tag, and any remaining card_private_tag)
