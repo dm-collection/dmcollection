@@ -9,6 +9,7 @@ public record CardDataJson(
     List<CardJson> cards,
     List<PrintingJson> printings,
     @JsonProperty("card_aliases") List<CardAliasJson> cardAliases,
+    @JsonProperty("set_aliases") List<SetAliasJson> setAliases,
     List<RarityJson> rarities,
     @JsonProperty("card_civ_groups") List<CivGroupJson> cardCivGroups) {
 
@@ -66,6 +67,9 @@ public record CardDataJson(
 
   public record CardAliasJson(
       @JsonProperty("old_name") String oldName, @JsonProperty("new_name") String newName) {}
+
+  public record SetAliasJson(
+      @JsonProperty("old_code") String oldCode, @JsonProperty("new_code") String newCode) {}
 
   public record RarityJson(String name, @JsonProperty("sort_order") short sortOrder) {}
 
