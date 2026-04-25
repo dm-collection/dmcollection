@@ -1,14 +1,14 @@
 <script lang="ts">
 	import type { CardFacet } from '$lib/types/card';
-	import FacetEffects from './FacetEffects.svelte';
-	import FacetHeader from './FacetHeader.svelte';
+	import AbilityText from './AbilityText.svelte';
+	import SideHeader from './SideHeader.svelte';
 	import TypeTag from './TypeTag.svelte';
 
 	let { facet }: { facet: CardFacet } = $props();
 </script>
 
 <div class="flex grow flex-col gap-4 rounded-md bg-white p-4 drop-shadow-md">
-	<FacetHeader cost={facet.cost} civilizations={facet.civilizations} />
+	<SideHeader cost={facet.cost} civilizations={facet.civilizations} />
 	{#if facet.name || facet.species}
 		<div class="mb-8 flex flex-col gap-1">
 			<h1 class="mx-auto text-xl font-bold">{facet.name}</h1>
@@ -23,7 +23,7 @@
 		<TypeTag type={facet.type} civs={facet.civilizations} />
 	{/if}
 	{#if facet.effects}
-		<FacetEffects effects={facet.effects} class="ml-4" />
+		<AbilityText effects={facet.effects} class="ml-4" />
 	{/if}
 	{#if facet.flavor}
 		<p class="text-base font-light">{facet.flavor}</p>

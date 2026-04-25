@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Card, CardFacet } from '$lib/types/card';
-	import AmountButton from './AmountButton.svelte';
-	import FacetProps from './FacetProps.svelte';
+	import AmountButton from '../AmountButton.svelte';
+	import SideDetails from './SideDetails.svelte';
 	import { goto } from '$app/navigation';
 	import { invalidateAuth } from '$lib/auth.svelte';
 	let {
@@ -79,7 +79,7 @@
 			<div class="max-w-prose flex-[30ch]">
 				<div class={['flex', 'h-full', 'flex-col', 'justify-between', 'gap-8']}>
 					{#each facets as facet (facet.position)}
-						<FacetProps {facet} />
+						<SideDetails {facet} />
 					{/each}
 				</div>
 			</div>

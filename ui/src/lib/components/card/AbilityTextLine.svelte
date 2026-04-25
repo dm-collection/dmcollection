@@ -2,7 +2,7 @@
 	import { Civ } from '$lib/types/card';
 	import type { ClassValue } from 'svelte/elements';
 	import CostIcon from './CostIcon.svelte';
-	import EffectIcon from './EffectIcon.svelte';
+	import AbilityIcon from './AbilityIcon.svelte';
 
 	type TextSegment = {
 		type: 'text';
@@ -134,7 +134,7 @@
 			{#if segment.iconType === 'mana' && segment.cost}
 				<CostIcon civs={segment.civs ?? []} cost={segment.cost}></CostIcon>
 			{:else if segment.iconType === 'icon'}
-				<EffectIcon keyword={segment.content}></EffectIcon>
+				<AbilityIcon keyword={segment.content}></AbilityIcon>
 			{/if}
 		{/if}
 	{/each}

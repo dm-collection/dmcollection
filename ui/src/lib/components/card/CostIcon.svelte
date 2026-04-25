@@ -2,7 +2,12 @@
 	import { CIV_COLORS, CIV_ORDER } from '$lib/civColors';
 	import { Civ } from '$lib/types/card';
 
-	const { civs, cost }: { civs: Civ[]; cost: string } = $props();
+	interface Props {
+		civs: Civ[];
+		cost: string;
+	}
+
+	const { civs, cost }: Props = $props();
 
 	function makeStyle(civs: Civ[]) {
 		let result = '';

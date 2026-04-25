@@ -20,7 +20,7 @@
 		RELEASE_DESC,
 		type Order
 	} from '$lib/types/sort';
-	import Civilization from './Civilization.svelte';
+	import Civilization from './card/Civilization.svelte';
 	import CaretDown from 'phosphor-svelte/lib/CaretDown';
 	import CaretUp from 'phosphor-svelte/lib/CaretUp';
 	import ArrowsLeftRight from 'phosphor-svelte/lib/ArrowsLeftRight';
