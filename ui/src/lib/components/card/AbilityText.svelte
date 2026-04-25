@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { CardEffect } from '$lib/types/card';
 	import type { ClassValue } from 'svelte/elements';
-	import EffectText from './EffectText.svelte';
+	import AbilityTextLine from './AbilityTextLine.svelte';
 
 	const props: { effects: Array<CardEffect>; class?: ClassValue } = $props();
 </script>
@@ -10,12 +10,12 @@
 	<ol class={['list-inside', props.class]}>
 		{#each props.effects as effect (effect.position)}
 			<li class={['text-base', !effect.text.startsWith('[[') && 'noIcon']}>
-				<EffectText text={effect.text}></EffectText>
+				<AbilityTextLine text={effect.text}></AbilityTextLine>
 				{#if effect.children && effect.children.length > 0}
 					<ol class="list-inside pl-8">
 						{#each effect.children as child (child.position)}
 							<li class={['text-base', !child.text.startsWith('[[') && 'choice']}>
-								<EffectText text={child.text}></EffectText>
+								<AbilityTextLine text={child.text}></AbilityTextLine>
 							</li>
 						{/each}
 					</ol>

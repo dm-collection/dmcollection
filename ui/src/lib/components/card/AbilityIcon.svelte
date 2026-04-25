@@ -1,20 +1,20 @@
 <script lang="ts">
-	import Dswitch from './effectIcons/Dswitch.svelte';
-	import Blocker from './effectIcons/Blocker.svelte';
-	import Breakbonus from './effectIcons/Breakbonus.svelte';
-	import Fallback from './effectIcons/Fallback.svelte';
-	import Henrei from './effectIcons/Henrei.svelte';
-	import Jingi from './effectIcons/Jingi.svelte';
-	import NoChoice from './effectIcons/NoChoice.svelte';
-	import ShieldTrigger from './effectIcons/ShieldTrigger.svelte';
-	import Strikeback from './effectIcons/Strikeback.svelte';
-	import Survivor from './effectIcons/Survivor.svelte';
-	import Tap from './effectIcons/Tap.svelte';
-	import HeroCard from './effectIcons/HeroCard.svelte';
-	import Wavestriker from './effectIcons/Wavestriker.svelte';
-	import ShieldTriggerPlusEffect from './effectIcons/ShieldTriggerPlusEffect.svelte';
-	import SuperShieldTriggerEffect from './effectIcons/SuperShieldTriggerEffect.svelte';
-	import GuardStrike from './effectIcons/GuardStrike.svelte';
+	import Dswitch from './abilityIcons/Dswitch.svelte';
+	import Blocker from './abilityIcons/Blocker.svelte';
+	import Breakbonus from './abilityIcons/Breakbonus.svelte';
+	import Fallback from './abilityIcons/Fallback.svelte';
+	import Henrei from './abilityIcons/Henrei.svelte';
+	import Jingi from './abilityIcons/Jingi.svelte';
+	import NoChoice from './abilityIcons/NoChoice.svelte';
+	import ShieldTrigger from './abilityIcons/ShieldTrigger.svelte';
+	import Strikeback from './abilityIcons/Strikeback.svelte';
+	import Survivor from './abilityIcons/Survivor.svelte';
+	import Tap from './abilityIcons/Tap.svelte';
+	import HeroCard from './abilityIcons/HeroCard.svelte';
+	import Wavestriker from './abilityIcons/Wavestriker.svelte';
+	import ShieldTriggerPlusEffect from './abilityIcons/ShieldTriggerPlusEffect.svelte';
+	import SuperShieldTriggerEffect from './abilityIcons/SuperShieldTriggerEffect.svelte';
+	import GuardStrike from './abilityIcons/GuardStrike.svelte';
 
 	const { keyword }: { keyword: string } = $props();
 
