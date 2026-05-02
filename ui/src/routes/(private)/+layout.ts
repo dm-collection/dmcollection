@@ -5,7 +5,9 @@ import { redirect } from '@sveltejs/kit';
 export const load: LayoutLoad = async ({ url }) => {
 	await auth.refresh();
 	if (!auth.isAuthenticated) {
-		const redirectTo = `/login${url.pathname != '/' ? `?redirect=${encodeURIComponent(url.pathname + url.search)}` : ''}`;
+		const redirectParam =
+			url.pathname == '/' ? '' : `?redirect=${encodeURIComponent(url.pathname + url.search)}`;
+		const redirectTo = `/login${redirectParam}`;
 		throw redirect(302, redirectTo);
 	}
 };

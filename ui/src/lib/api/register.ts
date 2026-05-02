@@ -10,7 +10,7 @@ export const isUserNameAvailable = (username: string) => {
 		if (response.ok) {
 			return response.json() as Promise<boolean>;
 		} else {
-			return Promise.reject(response.statusText);
+			throw new Error(response.statusText);
 		}
 	});
 };
@@ -25,6 +25,6 @@ export const register = async (userData: RegistrationRequest) => {
 		auth.refresh();
 		return response.json() as Promise<UserData>;
 	} else {
-		return Promise.reject(response.statusText);
+		throw new Error(response.statusText);
 	}
 };
