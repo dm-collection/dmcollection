@@ -2,8 +2,8 @@
 	import type { Card, CardFacet } from '$lib/types/card';
 	import AmountButton from '../AmountButton.svelte';
 	import SideDetails from './SideDetails.svelte';
-	import { goto } from '$app/navigation';
-	import { invalidateAuth } from '$lib/auth.svelte';
+	import { api } from '$lib/api';
+
 	let {
 		card,
 		collectionEntry
@@ -19,23 +19,12 @@
 		}
 	}
 	async function onChange(newAmount: number) {
-		const response = await fetch(`/api/collectionStub/cards/${card.id}`, {
+		const response = await api(`/api/collectionStub/cards/${card.id}`, {
 			method: 'PUT',
-			headers: {
-				'Content-Type': 'application/json',
-				'X-XSRF-TOKEN':
-					document.cookie
-						.split('; ')
-						.find((row) => row.startsWith('XSRF-TOKEN='))
-						?.split('=')[1] ?? ''
-			},
-			body: JSON.stringify({ amount: newAmount })
+			json: { amount: newAmount }
 		});
 		if (response.ok) {
 			collectionEntry = (await response.json()) as { cardId: number; amount: number };
-		} else if (response.status === 401 || response.status === 403) {
-			invalidateAuth();
-			goto('/login');
 		} else {
 			console.error(response.statusText);
 		}

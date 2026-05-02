@@ -8,7 +8,7 @@
 	import UploadSimple from 'phosphor-svelte/lib/UploadSimple';
 	import { formatDistanceToNow, formatRFC3339 } from 'date-fns';
 	import type { CollectionInfo } from '$lib/types/collection';
-	import { invalidateAuth } from '$lib/auth.svelte';
+	import { api } from '$lib/api';
 
 	let { data }: { data: PageData } = $props();
 
@@ -46,23 +46,9 @@
 			try {
 				const fileBytes = await importFiles[0].arrayBuffer();
 
-				const response = await fetch('/api/decks/import', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/octet-stream',
-						'X-XSRF-TOKEN':
-							document.cookie
-								.split('; ')
-								.find((row) => row.startsWith('XSRF-TOKEN='))
-								?.split('=')[1] ?? ''
-					},
-					body: fileBytes
+				const response = await api('/api/decks/import', {
+					binary: fileBytes
 				});
-				if (response.status === 401 || response.status === 403) {
-					invalidateAuth();
-					goto('/login');
-					return false;
-				}
 				return response.ok;
 			} catch (error) {
 				console.error('Error importing from file', error);
@@ -87,44 +73,21 @@
 				newDeckName = `New Deck (${deckNumber})`;
 			}
 		}
-		const response = await fetch('/api/decks', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'X-XSRF-TOKEN':
-					document.cookie
-						.split('; ')
-						.find((row) => row.startsWith('XSRF-TOKEN='))
-						?.split('=')[1] ?? ''
-			},
-
-			body: JSON.stringify({ name: newDeckName })
+		const response = await api('/api/decks', {
+			json: { name: newDeckName }
 		});
 		if (response.ok) {
 			const newDeckInfo = (await response.json()) as CollectionInfo;
 			goto(`/deck/${newDeckInfo.id}`);
-		} else if (response.status === 401 || response.status === 403) {
-			invalidateAuth();
-			goto('/login');
 		}
 	}
 
 	async function deleteDeck(id: string) {
-		const response = await fetch(`api/deck/${id}`, {
-			method: 'DELETE',
-			headers: {
-				'X-XSRF-TOKEN':
-					document.cookie
-						.split('; ')
-						.find((row) => row.startsWith('XSRF-TOKEN='))
-						?.split('=')[1] ?? ''
-			}
+		const response = await api(`api/deck/${id}`, {
+			method: 'DELETE'
 		});
 		if (response.ok) {
 			invalidate('/api/decks');
-		} else if (response.status === 401 || response.status === 403) {
-			invalidateAuth();
-			goto('/login');
 		}
 	}
 

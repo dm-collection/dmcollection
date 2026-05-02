@@ -8,7 +8,7 @@
 	import { getSets } from '$lib/sets.svelte';
 	import { getSpecies } from '$lib/species.svelte';
 	import { getRarities } from '$lib/rarity.svelte';
-	import { invalidateAuth } from '$lib/auth.svelte';
+	import { api } from '$lib/api';
 
 	let { data }: { data: PageData } = $props();
 
@@ -18,17 +18,9 @@
 
 	async function amountChange(card: CardStub, i: number, newAmount: number) {
 		try {
-			const response = await fetch('/api/collectionStub', {
+			const response = await api('/api/collectionStub', {
 				method: 'PUT',
-				headers: {
-					'Content-Type': 'application/json',
-					'X-XSRF-TOKEN':
-						document.cookie
-							.split('; ')
-							.find((row) => row.startsWith('XSRF-TOKEN='))
-							?.split('=')[1] ?? ''
-				},
-				body: JSON.stringify({ cardId: card.id, amount: newAmount })
+				json: { cardId: card.id, amount: newAmount }
 			});
 			if (response.ok) {
 				card.amount = newAmount;
@@ -37,9 +29,6 @@
 					data = data;
 					invalidate((url) => url.pathname.startsWith('/api/cards'));
 				}
-			} else if (response.status === 401 || response.status === 403) {
-				invalidateAuth();
-				goto('/login');
 			}
 		} catch (error) {
 			console.error(error);

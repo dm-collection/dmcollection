@@ -12,7 +12,8 @@
 	import UploadSimple from 'phosphor-svelte/lib/UploadSimple';
 	import Warning from 'phosphor-svelte/lib/Warning';
 	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
-	import { invalidateAuth } from '$lib/auth.svelte';
+	import { api } from '$lib/api';
+
 	let { data = $bindable() }: PageProps = $props();
 
 	let editingEnabled: boolean = $state(false);
@@ -61,23 +62,9 @@
 			try {
 				const fileBytes = await importFiles[0].arrayBuffer();
 
-				const response = await fetch('/api/collection/import', {
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/octet-stream',
-						'X-XSRF-TOKEN':
-							document.cookie
-								.split('; ')
-								.find((row) => row.startsWith('XSRF-TOKEN='))
-								?.split('=')[1] ?? ''
-					},
-					body: fileBytes
+				const response = await api('/api/collection/import', {
+					binary: fileBytes
 				});
-				if (response.status === 401 || response.status === 403) {
-					invalidateAuth();
-					goto('/login');
-					return false;
-				}
 				return response.ok;
 			} catch (error) {
 				console.error('Error importing collection', error);
@@ -87,17 +74,9 @@
 	}
 
 	async function amountChange(card: CardStub, i: number, newAmount: number) {
-		const response = await fetch(`/api/collectionStub`, {
+		const response = await api(`/api/collectionStub`, {
 			method: 'PUT',
-			headers: {
-				'Content-Type': 'application/json',
-				'X-XSRF-TOKEN':
-					document.cookie
-						.split('; ')
-						.find((row) => row.startsWith('XSRF-TOKEN='))
-						?.split('=')[1] ?? ''
-			},
-			body: JSON.stringify({ cardId: card.id, amount: newAmount })
+			json: { cardId: card.id, amount: newAmount }
 		});
 		if (response.ok) {
 			card.amount = newAmount;
@@ -106,9 +85,6 @@
 				data = data;
 				invalidate((url) => url.pathname.startsWith('/api/cards'));
 			}
-		} else if (response.status === 401 || response.status === 403) {
-			invalidateAuth();
-			goto('/login');
 		}
 	}
 </script>
