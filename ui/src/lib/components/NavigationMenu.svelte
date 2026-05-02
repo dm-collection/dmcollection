@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { NavigationMenu } from 'bits-ui';
 	import { page } from '$app/state';
-	import { logout } from '$lib/auth.svelte';
+	import { auth } from '$lib/auth.svelte';
 	import UserCircle from 'phosphor-svelte/lib/UserCircle';
 
 	type Props = {
@@ -24,7 +24,7 @@
 	}
 
 	async function handleLogout() {
-		await logout(fetch);
+		await auth.logout();
 	}
 </script>
 

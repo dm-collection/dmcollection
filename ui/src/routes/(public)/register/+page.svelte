@@ -5,4 +5,4 @@
 	let { data }: PageProps = $props();
 </script>
 
-<RegistrationForm codeRequired={data.authStatus.registrationCodeRequired} />
+<RegistrationForm codeRequired={data.registrationCodeRequired} />

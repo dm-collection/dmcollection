@@ -12,7 +12,7 @@
 	import { SvelteURL, SvelteURLSearchParams } from 'svelte/reactivity';
 	import type { PageProps } from './$types';
 	import PencilSimple from 'phosphor-svelte/lib/PencilSimple';
-	import { invalidateAuth } from '$lib/auth.svelte';
+	import { api } from '$lib/api';
 
 	let { data }: PageProps = $props();
 
@@ -34,25 +34,13 @@
 	async function renameDeck() {
 		newName = newName.trim();
 		if (data.deck) {
-			const response = await fetch(`/api/deck/${data.deck.id}`, {
-				method: 'POST',
-				headers: {
-					'Content-Type': 'application/json',
-					'X-XSRF-TOKEN':
-						document.cookie
-							.split('; ')
-							.find((row) => row.startsWith('XSRF-TOKEN='))
-							?.split('=')[1] ?? ''
-				},
-				body: JSON.stringify({ name: newName })
+			const response = await api(`/api/deck/${data.deck.id}`, {
+				json: { name: newName }
 			});
 			if (response.ok) {
 				invalidate(`/api/deck/${data.deck.id}`);
 				newName = '';
 				closeDialog();
-			} else if (response.status === 401 || response.status === 403) {
-				invalidateAuth();
-				goto('/login');
 			} else {
 				const input = document.getElementById('newName') as HTMLInputElement;
 				input.classList.add('invalid:border-red-700');
@@ -77,7 +65,7 @@
 			replaceState(url, page.state);
 
 			const endpoint = showOwnedOnly ? 'collection' : 'cards';
-			const response = await fetch(`/api/${endpoint}/${pageNumber}?${newParams.toString()}`);
+			const response = await api(`/api/${endpoint}/${pageNumber}?${newParams.toString()}`);
 
 			if (response.ok) {
 				let result = await response.json();
@@ -93,9 +81,6 @@
 
 				newCardPage.page.number += 1;
 				cardPage = newCardPage;
-			} else if (response.status === 401 || response.status === 403) {
-				invalidateAuth();
-				goto('/login');
 			}
 		} catch (error) {
 			console.error(error);
@@ -111,7 +96,6 @@
 			await data.deck?.setCardAmount(cardId, newAmount);
 		} catch (err) {
 			if (err instanceof Error && err.message === 'unauthorized') {
-				invalidateAuth();
 				goto('/login');
 			}
 		}

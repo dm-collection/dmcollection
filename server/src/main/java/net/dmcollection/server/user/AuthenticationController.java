@@ -20,13 +20,14 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextHolderStrategy;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.web.authentication.rememberme.AbstractRememberMeServices;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
 import org.springframework.security.web.context.SecurityContextRepository;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -65,18 +66,16 @@ public class AuthenticationController {
     this.rememberMeServices = rememberMeServices;
   }
 
-  @GetMapping("/api/auth/status")
-  public AuthStatusResponse getAuthStatus(@AuthenticationPrincipal UserDetails userDetails) {
-    boolean authenticated = userDetails != null;
-    return new AuthStatusResponse(
-        authenticated,
-        authenticated ? userDetails.getUsername() : null,
-        !authenticated && !appProperties.registrationCode().isBlank());
+  @GetMapping("/api/auth/me")
+  public UserDetails getAuthStatus(
+      @AuthenticationPrincipal
+          org.springframework.security.core.userdetails.UserDetails userDetails) {
+    return new UserDetails(userDetails.getUsername());
   }
 
   @PostMapping(path = "/api/auth/login", consumes = MediaType.APPLICATION_JSON_VALUE)
   @ResponseStatus(HttpStatus.OK)
-  public AuthStatusResponse login(
+  public UserDetails login(
       @Valid @RequestBody LoginRequest loginRequest,
       HttpServletRequest request,
       HttpServletResponse response) {
@@ -85,6 +84,12 @@ public class AuthenticationController {
           new UsernamePasswordAuthenticationToken(loginRequest.username(), loginRequest.password());
       // Delegate authentication to AuthenticationManager
       Authentication authentication = authenticationManager.authenticate(authenticationToken);
+
+      HttpSession existingSession = request.getSession(false);
+      if (existingSession != null) {
+        existingSession.invalidate();
+      }
+
       SecurityContext context = securityContextHolderStrategy.createEmptyContext();
       context.setAuthentication(authentication);
       this.securityContextHolderStrategy.setContext(context);
@@ -94,23 +99,29 @@ public class AuthenticationController {
         rememberMeServices.loginSuccess(request, response, authentication);
       }
 
-      return new AuthStatusResponse(true, authentication.getName(), false);
+      return new UserDetails(authentication.getName());
 
     } catch (AuthenticationException e) {
-      log.warn("Login failed for user: {}", loginRequest.username(), e);
+      log.warn("Login failed for user: {} - {}", loginRequest.username(), e.getMessage());
       throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Invalid username or password");
     }
   }
 
-  @PostMapping(path = "/api/auth/checkUsername", consumes = MediaType.APPLICATION_JSON_VALUE)
+  @GetMapping(path = "/api/auth/available")
   @ResponseStatus(HttpStatus.OK)
-  public boolean checkUsername(@Valid @RequestBody UsernameRequest request) {
-    return !userService.existsByUsername(request.username());
+  public boolean checkUsername(@NotBlank @RequestParam String username) {
+    return !userService.existsByUsername(username);
+  }
+
+  @GetMapping(path = "/api/auth/register")
+  @ResponseStatus(HttpStatus.OK)
+  public boolean needRegistrationCode() {
+    return !appProperties.registrationCode().isBlank();
   }
 
   @PostMapping(path = "/api/auth/register", consumes = MediaType.APPLICATION_JSON_VALUE)
   @ResponseStatus(HttpStatus.CREATED)
-  public AuthStatusResponse register(
+  public UserDetails register(
       @Valid @RequestBody RegistrationRequest registrationRequest,
       HttpServletRequest request,
       HttpServletResponse response,
@@ -152,10 +163,8 @@ public class AuthenticationController {
     context.setAuthentication(authentication);
     this.securityContextHolderStrategy.setContext(context);
     securityContextRepository.saveContext(context, request, response);
-    return new AuthStatusResponse(true, registrationRequest.username(), false);
+    return new UserDetails(registrationRequest.username());
   }
-
-  public record UsernameRequest(@NotBlank String username) {}
 
   public record LoginRequest(
       @NotBlank(message = "Username cannot be blank") String username,
@@ -171,6 +180,5 @@ public class AuthenticationController {
           String password,
       String code) {}
 
-  public record AuthStatusResponse(
-      boolean authenticated, String username, boolean registrationCodeRequired) {}
+  public record UserDetails(String username) {}
 }

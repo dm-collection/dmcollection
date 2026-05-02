@@ -1,12 +1,11 @@
 import type { LayoutLoad } from './$types';
-import { checkAuthStatus } from '$lib/auth.svelte';
-import { goto } from '$app/navigation';
+import { auth } from '$lib/auth.svelte';
+import { redirect } from '@sveltejs/kit';
 
-export const load: LayoutLoad = async ({ fetch }) => {
-	const authStatus = await checkAuthStatus(fetch);
-	if (authStatus.authenticated) {
-		await goto('/');
+export const load: LayoutLoad = async ({ url }) => {
+	await auth.refresh();
+	if (auth.isAuthenticated) {
+		const redirectTo = decodeURIComponent(url.searchParams.get('redirect') ?? '/');
+		throw redirect(302, redirectTo);
 	}
-
-	return { authStatus: authStatus };
 };

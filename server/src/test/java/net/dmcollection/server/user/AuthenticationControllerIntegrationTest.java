@@ -8,7 +8,6 @@ import java.util.List;
 import net.dmcollection.server.IntegrationTestBase;
 import net.dmcollection.server.user.AuthenticationController.LoginRequest;
 import net.dmcollection.server.user.AuthenticationController.RegistrationRequest;
-import net.dmcollection.server.user.AuthenticationController.UsernameRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -70,8 +69,7 @@ public class AuthenticationControllerIntegrationTest extends IntegrationTestBase
     // user requests landing page
     sendInitialGetRequest();
     // frontend gets auth status
-    expectStatusUnauthenticated();
-    expectAuthStatus(false, null);
+    expectUnauthenticated();
 
     // frontend shows login form, sends request
     LoginRequest request = new LoginRequest(USERNAME, PASSWORD, false);
@@ -87,13 +85,11 @@ public class AuthenticationControllerIntegrationTest extends IntegrationTestBase
             .expectCookie()
             .sameSite(SESSION_COOKIE_NAME, "Lax")
             .expectBody()
-            .jsonPath("$.authenticated")
-            .isEqualTo(true)
             .jsonPath("$.username")
             .isEqualTo(USERNAME)
             .returnResult();
     updateCookiesFromResponse(loginResponse);
-    expectStatusAuthenticated(USERNAME);
+    expectAuthenticated(USERNAME);
 
     // access restricted endpoints
     getAuthenticated("/api/cards/0").expectStatus().isOk();
@@ -104,7 +100,7 @@ public class AuthenticationControllerIntegrationTest extends IntegrationTestBase
 
     // cannot access restricted endpoints anymore with previously valid cookies
     getAuthenticated("/api/decks").expectStatus().isUnauthorized();
-    expectStatusUnauthenticated();
+    expectUnauthenticated();
   }
 
   @Test
@@ -112,8 +108,7 @@ public class AuthenticationControllerIntegrationTest extends IntegrationTestBase
     // user requests landing page
     sendInitialGetRequest();
     // frontend gets auth status
-    expectStatusUnauthenticated();
-    expectAuthStatus(false, null);
+    expectUnauthenticated();
 
     // frontend shows login form, sends request
     LoginRequest request = new LoginRequest(USERNAME, PASSWORD, true);
@@ -131,8 +126,6 @@ public class AuthenticationControllerIntegrationTest extends IntegrationTestBase
             .expectCookie()
             .sameSite(SESSION_COOKIE_NAME, "Lax")
             .expectBody()
-            .jsonPath("$.authenticated")
-            .isEqualTo(true)
             .jsonPath("$.username")
             .isEqualTo(USERNAME)
             .returnResult();
@@ -141,7 +134,7 @@ public class AuthenticationControllerIntegrationTest extends IntegrationTestBase
     // remember me cookie should be sufficient
     sessionId = null;
     csrfToken = null;
-    expectStatusAuthenticated(USERNAME);
+    expectAuthenticated(USERNAME);
 
     // access restricted endpoints
     getAuthenticated("/api/cards/0").expectStatus().isOk();
@@ -173,7 +166,7 @@ public class AuthenticationControllerIntegrationTest extends IntegrationTestBase
             .returnResult();
     updateCookiesFromResponse(initialResponse);
     // frontend gets auth status
-    expectStatusUnauthenticated();
+    expectUnauthenticated();
 
     // frontend shows registration form, sends request
     var request = new RegistrationRequest(testUsername, testPassword, testCode);
@@ -188,8 +181,6 @@ public class AuthenticationControllerIntegrationTest extends IntegrationTestBase
             .expectCookie()
             .sameSite(SESSION_COOKIE_NAME, "Lax")
             .expectBody()
-            .jsonPath("$.authenticated")
-            .isEqualTo(true)
             .jsonPath("$.username")
             .isEqualTo(testUsername)
             .returnResult();
@@ -203,21 +194,21 @@ public class AuthenticationControllerIntegrationTest extends IntegrationTestBase
   @Test
   void testUsernameExists() {
     sendInitialGetRequest();
-    postJson("/api/auth/checkUsername", new UsernameRequest(USERNAME))
+    getAuthenticated("/api/auth/available?username=" + USERNAME)
         .expectStatus()
         .isOk()
         .expectBody()
         .jsonPath("$")
         .isEqualTo(false);
 
-    postJson("/api/auth/checkUsername", new UsernameRequest(USERNAME.toUpperCase()))
+    getAuthenticated("/api/auth/available?username=" + USERNAME.toUpperCase())
         .expectStatus()
         .isOk()
         .expectBody()
         .jsonPath("$")
         .isEqualTo(false);
 
-    postJson("/api/auth/checkUsername", new UsernameRequest("newUserName"))
+    getAuthenticated("/api/auth/available?username=newUserName")
         .expectStatus()
         .isOk()
         .expectBody()
@@ -228,7 +219,7 @@ public class AuthenticationControllerIntegrationTest extends IntegrationTestBase
   @Test
   void testRegistrationWithExistingUsername() {
     sendInitialGetRequest();
-    expectStatusUnauthenticated();
+    expectUnauthenticated();
 
     // Attempt to register with the username that already exists
     var request = new RegistrationRequest(USERNAME, testPassword, testCode);
@@ -238,7 +229,7 @@ public class AuthenticationControllerIntegrationTest extends IntegrationTestBase
   @Test
   void testRegistrationWithPasswordTooShort() {
     sendInitialGetRequest();
-    expectStatusUnauthenticated();
+    expectUnauthenticated();
 
     String shortPassword = "short";
     var request = new RegistrationRequest(testUsername, shortPassword, testCode);
@@ -248,7 +239,7 @@ public class AuthenticationControllerIntegrationTest extends IntegrationTestBase
   @Test
   void testRegistrationWithPasswordTooLong() {
     sendInitialGetRequest();
-    expectStatusUnauthenticated();
+    expectUnauthenticated();
 
     String longPassword = "a".repeat(AuthenticationController.PASSWORD_MAX_LENGTH + 1);
 
@@ -259,7 +250,7 @@ public class AuthenticationControllerIntegrationTest extends IntegrationTestBase
   @Test
   void testRegistrationWithEmptyPassword() {
     sendInitialGetRequest();
-    expectStatusUnauthenticated();
+    expectUnauthenticated();
 
     String emptyPassword = "";
     var request = new RegistrationRequest(testUsername, emptyPassword, testCode);
@@ -269,7 +260,7 @@ public class AuthenticationControllerIntegrationTest extends IntegrationTestBase
   @Test
   void testRegistrationWithInvalidCode() {
     sendInitialGetRequest();
-    expectStatusUnauthenticated();
+    expectUnauthenticated();
 
     var request = new RegistrationRequest(testUsername, "newPassword", "wrongCode");
     postJson("/api/auth/register", request).expectStatus().isBadRequest();
@@ -303,7 +294,7 @@ public class AuthenticationControllerIntegrationTest extends IntegrationTestBase
         .bodyValue(request)
         .exchange()
         .expectStatus()
-        .isUnauthorized();
+        .isForbidden();
   }
 
   @Test
@@ -321,7 +312,7 @@ public class AuthenticationControllerIntegrationTest extends IntegrationTestBase
         .bodyValue(request)
         .exchange()
         .expectStatus()
-        .isUnauthorized();
+        .isForbidden();
   }
 
   @Test
@@ -374,19 +365,11 @@ public class AuthenticationControllerIntegrationTest extends IntegrationTestBase
         .exchange();
   }
 
-  private void expectStatusAuthenticated(String expectedUsername) {
-    expectAuthStatus(true, expectedUsername);
-  }
-
-  private void expectStatusUnauthenticated() {
-    expectAuthStatus(false, null);
-  }
-
-  private void expectAuthStatus(boolean authenticated, String expectedUsernameOrEmpty) {
+  private void expectAuthenticated(String expectedUsername) {
     WebTestClient.BodyContentSpec spec =
         webTestClient
             .get()
-            .uri("/api/auth/status")
+            .uri("/api/auth/me")
             .cookies(this::setCookies)
             .exchange()
             .expectStatus()
@@ -394,15 +377,22 @@ public class AuthenticationControllerIntegrationTest extends IntegrationTestBase
             .expectHeader()
             .contentType(APPLICATION_JSON)
             .expectBody()
-            .jsonPath("$.authenticated")
-            .isEqualTo(authenticated);
-
-    if (authenticated) {
-      spec.jsonPath("$.username").isEqualTo(expectedUsernameOrEmpty);
-    } else {
-      spec.jsonPath("$.username").isEmpty();
-    }
+            .jsonPath("$.username")
+            .isEqualTo(expectedUsername);
     updateCookiesFromResponse(spec.returnResult());
+  }
+
+  private void expectUnauthenticated() {
+    updateCookiesFromResponse(
+        webTestClient
+            .get()
+            .uri("/api/auth/me")
+            .cookies(this::setCookies)
+            .exchange()
+            .expectStatus()
+            .isUnauthorized()
+            .expectBody()
+            .isEmpty());
   }
 
   private void setCookies(MultiValueMap<String, String> cookies) {

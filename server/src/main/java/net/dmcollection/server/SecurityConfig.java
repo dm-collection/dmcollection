@@ -80,7 +80,7 @@ public class SecurityConfig {
                         "/api/auth/register",
                         "/api/auth/checkUsername")
                     .permitAll()
-                    .requestMatchers(HttpMethod.GET, "/api/auth/status")
+                    .requestMatchers(HttpMethod.GET, "/api/auth/register", "/api/auth/available")
                     .permitAll()
                     .requestMatchers("/image/**")
                     .authenticated()
@@ -147,8 +147,8 @@ public class SecurityConfig {
         // Forward to index.html for frontend routing (for GET requests)
         request.getRequestDispatcher("/index.html").forward(request, response);
       } else {
-        // For API requests or non-GET requests, return 401
-        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
+        // For API requests or non-GET requests, return 401 with no body
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
       }
     }
   }
@@ -179,8 +179,8 @@ public class SecurityConfig {
         // for the index.html itself if permissions were stricter.
         request.getRequestDispatcher("/index.html").forward(request, response);
       } else {
-        // For API requests or non-GET requests, return 403 Forbidden
-        response.sendError(HttpServletResponse.SC_FORBIDDEN, "Forbidden");
+        // For API requests or non-GET requests, return 403 with no body
+        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
       }
     }
   }
