@@ -20,6 +20,7 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.context.SecurityContextHolderStrategy;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.web.authentication.rememberme.AbstractRememberMeServices;
 import org.springframework.security.web.context.HttpSessionSecurityContextRepository;
@@ -67,15 +68,13 @@ public class AuthenticationController {
   }
 
   @GetMapping("/api/auth/me")
-  public UserDetails getAuthStatus(
-      @AuthenticationPrincipal
-          org.springframework.security.core.userdetails.UserDetails userDetails) {
-    return new UserDetails(userDetails.getUsername());
+  public UserInfo getAuthStatus(@AuthenticationPrincipal UserDetails userDetails) {
+    return new UserInfo(userDetails.getUsername());
   }
 
   @PostMapping(path = "/api/auth/login", consumes = MediaType.APPLICATION_JSON_VALUE)
   @ResponseStatus(HttpStatus.OK)
-  public UserDetails login(
+  public UserInfo login(
       @Valid @RequestBody LoginRequest loginRequest,
       HttpServletRequest request,
       HttpServletResponse response) {
@@ -99,7 +98,7 @@ public class AuthenticationController {
         rememberMeServices.loginSuccess(request, response, authentication);
       }
 
-      return new UserDetails(authentication.getName());
+      return new UserInfo(authentication.getName());
 
     } catch (AuthenticationException e) {
       log.warn("Login failed for user: {} - {}", loginRequest.username(), e.getMessage());
@@ -121,7 +120,7 @@ public class AuthenticationController {
 
   @PostMapping(path = "/api/auth/register", consumes = MediaType.APPLICATION_JSON_VALUE)
   @ResponseStatus(HttpStatus.CREATED)
-  public UserDetails register(
+  public UserInfo register(
       @Valid @RequestBody RegistrationRequest registrationRequest,
       HttpServletRequest request,
       HttpServletResponse response,
@@ -163,7 +162,7 @@ public class AuthenticationController {
     context.setAuthentication(authentication);
     this.securityContextHolderStrategy.setContext(context);
     securityContextRepository.saveContext(context, request, response);
-    return new UserDetails(registrationRequest.username());
+    return new UserInfo(registrationRequest.username());
   }
 
   public record LoginRequest(
@@ -180,5 +179,5 @@ public class AuthenticationController {
           String password,
       String code) {}
 
-  public record UserDetails(String username) {}
+  public record UserInfo(String username) {}
 }
