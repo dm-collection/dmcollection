@@ -41,7 +41,7 @@ class AuthStore {
 	}
 
 	async logout() {
-		await api('api/auth/logout', { method: 'POST' });
+		await api('/api/auth/logout', { method: 'POST' });
 		this.user = null;
 		invalidateAll();
 		await goto('/login');
