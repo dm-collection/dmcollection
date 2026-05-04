@@ -9,7 +9,8 @@ import org.jooq.Condition;
 
 public class NameConditionBuilder {
 
-  private static final String COMBINED_NAME_SEPARATOR = "／";
+  private static final String TWINPACT_NAME_SEPARATOR = "／";
+  private static final String COMBINED_NAME_SEPARATOR = "/";
 
   private NameConditionBuilder() {}
 
@@ -24,7 +25,8 @@ public class NameConditionBuilder {
                 .from(CARD_SIDE)
                 .where(CARD_SIDE.NAME.containsIgnoreCase(nameSearch)));
 
-    if (nameSearch.contains(COMBINED_NAME_SEPARATOR)) {
+    if (nameSearch.contains(COMBINED_NAME_SEPARATOR)
+        || nameSearch.contains(TWINPACT_NAME_SEPARATOR)) {
       return sideMatch.or(CARD.NAME.containsIgnoreCase(nameSearch));
     }
 
