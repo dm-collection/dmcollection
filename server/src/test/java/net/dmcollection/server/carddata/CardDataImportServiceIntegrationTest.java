@@ -38,6 +38,7 @@ import org.springframework.boot.autoconfigure.jooq.JooqAutoConfiguration;
 import org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
+import org.springframework.transaction.annotation.Transactional;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
 @SpringBootTest(
@@ -51,6 +52,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
       CardDataImportService.class
     })
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
+@Transactional
 class CardDataImportServiceIntegrationTest {
 
   @ServiceConnection static final PostgreSQLContainer PG = IntegrationTestBase.PG;
