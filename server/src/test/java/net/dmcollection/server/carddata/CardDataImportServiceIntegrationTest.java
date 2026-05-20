@@ -1,5 +1,6 @@
 package net.dmcollection.server.carddata;
 
+import static net.dmcollection.server.jooq.generated.Tables.ABILITY;
 import static net.dmcollection.server.jooq.generated.Tables.APP_USER;
 import static net.dmcollection.server.jooq.generated.Tables.CARD;
 import static net.dmcollection.server.jooq.generated.Tables.CARD_CIV_GROUP;
@@ -24,6 +25,7 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.UUID;
 import net.dmcollection.server.IntegrationTestBase;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -48,6 +50,13 @@ class CardDataImportServiceIntegrationTest extends IntegrationTestBase {
       data = objectMapper.readValue(is, CardDataJson.class);
     }
     importService.importCardData(data);
+  }
+
+  @AfterAll
+  void deleteData() {
+    dsl.truncateTable(SET_GROUP).cascade().execute();
+    dsl.truncateTable(CARD).cascade().execute();
+    dsl.truncateTable(ABILITY).execute();
   }
 
   @Test
