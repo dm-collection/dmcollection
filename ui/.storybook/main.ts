@@ -10,6 +10,6 @@ const config: StorybookConfig = {
 		'@storybook/addon-docs'
 	],
 	framework: '@storybook/sveltekit',
-	staticDirs: ['../static']
+	staticDirs: ['../static', { from: '../../dmcollection-images', to: '/image' }]
 };
 export default config;

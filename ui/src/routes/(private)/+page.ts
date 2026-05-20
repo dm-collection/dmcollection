@@ -1,5 +1,7 @@
+import { loadLatest } from '$lib/api/history';
 import type { PageLoad } from './$types';
-// Login page doesn't need protection
-export const load: PageLoad = async () => {
-	return {};
+export const load: PageLoad = async ({ fetch }) => {
+	return {
+		latest: await loadLatest(fetch, 5)
+	};
 };
