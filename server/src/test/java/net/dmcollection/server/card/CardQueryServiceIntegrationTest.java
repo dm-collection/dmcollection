@@ -869,6 +869,23 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
   }
 
   @Test
+  void quotedNameMatchesExactly() {
+    var bolshack = utils.monoCard("ボルシャック・ドラゴン", 6, 6000, FIRE);
+    var neoBolshak = utils.monoCard("ネオ・ボルシャック・ドラゴン", 8, 11000, FIRE);
+    var bolshackCharger =
+        utils.twinpact("ボルシャック・ドラゴン / 決闘者・チャージャー", Set.of(FIRE), Set.of(FIRE), 6, 3, 6000);
+
+    SearchFilter filter = search().setNameSearch("ボルシャック・ドラゴン").build();
+    assertQueryFinds(filter, bolshack, neoBolshak, bolshackCharger);
+
+    filter = search().setNameSearch("\"ボルシャック・ドラゴン\"").build();
+    assertQueryFinds(filter, bolshack);
+
+    filter = search().setNameSearch("\"ボルシャック・ドラゴン / 決闘者・チャージャー\"").build();
+    assertQueryFinds(filter, bolshackCharger);
+  }
+
+  @Test
   void findsCardsByEffectText() {
     var blocker = utils.monoCard("blocker", "ブロッカー");
     var wBreaker = utils.monoCard("double-breaker", "W・ブレイカー");
