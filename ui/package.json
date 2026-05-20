@@ -49,7 +49,7 @@
 		"prettier-plugin-tailwindcss": "0.8.0",
 		"storybook": "10.3.6",
 		"svelte": "5.55.7",
-		"svelte-check": "4.4.6",
+		"svelte-check": "4.4.8",
 		"tailwindcss": "4.3.0",
 		"typescript": "5.9.3",
 		"typescript-eslint": "8.58.1",
