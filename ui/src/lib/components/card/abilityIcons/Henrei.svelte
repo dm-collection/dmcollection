@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Shovel from 'phosphor-svelte/lib/Shovel';
+	import ShovelIcon from 'phosphor-svelte/lib/ShovelIcon';
 </script>
 
-<Shovel class="inline" weight="fill" size="1.2em"></Shovel>
+<ShovelIcon class="inline" weight="fill" size="1.2em"></ShovelIcon>

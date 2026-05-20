@@ -11,7 +11,7 @@
 	import type { PagedResult } from '$lib/types/page';
 	import { SvelteURL, SvelteURLSearchParams } from 'svelte/reactivity';
 	import type { PageProps } from './$types';
-	import PencilSimple from 'phosphor-svelte/lib/PencilSimple';
+	import PencilSimpleIcon from 'phosphor-svelte/lib/PencilSimpleIcon';
 	import { api } from '$lib/api';
 
 	let { data }: PageProps = $props();
@@ -137,7 +137,7 @@
 			<div class="flex flex-row gap-4">
 				<h1 class="txt-h1">Deck: {data.deck.getInfo()!.name}</h1>
 				<button class="btn-secondary" onclick={showDialog}>
-					<PencilSimple class="mr-1"></PencilSimple>Rename
+					<PencilSimpleIcon class="mr-1"></PencilSimpleIcon>Rename
 				</button>
 			</div>
 

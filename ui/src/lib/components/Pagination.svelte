@@ -3,8 +3,8 @@
 	import { goto } from '$app/navigation';
 	import type { Page } from '$lib/types/page';
 	import { page } from '$app/state';
-	import CaretRight from 'phosphor-svelte/lib/CaretRight';
-	import CaretLeft from 'phosphor-svelte/lib/CaretLeft';
+	import CaretRightIcon from 'phosphor-svelte/lib/CaretRightIcon';
+	import CaretLeftIcon from 'phosphor-svelte/lib/CaretLeftIcon';
 
 	let {
 		pageInfo,
@@ -45,7 +45,7 @@
 >
 	{#snippet children({ pages, currentPage })}
 		<PaginationPrimitive.PrevButton class="btn-primary" aria-label="previous page">
-			<CaretLeft weight="bold" size="1.5em" />
+			<CaretLeftIcon weight="bold" size="1.5em" />
 		</PaginationPrimitive.PrevButton>
 
 		{#each pages as pageItem (pageItem.key)}
@@ -62,7 +62,7 @@
 		{/each}
 
 		<PaginationPrimitive.NextButton class="btn-primary" aria-label="next page">
-			<CaretRight weight="bold" size="1.5em" />
+			<CaretRightIcon weight="bold" size="1.5em" />
 		</PaginationPrimitive.NextButton>
 	{/snippet}
 </PaginationPrimitive.Root>

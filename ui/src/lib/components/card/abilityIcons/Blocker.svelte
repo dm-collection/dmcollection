@@ -1,7 +1,8 @@
 <script lang="ts">
-	import Circle from 'phosphor-svelte/lib/Circle';
+	import CircleIcon from 'phosphor-svelte/lib/CircleIcon';
 </script>
 
 <span class="mr-1 inline-flex h-[1em] w-[1em] items-center justify-center rounded-sm bg-black"
-	><Circle size="0.7em" class="inline" weight="fill" color="var(--color-water)"></Circle></span
+	><CircleIcon size="0.7em" class="inline" weight="fill" color="var(--color-water)"
+	></CircleIcon></span
 >

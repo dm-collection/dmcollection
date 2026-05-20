@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Sunglasses from 'phosphor-svelte/lib/Sunglasses';
+	import SunglassesIcon from 'phosphor-svelte/lib/SunglassesIcon';
 </script>
 
-<Sunglasses class="inline" weight="fill" size="1.2em"></Sunglasses>
+<SunglassesIcon class="inline" weight="fill" size="1.2em"></SunglassesIcon>

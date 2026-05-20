@@ -1,5 +1,5 @@
 <script lang="ts">
-	import ShieldSlash from 'phosphor-svelte/lib/ShieldSlash';
+	import ShieldSlashIcon from 'phosphor-svelte/lib/ShieldSlashIcon';
 </script>
 
-<ShieldSlash class="mx-1 inline" size="1.5em" weight="duotone"></ShieldSlash>
+<ShieldSlashIcon class="mx-1 inline" size="1.5em" weight="duotone"></ShieldSlashIcon>

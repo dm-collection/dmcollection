@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { goto, invalidate } from '$app/navigation';
 	import type { PageData } from './$types';
-	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
-	import DownloadSimple from 'phosphor-svelte/lib/DownloadSimple';
-	import Plus from 'phosphor-svelte/lib/Plus';
-	import Trash from 'phosphor-svelte/lib/Trash';
-	import UploadSimple from 'phosphor-svelte/lib/UploadSimple';
+	import CircleNotchIcon from 'phosphor-svelte/lib/CircleNotchIcon';
+	import DownloadSimpleIcon from 'phosphor-svelte/lib/DownloadSimpleIcon';
+	import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
+	import TrashIcon from 'phosphor-svelte/lib/TrashIcon';
+	import UploadSimpleIcon from 'phosphor-svelte/lib/UploadSimpleIcon';
 	import { formatDistanceToNow, formatRFC3339 } from 'date-fns';
 	import type { CollectionInfo } from '$lib/types/collection';
 	import { api } from '$lib/api';
@@ -134,7 +134,7 @@
 				disabled={uploading || importFiles == null || importFiles.length == 0}
 			>
 				{#if uploading}
-					<CircleNotch class="animate-spin"></CircleNotch>
+					<CircleNotchIcon class="animate-spin"></CircleNotchIcon>
 				{/if}
 				Import</button
 			>
@@ -149,10 +149,10 @@
 	<div class="flex flex-row gap-2">
 		<button class="btn-primary" onclick={createDeck}>
 			<span>New</span>
-			<Plus class="ml-2" weight="bold" size="1.5em"></Plus>
+			<PlusIcon class="ml-2" weight="bold" size="1.5em"></PlusIcon>
 		</button>
 		<button type="button" class="btn-secondary" onclick={showDialog}>
-			<UploadSimple size="1.5em" class="mr-2"></UploadSimple>Import
+			<UploadSimpleIcon size="1.5em" class="mr-2"></UploadSimpleIcon>Import
 		</button>
 	</div>
 {/if}
@@ -166,10 +166,10 @@
 			<div class="flex flex-row items-center gap-2 px-4">
 				<button type="button" class="btn-primary" onclick={createDeck}>
 					<span>New</span>
-					<Plus class="ml-2" weight="bold" size="1.5em"></Plus>
+					<PlusIcon class="ml-2" weight="bold" size="1.5em"></PlusIcon>
 				</button>
 				<button type="button" class="btn-secondary" onclick={showDialog}>
-					<UploadSimple size="1.5em" class="mr-2"></UploadSimple>Import
+					<UploadSimpleIcon size="1.5em" class="mr-2"></UploadSimpleIcon>Import
 				</button>
 			</div>
 		</div>
@@ -187,7 +187,7 @@
 									type="submit"
 									class="inline-flex items-center rounded-md border bg-white py-2 pr-3 pl-2 enabled:border-teal-700 enabled:text-teal-700 enabled:hover:bg-teal-700 enabled:hover:text-teal-50 disabled:border-slate-300 disabled:text-slate-300"
 								>
-									<DownloadSimple size="1.5em" class="mr-2"></DownloadSimple>
+									<DownloadSimpleIcon size="1.5em" class="mr-2"></DownloadSimpleIcon>
 									Export All</button
 								>
 							</form>
@@ -221,7 +221,7 @@
 											type="submit"
 											class="inline-flex items-center rounded-md border bg-white py-2 pr-3 pl-2 enabled:border-teal-700 enabled:text-teal-700 enabled:hover:bg-teal-700 enabled:hover:text-teal-50 disabled:border-slate-300 disabled:text-slate-300"
 										>
-											<DownloadSimple size="1.5em" class="mr-2"></DownloadSimple>
+											<DownloadSimpleIcon size="1.5em" class="mr-2"></DownloadSimpleIcon>
 											Export</button
 										>
 									</form>
@@ -234,7 +234,7 @@
 										class="btn-secondary"
 										aria-label="Delete"
 									>
-										<Trash size="1.5em"><title>Delete</title></Trash>
+										<TrashIcon size="1.5em"><title>Delete</title></TrashIcon>
 									</button>
 								</div>
 							</td>

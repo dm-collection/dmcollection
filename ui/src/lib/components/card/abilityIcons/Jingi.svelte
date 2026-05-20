@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Handshake from 'phosphor-svelte/lib/Handshake';
+	import HandshakeIcon from 'phosphor-svelte/lib/HandshakeIcon';
 </script>
 
-<Handshake class="mx-1 inline" size="1.5em" weight="fill"></Handshake>
+<HandshakeIcon class="mx-1 inline" size="1.5em" weight="fill"></HandshakeIcon>

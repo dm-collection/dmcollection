@@ -1,11 +1,11 @@
 <script lang="ts">
-	import ArrowsVertical from 'phosphor-svelte/lib/ArrowsVertical';
+	import ArrowsVerticalIcon from 'phosphor-svelte/lib/ArrowsVerticalIcon';
 </script>
 
 <span
 	class="inline-flex h-[1.2em] w-[1.2em] items-center justify-center rounded-full border-1 border-black bg-white text-black"
 >
-	<ArrowsVertical weight="bold"></ArrowsVertical>
+	<ArrowsVerticalIcon weight="bold"></ArrowsVerticalIcon>
 </span>
 
 <style>

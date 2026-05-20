@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Plus from 'phosphor-svelte/lib/Plus';
-	import Minus from 'phosphor-svelte/lib/Minus';
+	import PlusIcon from 'phosphor-svelte/lib/PlusIcon';
+	import MinusIcon from 'phosphor-svelte/lib/MinusIcon';
 
 	type Props = {
 		value: number;
@@ -47,7 +47,7 @@
 			data-input-counter-decrement="quantity-input"
 			class="btn-secondary px-2 py-2"
 		>
-			<Minus weight="bold"><title>Subtract</title></Minus>
+			<MinusIcon weight="bold"><title>Subtract</title></MinusIcon>
 		</button>
 		<input
 			id="quantity-input"
@@ -71,7 +71,7 @@
 			data-input-counter-increment="quantity-input"
 			class="btn-secondary px-2 py-2"
 		>
-			<Plus weight="bold"><title>Add</title></Plus>
+			<PlusIcon weight="bold"><title>Add</title></PlusIcon>
 		</button>
 	</div>
 </form>

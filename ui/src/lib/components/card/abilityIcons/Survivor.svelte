@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Biohazard from 'phosphor-svelte/lib/Biohazard';
+	import BiohazardIcon from 'phosphor-svelte/lib/BiohazardIcon';
 </script>
 
-<Biohazard class="inline" weight="bold" size="1.2em"></Biohazard>
+<BiohazardIcon class="inline" weight="bold" size="1.2em"></BiohazardIcon>
