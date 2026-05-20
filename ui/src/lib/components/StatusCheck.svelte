@@ -1,7 +1,7 @@
 <script lang="ts">
-	import CircleNotch from 'phosphor-svelte/lib/CircleNotch';
-	import CheckCircle from 'phosphor-svelte/lib/CheckCircle';
-	import XCircle from 'phosphor-svelte/lib/XCircle';
+	import CircleNotchIcon from 'phosphor-svelte/lib/CircleNotchIcon';
+	import CheckCircleIcon from 'phosphor-svelte/lib/CheckCircleIcon';
+	import XCircleIcon from 'phosphor-svelte/lib/XCircleIcon';
 
 	let {
 		promise,
@@ -20,24 +20,24 @@
 
 {#await promise}
 	<span class="inline-flex items-center gap-1">
-		<CircleNotch class="animate-spin text-teal-700"></CircleNotch>
+		<CircleNotchIcon class="animate-spin text-teal-700"></CircleNotchIcon>
 		<span>{pendingMessage}</span>
 	</span>
 {:then result}
 	{#if result}
 		<span class="inline-flex items-center gap-1 text-green-700">
-			<CheckCircle />
+			<CheckCircleIcon />
 			<span>{successMessage}</span>
 		</span>
 	{:else}
 		<span class="inline-flex items-center gap-1 text-red-700">
-			<XCircle />
+			<XCircleIcon />
 			<span>{failureMessage}</span>
 		</span>
 	{/if}
 {:catch}
 	<span class="inline-flex items-center gap-1 text-red-700">
-		<XCircle />
+		<XCircleIcon />
 		<span>{errorMessage}</span>
 	</span>
 {/await}

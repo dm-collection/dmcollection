@@ -2,7 +2,7 @@
 	import { NavigationMenu } from 'bits-ui';
 	import { page } from '$app/state';
 	import { auth } from '$lib/auth.svelte';
-	import UserCircle from 'phosphor-svelte/lib/UserCircle';
+	import UserCircleIcon from 'phosphor-svelte/lib/UserCircleIcon';
 
 	type Props = {
 		enabled?: boolean;
@@ -94,8 +94,12 @@
 			<NavigationMenu.Item class="relative ml-auto pr-2 md:pr-8">
 				<NavigationMenu.Trigger>
 					<span
-						><UserCircle class="inline" size="1.7em" weight="duotone" color="var(--color-teal-700)"
-						></UserCircle><span class="hidden align-middle text-teal-700 sm:ml-2 sm:inline"
+						><UserCircleIcon
+							class="inline"
+							size="1.7em"
+							weight="duotone"
+							color="var(--color-teal-700)"
+						></UserCircleIcon><span class="hidden align-middle text-teal-700 sm:ml-2 sm:inline"
 							>{username}</span
 						></span
 					>

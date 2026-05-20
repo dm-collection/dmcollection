@@ -21,9 +21,9 @@
 		type Order
 	} from '$lib/types/sort';
 	import Civilization from './card/Civilization.svelte';
-	import CaretDown from 'phosphor-svelte/lib/CaretDown';
-	import CaretUp from 'phosphor-svelte/lib/CaretUp';
-	import ArrowsLeftRight from 'phosphor-svelte/lib/ArrowsLeftRight';
+	import CaretDownIcon from 'phosphor-svelte/lib/CaretDownIcon';
+	import CaretUpIcon from 'phosphor-svelte/lib/CaretUpIcon';
+	import ArrowsLeftRightIcon from 'phosphor-svelte/lib/ArrowsLeftRightIcon';
 
 	let {
 		search,
@@ -168,9 +168,9 @@
 		>
 			Filter
 			{#if filtersVisible}
-				<CaretUp class="ml-2" weight="bold" size="1.5em"></CaretUp>
+				<CaretUpIcon class="ml-2" weight="bold" size="1.5em"></CaretUpIcon>
 			{:else}
-				<CaretDown class="ml-2" weight="bold" size="1.5em"></CaretDown>
+				<CaretDownIcon class="ml-2" weight="bold" size="1.5em"></CaretDownIcon>
 			{/if}
 		</button>
 		<button
@@ -182,9 +182,9 @@
 		>
 			Sort
 			{#if sortVisible}
-				<CaretUp class="ml-2" weight="bold" size="1.5em"></CaretUp>
+				<CaretUpIcon class="ml-2" weight="bold" size="1.5em"></CaretUpIcon>
 			{:else}
-				<CaretDown class="ml-2" weight="bold" size="1.5em"></CaretDown>
+				<CaretDownIcon class="ml-2" weight="bold" size="1.5em"></CaretDownIcon>
 			{/if}
 		</button>
 	</div>
@@ -437,7 +437,7 @@
 			</select>
 		</div>
 		<button class="btn-secondary self-end" aria-label="Switch sorting order" onclick={switchSort}
-			><ArrowsLeftRight weight="bold" size="1em"></ArrowsLeftRight></button
+			><ArrowsLeftRightIcon weight="bold" size="1em"></ArrowsLeftRightIcon></button
 		>
 		<div>
 			<label for="sort2" class="block text-sm font-medium">Then sort by</label>
