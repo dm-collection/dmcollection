@@ -1,5 +1,6 @@
 package net.dmcollection.server.carddata;
 
+import static net.dmcollection.server.jooq.generated.Tables.ABILITY;
 import static net.dmcollection.server.jooq.generated.Tables.APP_USER;
 import static net.dmcollection.server.jooq.generated.Tables.CARD;
 import static net.dmcollection.server.jooq.generated.Tables.CARD_CIV_GROUP;
@@ -24,38 +25,17 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.UUID;
 import net.dmcollection.server.IntegrationTestBase;
-import org.jooq.DSLContext;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
-import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
-import org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration;
-import org.springframework.boot.autoconfigure.jooq.JooqAutoConfiguration;
-import org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
-import org.testcontainers.postgresql.PostgreSQLContainer;
+import org.springframework.transaction.annotation.Transactional;
 
-@SpringBootTest(
-    classes = {
-      DataSourceAutoConfiguration.class,
-      DataSourceTransactionManagerAutoConfiguration.class,
-      TransactionAutoConfiguration.class,
-      FlywayAutoConfiguration.class,
-      JooqAutoConfiguration.class,
-      JacksonAutoConfiguration.class,
-      CardDataImportService.class
-    })
+@Transactional
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class CardDataImportServiceIntegrationTest {
-
-  @ServiceConnection static final PostgreSQLContainer PG = IntegrationTestBase.PG;
-
-  @Autowired DSLContext dsl;
+class CardDataImportServiceIntegrationTest extends IntegrationTestBase {
 
   @Autowired CardDataImportService importService;
 
@@ -70,6 +50,13 @@ class CardDataImportServiceIntegrationTest {
       data = objectMapper.readValue(is, CardDataJson.class);
     }
     importService.importCardData(data);
+  }
+
+  @AfterAll
+  void deleteData() {
+    dsl.truncateTable(SET_GROUP).cascade().execute();
+    dsl.truncateTable(CARD).cascade().execute();
+    dsl.truncateTable(ABILITY).cascade().execute();
   }
 
   @Test
