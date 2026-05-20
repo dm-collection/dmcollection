@@ -54,9 +54,9 @@ class CardDataImportServiceIntegrationTest extends IntegrationTestBase {
 
   @AfterAll
   void deleteData() {
-    dsl.truncateTable(SET_GROUP).restartIdentity().cascade().execute();
+    dsl.truncateTable(SET_GROUP).cascade().execute();
     dsl.truncateTable(CARD).cascade().execute();
-    dsl.truncateTable(ABILITY).restartIdentity().execute();
+    dsl.truncateTable(ABILITY).cascade().execute();
   }
 
   @Test
