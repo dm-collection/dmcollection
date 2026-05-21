@@ -30,8 +30,10 @@ public class WebConfig implements WebMvcConfigurer {
   @Override
   public void addResourceHandlers(@NonNull ResourceHandlerRegistry registry) {
     this.serveDirectory(registry, "/", "classpath:/static/");
-    String imagePath = "file:" + appProperties.imageStoragePath();
-    serveDirectory(registry, "/image/", imagePath);
+    if (!appProperties.imageService().enabled()) {
+      String imagePath = "file:" + appProperties.imageStoragePath();
+      serveDirectory(registry, "/image/", imagePath);
+    }
   }
 
   private void serveDirectory(ResourceHandlerRegistry registry, String endpoint, String location) {

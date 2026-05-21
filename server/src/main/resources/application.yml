@@ -14,6 +14,9 @@ dmcollection:
   card-page:
     default-size: 40
     max-size: 100
+  image-service:
+    enabled: ${dmcollection_image_service_enabled:false}
+    base-url: ${dmcollection_image_service_base_url:}
   registration-code: ${dmcollection_registration_code:}
   remember-me-key: ${dmcollection_remember_me_key:devkey}
   card-data-path: ${dmcollection_card_data_path:./data/card-data.json}
