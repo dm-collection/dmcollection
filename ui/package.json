@@ -19,7 +19,7 @@
 		"build-storybook": "storybook build"
 	},
 	"devDependencies": {
-		"@chromatic-com/storybook": "5.1.2",
+		"@chromatic-com/storybook": "5.2.1",
 		"@storybook/addon-a11y": "10.3.6",
 		"@storybook/addon-docs": "10.3.6",
 		"@storybook/addon-svelte-csf": "5.1.2",
