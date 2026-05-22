@@ -97,6 +97,16 @@ class CardControllerIntegrationTest extends IntegrationTestBase {
   }
 
   @Test
+  void getCardIncludesDeckZone() throws Exception {
+    var expected = fixtures.createFoursides();
+
+    mockMvc
+        .perform(get("/api/card/" + expected.dmId()).with(user(testUser)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.zone").value("hyperspatial"));
+  }
+
+  @Test
   void getCardReturns404WhenNotFound() throws Exception {
     mockMvc
         .perform(get("/api/card/nonexistent").with(user(testUser)))

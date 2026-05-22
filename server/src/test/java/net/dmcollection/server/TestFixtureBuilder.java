@@ -501,6 +501,13 @@ public class TestFixtureBuilder {
             .sorted()
             .toArray(Short[]::new);
 
+    String cardZone = "main";
+    if (facetTypes != null) {
+      if (facetTypes.contains(PSYCHIC_CREATURE)) {
+        cardZone = "hyperspatial";
+      }
+    }
+
     // Insert card
     Integer cardId =
         dsl.insertInto(CARD)
@@ -509,6 +516,7 @@ public class TestFixtureBuilder {
             .set(CARD.SORT_COST, sortCost)
             .set(CARD.SORT_POWER, sortPower)
             .set(CARD.SORT_CIVILIZATION, sortCivilization)
+            .set(CARD.DECK_ZONE, cardZone)
             .returningResult(CARD.ID)
             .fetchOne(CARD.ID);
 
