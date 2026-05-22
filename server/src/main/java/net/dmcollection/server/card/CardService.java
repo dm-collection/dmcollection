@@ -54,6 +54,7 @@ public class CardService {
       String idText,
       String rarity,
       SetDto set,
+      String zone,
       Set<String> civilizations,
       List<CardFacetDto> facets) {}
 
@@ -129,6 +130,7 @@ public class CardService {
                 PRINTING.ID,
                 PRINTING.OFFICIAL_SITE_ID,
                 PRINTING.COLLECTOR_NUMBER,
+                CARD.DECK_ZONE,
                 CARD_SET.ID,
                 CARD_SET.CODE,
                 CARD_SET.NAME,
@@ -151,6 +153,7 @@ public class CardService {
     String officialSiteId = printingRecord.get(PRINTING.OFFICIAL_SITE_ID);
     String collectorNumber = printingRecord.get(PRINTING.COLLECTOR_NUMBER);
     String rarityName = printingRecord.get(RARITY.NAME);
+    String deckZone = printingRecord.get(CARD.DECK_ZONE);
     SetDto setDto =
         new SetDto(
             printingRecord.get(CARD_SET.ID).longValue(),
@@ -212,6 +215,7 @@ public class CardService {
               null,
               rarityName,
               setDto,
+              deckZone,
               Set.of(),
               null));
     }
@@ -315,6 +319,7 @@ public class CardService {
                 : null,
             rarityName,
             setDto,
+            deckZone,
             allCivilizations,
             facets));
   }
