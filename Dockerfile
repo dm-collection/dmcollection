@@ -10,7 +10,7 @@ WORKDIR /app
 COPY mvnw pom.xml ./
 COPY .mvn/ .mvn/
 COPY server/pom.xml server/
-RUN ./mvnw -B dependency:go-offline -pl server
+RUN ./mvnw -B dependency:go-offline -DskipTests -pl server
 COPY --from=ui-builder /app/build/ server/src/main/resources/static/
 COPY server/src/ server/src/
 RUN ./mvnw -B package -DskipTests -pl server
