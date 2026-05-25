@@ -129,12 +129,23 @@ public class CardDataImportService {
               .fetchOne(CARD_SET.ID);
 
       if (survivorSetId == null) {
-        dsl.update(CARD_SET).set(CARD_SET.CODE, alias.newCode()).where(CARD_SET.ID.eq(oldSetId)).execute();
+        dsl.update(CARD_SET)
+            .set(CARD_SET.CODE, alias.newCode())
+            .where(CARD_SET.ID.eq(oldSetId))
+            .execute();
         log.info("Renamed set '{}' to '{}'", alias.oldCode(), alias.newCode());
       } else {
-        dsl.update(PRINTING).set(PRINTING.SET_ID, survivorSetId).where(PRINTING.SET_ID.eq(oldSetId)).execute();
+        dsl.update(PRINTING)
+            .set(PRINTING.SET_ID, survivorSetId)
+            .where(PRINTING.SET_ID.eq(oldSetId))
+            .execute();
         dsl.deleteFrom(CARD_SET).where(CARD_SET.ID.eq(oldSetId)).execute();
-        log.info("Merged set '{}' (id={}) into '{}' (id={})", alias.oldCode(), oldSetId, alias.newCode(), survivorSetId);
+        log.info(
+            "Merged set '{}' (id={}) into '{}' (id={})",
+            alias.oldCode(),
+            oldSetId,
+            alias.newCode(),
+            survivorSetId);
       }
     }
   }
@@ -210,7 +221,8 @@ public class CardDataImportService {
         WISHLIST_ENTRY.QUANTITY,
         WISHLIST_ENTRY.WISHLIST_ID);
 
-    // Re-point printing_side rows from old card's sides to survivor's sides (matched by side_order).
+    // Re-point printing_side rows from old card's sides to survivor's sides (matched by
+    // side_order).
     // Without this, the CASCADE delete of card_side would violate printing_side's FK.
     var survivorSidesByOrder =
         dsl.select(CARD_SIDE.ID, CARD_SIDE.SIDE_ORDER)
@@ -653,7 +665,11 @@ public class CardDataImportService {
     for (var group : civGroups) {
       Integer cardId = cardIds.get(group.cardName());
       if (cardId == null) continue;
-      Short[] civIds = toShortArray(group.civilizationIds());
+      List<Integer> rawIds = group.civilizationIds();
+      // Strip "0" civilization, in our schema colorless is the absence of any civilizations
+      List<Integer> colorCivIds =
+          rawIds == null ? List.of() : rawIds.stream().filter(id -> id != 0).toList();
+      Short[] civIds = toShortArray(colorCivIds);
       batch.bind(cardId, civIds, group.includesColorlessSide());
       hasRows = true;
     }
