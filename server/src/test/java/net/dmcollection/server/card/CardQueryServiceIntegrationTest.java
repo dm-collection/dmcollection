@@ -45,6 +45,16 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
   }
 
   @Test
+  void findsColorlessCard() {
+    CardStub zero = utils.monoCard("Zero", ZERO);
+
+    SearchFilter filter =
+        search().addIncludedCivs(ZERO).setIncludeMono(true).setIncludeRainbow(false).build();
+
+    assertQueryFinds(filter, zero);
+  }
+
+  @Test
   void excludesMultiCivCards() {
     CardStub mono = utils.monoCard("MONO-1", LIGHT);
 

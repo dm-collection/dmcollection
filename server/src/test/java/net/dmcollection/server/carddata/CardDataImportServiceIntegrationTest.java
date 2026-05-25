@@ -102,6 +102,19 @@ class CardDataImportServiceIntegrationTest extends IntegrationTestBase {
   }
 
   @Test
+  void colorlessCardCivGroupHasEmptyCivilizationIds() {
+    var card = dsl.selectFrom(CARD).where(CARD.NAME.eq("「武」の頂 マキシマム・ザ・マックス")).fetchOne();
+    assertThat(card).isNotNull();
+
+    var civGroups =
+        dsl.selectFrom(CARD_CIV_GROUP).where(CARD_CIV_GROUP.CARD_ID.eq(card.getId())).fetch();
+
+    assertThat(civGroups).hasSize(1);
+    assertThat(civGroups.getFirst().getCivilizationIds()).isEmpty();
+    assertThat(civGroups.getFirst().getIncludesColorlessSide()).isTrue();
+  }
+
+  @Test
   void twinpactCivGroupIsUnion() {
     var card = dsl.selectFrom(CARD).where(CARD.NAME.eq("ハザード・オウ禍武斗／禍武斗の轟印")).fetchOne();
     assertThat(card).isNotNull();
