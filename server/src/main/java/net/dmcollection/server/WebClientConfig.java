@@ -14,7 +14,7 @@ public class WebClientConfig {
     this.appProperties = appProperties;
   }
 
-  @Bean
+  @Bean("imageServiceClient")
   @ConditionalOnBooleanProperty("dmcollection.image-service.enabled")
   public WebClient webClient(WebClient.Builder builder) {
     return builder.baseUrl(appProperties.imageService().baseUrl()).build();

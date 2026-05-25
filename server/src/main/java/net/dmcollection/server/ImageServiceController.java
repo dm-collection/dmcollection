@@ -2,6 +2,7 @@ package net.dmcollection.server;
 
 import java.net.URI;
 import java.net.URISyntaxException;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpHeaders;
@@ -20,7 +21,7 @@ public class ImageServiceController {
 
   private final WebClient webClient;
 
-  public ImageServiceController(WebClient webClient) {
+  public ImageServiceController(@Qualifier("imageServiceClient") WebClient webClient) {
     this.webClient = webClient;
   }
 
@@ -36,6 +37,7 @@ public class ImageServiceController {
         return Mono.just(ResponseEntity.badRequest().build());
       }
     } catch (URISyntaxException _) {
+      // relative URLs are OK
     }
     return webClient
         .get()
