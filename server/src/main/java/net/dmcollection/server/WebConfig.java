@@ -4,12 +4,16 @@ import static java.util.Objects.nonNull;
 
 import jakarta.servlet.http.HttpServletRequest;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.ViewControllerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+import org.springframework.web.servlet.resource.AbstractResourceResolver;
 import org.springframework.web.servlet.resource.PathResourceResolver;
 import org.springframework.web.servlet.resource.ResourceResolverChain;
 
@@ -32,7 +36,40 @@ public class WebConfig implements WebMvcConfigurer {
     this.serveDirectory(registry, "/", "classpath:/static/");
     if (!appProperties.imageService().enabled()) {
       String imagePath = "file:" + appProperties.imageStoragePath();
-      serveDirectory(registry, "/image/", imagePath);
+      String location = imagePath.endsWith("/") ? imagePath : imagePath + "/";
+      registry
+          .addResourceHandler("/image/**")
+          .addResourceLocations(location)
+          .resourceChain(false)
+          .addResolver(new ImageFilenameResolver())
+          .addResolver(new PathResourceResolver());
+    }
+  }
+
+  private static class ImageFilenameResolver extends AbstractResourceResolver {
+
+    private static final Pattern IMAGE_FILENAME =
+        Pattern.compile("^(?:.+/)?([^/]+\\.(?:jpg|webp))$");
+
+    @Override
+    @Nullable
+    protected Resource resolveResourceInternal(
+        @Nullable HttpServletRequest request,
+        @NonNull String requestPath,
+        @NonNull List<? extends Resource> locations,
+        @NonNull ResourceResolverChain chain) {
+      Matcher m = IMAGE_FILENAME.matcher(requestPath);
+      return chain.resolveResource(request, m.matches() ? m.group(1) : requestPath, locations);
+    }
+
+    @Override
+    @Nullable
+    protected String resolveUrlPathInternal(
+        @NonNull String resourceUrlPath,
+        @NonNull List<? extends Resource> locations,
+        @NonNull ResourceResolverChain chain) {
+      Matcher m = IMAGE_FILENAME.matcher(resourceUrlPath);
+      return chain.resolveUrlPath(m.matches() ? m.group(1) : resourceUrlPath, locations);
     }
   }
 
