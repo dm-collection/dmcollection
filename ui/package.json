@@ -36,7 +36,7 @@
 		"@vitest/coverage-v8": "4.1.6",
 		"autoprefixer": "10.5.0",
 		"bits-ui": "2.18.1",
-		"date-fns": "4.1.0",
+		"date-fns": "4.2.1",
 		"eslint": "9.39.4",
 		"eslint-config-prettier": "10.1.8",
 		"eslint-plugin-storybook": "10.4.0",
@@ -48,11 +48,11 @@
 		"prettier-plugin-svelte": "3.5.2",
 		"prettier-plugin-tailwindcss": "0.8.0",
 		"storybook": "10.4.0",
-		"svelte": "5.55.7",
+		"svelte": "5.55.8",
 		"svelte-check": "4.4.8",
 		"tailwindcss": "4.3.0",
 		"typescript": "6.0.3",
-		"typescript-eslint": "8.59.3",
+		"typescript-eslint": "8.59.4",
 		"vite": "7.3.3",
 		"vitest": "4.1.6"
 	}
