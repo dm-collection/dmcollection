@@ -26,7 +26,7 @@
 <div
 	class="group flex flex-col items-center rounded-t-lg rounded-b-md border border-gray-300 bg-white pb-2 hover:drop-shadow-md active:bg-teal-50"
 >
-	<a href={`/card/${card.dmId}`} class="grid grid-cols-1 justify-items-center">
+	<a href={`/card/${card.dmId}`} class="flex flex-col items-center">
 		{#if card.imageFiles && card.imageFiles?.length > 0}
 			<img
 				src={`/image/${card.imageFiles[0]}`}
