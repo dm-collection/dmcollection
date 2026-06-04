@@ -52,10 +52,7 @@
 		<input
 			id="quantity-input"
 			data-input-counter
-			class={[
-				'mx-2 w-[4ch] text-center text-lg text-gray-900',
-				value > max && 'text-red-500'
-			]}
+			class={['mx-2 w-[4ch] text-center text-lg text-gray-900', value > max && 'text-red-500']}
 			placeholder="0"
 			value={showMax ? `${value}/${max}` : value}
 			required
