@@ -145,7 +145,7 @@
 {#if data.collection}
 	<div class="flex flex-row justify-between">
 		<h1 class="txt-h1">Collection</h1>
-		<form method="get" action="/api/collection/export" class="flex flex-row gap-2">
+		<form method="get" action="/api/collection/export" class="flex flex-row gap-2 items-center">
 			<button
 				type="submit"
 				class="inline-flex items-center rounded-md border bg-white py-2 pr-3 pl-2 enabled:border-teal-700 enabled:text-teal-700 enabled:hover:bg-teal-700 enabled:hover:text-teal-50 disabled:border-slate-300 disabled:text-slate-300"

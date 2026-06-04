@@ -24,7 +24,7 @@
 </script>
 
 <div
-	class="group flex flex-col items-center rounded-t-lg rounded-b-md border border-gray-300 bg-white pb-4 hover:drop-shadow-md active:bg-teal-50"
+	class="group flex flex-col items-center rounded-t-lg rounded-b-md border border-gray-300 bg-white pb-2 hover:drop-shadow-md active:bg-teal-50"
 >
 	<a href={`/card/${card.dmId}`} class="grid grid-cols-1 justify-items-center">
 		{#if card.imageFiles && card.imageFiles?.length > 0}
@@ -42,7 +42,7 @@
 		<AmountButton value={amount} min={0} {max} {showMax} {enforceMax} {onChange} />
 	{:else}
 		<span
-			class="inline-flex h-8 w-8 items-center justify-center rounded-md bg-slate-50 text-lg font-medium ring-1 ring-slate-300 ring-inset"
+			class="inline-flex h-7.5 w-7.5 md:h-8.5 md:w-8.5 items-center justify-center rounded-md bg-slate-50 text-lg font-medium ring-1 ring-slate-300 ring-inset"
 			>{amount}</span
 		>
 	{/if}
