@@ -187,6 +187,7 @@
 					{card}
 					amount={card.amount}
 					enableEdit={editingEnabled}
+					sizes="(width >= 80rem) calc(100vw / 8), (width >= 64rem) calc(100vw / 5), 100vw"
 					onChange={(newAmount: number) => {
 						amountChange(card, i, newAmount);
 					}}

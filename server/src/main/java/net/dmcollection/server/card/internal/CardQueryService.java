@@ -197,12 +197,8 @@ public class CardQueryService {
         }
       }
 
-      List<String> imageUrls =
-          sides.stream()
-              .map(SideData::imageFilename)
-              .filter(Objects::nonNull)
-              .map(filename -> "/image/" + filename)
-              .toList();
+      List<String> imageFiles =
+          sides.stream().map(SideData::imageFilename).filter(Objects::nonNull).toList();
 
       pageContent.add(
           new CardStub(
@@ -210,7 +206,7 @@ public class CardQueryService {
               row.officialSiteId(),
               row.collectorNumber(),
               civilizations,
-              imageUrls,
+              imageFiles,
               row.amount(),
               row.amount()));
     }

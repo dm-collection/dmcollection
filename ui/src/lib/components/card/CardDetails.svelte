@@ -11,7 +11,7 @@
 	let cards: Array<Array<CardFacet>> = $state([]);
 	if (card.facets) {
 		for (const [i, facet] of card.facets.entries()) {
-			if (facet.imagePath || i == 0) {
+			if (facet.imageFile || i == 0) {
 				cards.push([facet]);
 			} else {
 				cards[cards.length - 1].push(facet);
@@ -52,7 +52,7 @@
 
 	{#each cards as facets (facets[0].position)}
 		<div class="mx-auto flex max-w-fit flex-wrap items-stretch justify-center gap-8">
-			{#if facets[0]?.imagePath}
+			{#if facets[0]?.imageFile}
 				<img
 					onload={(event) => {
 						const img = event.target as HTMLImageElement;
@@ -60,7 +60,8 @@
 							img.classList.replace('min-w-[min(400px,100%)]', 'min-w-min');
 						}
 					}}
-					src={facets[0].imagePath}
+					src={`/image/${facets[0].imageFile}`}
+					srcset={`/image/250x0/${facets[0].imageFile} 250w, /image/650x0/${facets[0].imageFile} 650w`}
 					alt="Image showing facet #{facets[0].position} of the card {card.dmId}"
 					class="max-h-screen w-auto max-w-[min(500px,100%)] min-w-[min(400px,100%)] flex-shrink object-scale-down"
 				/>

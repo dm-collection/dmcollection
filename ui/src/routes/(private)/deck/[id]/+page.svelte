@@ -156,6 +156,14 @@
 								max={card.collectionAmount}
 								showMax={true}
 								enforceMax={false}
+								sizes="
+									(orientation: landscape) and (min-width: 80rem) calc(40vw / 6),
+									(orientation: landscape) and (min-width: 64rem) calc(40vw / 5),
+									(orientation: landscape) 40vw,
+									(min-width: 80rem) calc(100vw / 7),
+									(min-width: 64rem) calc(100vw / 6),
+									(min-width: 48rem) calc(100vw / 5),
+									100vw"
 								onChange={(newAmount: number) => {
 									amountChange(card.id, newAmount);
 								}}
@@ -204,6 +212,14 @@
 									max={card.amount}
 									showMax={true}
 									enforceMax={false}
+									sizes="
+										(orientation: landscape) and (min-width: 80rem) calc(59vw / 8),
+										(orientation: landscape) and (min-width: 64rem) calc(59vw / 4),
+										(orientation: landscape) 59vw,
+										(min-width: 80rem) calc(100vw / 6),
+										(min-width: 64rem) calc(100vw / 5),
+										(min-width: 48rem) calc(100vw / 4),
+										100vw"
 									onChange={(newAmount: number) => {
 										amountChange(card.id, newAmount);
 									}}

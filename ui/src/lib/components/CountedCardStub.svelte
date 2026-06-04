@@ -9,6 +9,7 @@
 		showMax = false,
 		enableEdit = true,
 		enforceMax = true,
+		sizes = '100vw',
 		onChange
 	}: {
 		card: CardStub;
@@ -17,6 +18,7 @@
 		enableEdit?: boolean;
 		showMax?: boolean;
 		enforceMax?: boolean;
+		sizes?: string;
 		onChange: (newAmount: number) => void;
 	} = $props();
 </script>
@@ -25,11 +27,13 @@
 	class="group flex flex-col items-center rounded-t-lg rounded-b-md border border-gray-300 bg-white pb-4 hover:drop-shadow-md active:bg-teal-50"
 >
 	<a href={`/card/${card.dmId}`} class="grid grid-cols-1 justify-items-center">
-		{#if card.imagePaths && card.imagePaths?.length > 0}
+		{#if card.imageFiles && card.imageFiles?.length > 0}
 			<img
-				src={card.imagePaths[0]}
+				src={`/image/${card.imageFiles[0]}`}
+				srcset={`/image/250x0/${card.imageFiles[0]} 250w, /image/650x0/${card.imageFiles[0]} 650w`}
+				{sizes}
 				alt="Image showing one side of card {card.dmId}"
-				class="rounded object-cover group-hover:opacity-90"
+				class="rounded-md object-cover group-hover:opacity-90"
 			/>
 		{/if}
 		<p class="text-base">{card.idText}</p>
