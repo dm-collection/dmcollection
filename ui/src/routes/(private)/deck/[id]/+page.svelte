@@ -134,8 +134,8 @@
 		<div
 			class="flex flex-col rounded-md bg-white p-2 shadow-md portrait:max-h-[41%] portrait:min-h-[41%] landscape:max-w-[40%] landscape:min-w-[40%]"
 		>
-			<div class="flex flex-row gap-4">
-				<h1 class="txt-h1">Deck: {data.deck.getInfo()!.name}</h1>
+			<div class="flex flex-row items-center gap-4">
+				<h1 class="txt-h1">{data.deck.getInfo()!.name}</h1>
 				<button class="btn-secondary" onclick={showDialog}>
 					<PencilSimpleIcon class="mr-1"></PencilSimpleIcon>Rename
 				</button>
@@ -146,8 +146,8 @@
 				{#if data.deck.getCards().length > 0}
 					<div
 						class="grid gap-4 shadow-inner
-						portrait:min-w-full portrait:md:grid-cols-5 portrait:lg:grid-cols-6 portrait:xl:grid-cols-7
-						landscape:min-w-full landscape:lg:grid-cols-5 landscape:xl:grid-cols-6"
+						portrait:min-w-full portrait:grid-cols-2 portrait:md:grid-cols-6 portrait:xl:grid-cols-7
+						landscape:min-w-full landscape:grid-cols-2 landscape:lg:grid-cols-3 landscape:2xl:grid-cols-5"
 					>
 						{#each data.deck.getCards() as card (card.id)}
 							<CountedCardStub
@@ -157,13 +157,12 @@
 								showMax={true}
 								enforceMax={false}
 								sizes="
-									(orientation: landscape) and (min-width: 80rem) calc(40vw / 6),
-									(orientation: landscape) and (min-width: 64rem) calc(40vw / 5),
-									(orientation: landscape) 40vw,
+									(orientation: landscape) and (min-width: 96rem) calc(40vw / 5),
+									(orientation: landscape) and (min-width: 64rem) calc(40vw / 3),
+									(orientation: landscape) calc(40vw / 2),
 									(min-width: 80rem) calc(100vw / 7),
-									(min-width: 64rem) calc(100vw / 6),
-									(min-width: 48rem) calc(100vw / 5),
-									100vw"
+									(min-width: 48rem) calc(100vw / 6),
+									calc(100vw / 2)"
 								onChange={(newAmount: number) => {
 									amountChange(card.id, newAmount);
 								}}
@@ -201,8 +200,8 @@
 				{#if cardPage.content.length > 0}
 					<div
 						class="grid gap-4 shadow-inner
-						portrait:md:grid-cols-4 portrait:lg:grid-cols-5 portrait:xl:grid-cols-6
-					    landscape:lg:grid-cols-4 landscape:xl:grid-cols-8"
+						portrait:grid-cols-2 portrait:md:grid-cols-5 portrait:xl:grid-cols-6
+					    landscape:grid-cols-2 landscape:lg:grid-cols-5 landscape:2xl:grid-cols-8"
 					>
 						{#each cardPage.content as card (card.id)}
 							{#await data.deck.getAmount(card.id) then inDeck}
@@ -213,13 +212,12 @@
 									showMax={true}
 									enforceMax={false}
 									sizes="
-										(orientation: landscape) and (min-width: 80rem) calc(59vw / 8),
-										(orientation: landscape) and (min-width: 64rem) calc(59vw / 4),
-										(orientation: landscape) 59vw,
+										(orientation: landscape) and (min-width: 96rem) calc(59vw / 8),
+										(orientation: landscape) and (min-width: 64rem) calc(59vw / 5),
+										(orientation: landscape) calc(59vw / 2),
 										(min-width: 80rem) calc(100vw / 6),
-										(min-width: 64rem) calc(100vw / 5),
-										(min-width: 48rem) calc(100vw / 4),
-										100vw"
+										(min-width: 48rem) calc(100vw / 5),
+										calc(100vw / 2)"
 									onChange={(newAmount: number) => {
 										amountChange(card.id, newAmount);
 									}}
