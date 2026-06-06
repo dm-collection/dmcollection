@@ -423,7 +423,7 @@ public class DeckService {
     EntryRow first = sideRows.getFirst();
 
     Set<Civilization> civs = EnumSet.noneOf(Civilization.class);
-    List<String> images = new ArrayList<>();
+    List<String> imageFiles = new ArrayList<>();
     for (EntryRow row : sideRows) {
       if (row.civilizationIds() != null) {
         for (Short civId : row.civilizationIds()) {
@@ -431,7 +431,7 @@ public class DeckService {
         }
       }
       if (row.imageFilename() != null) {
-        images.add("/image/" + row.imageFilename());
+        imageFiles.add(row.imageFilename());
       }
     }
     if (civs.isEmpty()) {
@@ -445,7 +445,7 @@ public class DeckService {
         first.officialSiteId(),
         first.collectorNumber(),
         civs,
-        images,
+        imageFiles,
         first.quantity(),
         collectionAmount);
   }

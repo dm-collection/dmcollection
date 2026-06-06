@@ -32,11 +32,9 @@ import org.springframework.stereotype.Component;
 public class CardService {
 
   private final DSLContext dsl;
-  private final ImageService imageService;
 
-  public CardService(DSLContext dsl, ImageService imageService) {
+  public CardService(DSLContext dsl) {
     this.dsl = dsl;
-    this.imageService = imageService;
   }
 
   public record CardStub(
@@ -44,7 +42,7 @@ public class CardService {
       String dmId,
       String idText,
       Set<Civilization> civilizations,
-      List<String> imagePaths,
+      List<String> imageFiles,
       int amount,
       int collectionAmount) {}
 
@@ -69,7 +67,7 @@ public class CardService {
       String type,
       List<String> species,
       List<EffectDto> effects,
-      String imagePath) {}
+      String imageFile) {}
 
   public record EffectDto(String text, int position, List<ChildEffectDto> children) {}
 
@@ -112,7 +110,7 @@ public class CardService {
               row.officialSiteId(),
               row.collectorNumber(),
               collectCivilizations(sides),
-              collectImageUrls(sides),
+              collectImageFiles(sides),
               0,
               0));
     }
@@ -307,7 +305,7 @@ public class CardService {
               typeStr,
               races,
               effects,
-              imageService.makeImageUrl(side.imageFilename())));
+              side.imageFilename()));
     }
 
     return Optional.of(
@@ -359,12 +357,8 @@ public class CardService {
     return civilizations;
   }
 
-  private static List<String> collectImageUrls(List<SideData> sides) {
-    return sides.stream()
-        .map(SideData::imageFilename)
-        .filter(Objects::nonNull)
-        .map(filename -> "/image/" + filename)
-        .toList();
+  private static List<String> collectImageFiles(List<SideData> sides) {
+    return sides.stream().map(SideData::imageFilename).filter(Objects::nonNull).toList();
   }
 
   private static List<String> civilizationNames(List<Short> civilizationIds) {

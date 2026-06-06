@@ -145,7 +145,7 @@
 {#if data.collection}
 	<div class="flex flex-row justify-between">
 		<h1 class="txt-h1">Collection</h1>
-		<form method="get" action="/api/collection/export" class="flex flex-row gap-2">
+		<form method="get" action="/api/collection/export" class="flex flex-row items-center gap-2">
 			<button
 				type="submit"
 				class="inline-flex items-center rounded-md border bg-white py-2 pr-3 pl-2 enabled:border-teal-700 enabled:text-teal-700 enabled:hover:bg-teal-700 enabled:hover:text-teal-50 disabled:border-slate-300 disabled:text-slate-300"
@@ -187,6 +187,7 @@
 					{card}
 					amount={card.amount}
 					enableEdit={editingEnabled}
+					sizes="(width >= 80rem) calc(100vw / 8), (width >= 64rem) calc(100vw / 5), 100vw"
 					onChange={(newAmount: number) => {
 						amountChange(card, i, newAmount);
 					}}

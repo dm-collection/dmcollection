@@ -28,7 +28,7 @@
 	}
 </script>
 
-<NavigationMenu.Root class="sticky top-0 z-20 bg-white py-3 pl-2 text-lg shadow-md md:pl-8">
+<NavigationMenu.Root class="bg-white py-3 pl-2 text-lg shadow-md md:pl-8">
 	<NavigationMenu.List class={['flex items-center']}>
 		<NavigationMenu.Item>
 			<NavigationMenu.Link

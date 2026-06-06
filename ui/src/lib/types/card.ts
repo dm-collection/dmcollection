@@ -40,7 +40,7 @@ export type CardFacet = {
 	name: string;
 	cost: string | null;
 	civilizations: Array<Civ>;
-	imagePath: string | null;
+	imageFile: string | null;
 	flavor: string | null;
 	type: string | null;
 	species: Array<string> | null;
@@ -54,7 +54,7 @@ export type CardStub = {
 	id: number;
 	dmId: string;
 	idText: string;
-	imagePaths: Array<string>;
+	imageFiles: Array<string>;
 	amount: number;
 	collectionAmount: number;
 };

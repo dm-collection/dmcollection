@@ -1,6 +1,6 @@
 services:
   db:
-    image: postgres:18-alpine
+    image: docker.io/postgres:18-alpine
     restart: unless-stopped
     environment:
       POSTGRES_DB: dmcollection
@@ -9,9 +9,9 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dev_user -d dmcollection"]
+      test: [ "CMD-SHELL", "pg_isready -U dev_user -d dmcollection" ]
       interval: 5s
       timeout: 5s
       retries: 5

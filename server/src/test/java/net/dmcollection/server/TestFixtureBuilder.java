@@ -635,15 +635,17 @@ public class TestFixtureBuilder {
       }
     }
 
-    // Build CardStub
-    List<String> imageUrls =
-        imageFiles != null
-            ? imageFiles.stream().filter(Objects::nonNull).map(image -> "/image/" + image).toList()
-            : Collections.emptyList();
-
     CardStub stub =
         new CardStub(
-            (long) printingId, officialId, idText, new HashSet<>(allCivs), imageUrls, 0, 0);
+            (long) printingId,
+            officialId,
+            idText,
+            new HashSet<>(allCivs),
+            imageFiles != null
+                ? imageFiles.stream().filter(Objects::nonNull).toList()
+                : Collections.emptyList(),
+            0,
+            0);
     testCards.put((long) printingId, stub);
     return stub;
   }
