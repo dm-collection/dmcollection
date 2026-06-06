@@ -1,11 +1,8 @@
 package net.dmcollection.server;
 
-import static java.util.Objects.nonNull;
-
 import jakarta.servlet.http.HttpServletRequest;
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.io.Resource;
 import org.springframework.lang.NonNull;
@@ -17,8 +14,15 @@ import org.springframework.web.servlet.resource.AbstractResourceResolver;
 import org.springframework.web.servlet.resource.PathResourceResolver;
 import org.springframework.web.servlet.resource.ResourceResolverChain;
 
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static java.util.Objects.nonNull;
+
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
+  private static final Logger log = LoggerFactory.getLogger(WebConfig.class);
   private final AppProperties appProperties;
 
   public WebConfig(AppProperties appProperties) {
@@ -35,6 +39,7 @@ public class WebConfig implements WebMvcConfigurer {
   public void addResourceHandlers(@NonNull ResourceHandlerRegistry registry) {
     this.serveDirectory(registry, "/", "classpath:/static/");
     if (!appProperties.imageService().enabled()) {
+      log.warn("Image service disabled, falling back to local directory");
       String imagePath = "file:" + appProperties.imageStoragePath();
       String location = imagePath.endsWith("/") ? imagePath : imagePath + "/";
       registry
