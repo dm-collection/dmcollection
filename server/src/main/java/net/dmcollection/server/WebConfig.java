@@ -1,6 +1,11 @@
 package net.dmcollection.server;
 
+import static java.util.Objects.nonNull;
+
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Configuration;
@@ -13,12 +18,6 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.resource.AbstractResourceResolver;
 import org.springframework.web.servlet.resource.PathResourceResolver;
 import org.springframework.web.servlet.resource.ResourceResolverChain;
-
-import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import static java.util.Objects.nonNull;
 
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
@@ -40,7 +39,7 @@ public class WebConfig implements WebMvcConfigurer {
     this.serveDirectory(registry, "/", "classpath:/static/");
     if (!appProperties.imageService().enabled()) {
       log.warn("Image service disabled, falling back to local directory");
-      String imagePath = "file:" + appProperties.imageStoragePath();
+      String imagePath = "file:" + appProperties.imageService().imageStoragePath();
       String location = imagePath.endsWith("/") ? imagePath : imagePath + "/";
       registry
           .addResourceHandler("/image/**")
