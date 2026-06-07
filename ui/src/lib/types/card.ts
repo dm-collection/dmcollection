@@ -9,6 +9,7 @@ export enum Civ {
 
 export type Card = {
 	id: number;
+	name: string;
 	dmId: string;
 	idText: string;
 	set: CardSet;

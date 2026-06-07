@@ -48,6 +48,7 @@ public class CardService {
 
   public record CardDto(
       Long id,
+      String name,
       String dmId,
       String idText,
       String rarity,
@@ -128,6 +129,7 @@ public class CardService {
                 PRINTING.ID,
                 PRINTING.OFFICIAL_SITE_ID,
                 PRINTING.COLLECTOR_NUMBER,
+                CARD.NAME,
                 CARD.DECK_ZONE,
                 CARD_SET.ID,
                 CARD_SET.CODE,
@@ -152,6 +154,7 @@ public class CardService {
     String collectorNumber = printingRecord.get(PRINTING.COLLECTOR_NUMBER);
     String rarityName = printingRecord.get(RARITY.NAME);
     String deckZone = printingRecord.get(CARD.DECK_ZONE);
+    String cardName = printingRecord.get(CARD.NAME);
     SetDto setDto =
         new SetDto(
             printingRecord.get(CARD_SET.ID).longValue(),
@@ -209,6 +212,7 @@ public class CardService {
       return Optional.of(
           new CardDto(
               (long) printingId,
+              cardName,
               htmlEscape(officialSiteId, StandardCharsets.UTF_8.name()),
               null,
               rarityName,
@@ -311,6 +315,7 @@ public class CardService {
     return Optional.of(
         new CardDto(
             (long) printingId,
+            cardName,
             htmlEscape(officialSiteId, StandardCharsets.UTF_8.name()),
             collectorNumber != null
                 ? htmlEscape(collectorNumber, StandardCharsets.UTF_8.name())
