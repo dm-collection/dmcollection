@@ -1,16 +1,22 @@
 package net.dmcollection.server;
 
+import jakarta.servlet.http.HttpServletRequest;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.Set;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -19,42 +25,98 @@ public class ImageServiceController {
 
   private final WebClient webClient;
 
+  private static final Set<String> FORWARDED_REQUEST_HEADERS =
+      Set.of(
+          HttpHeaders.ACCEPT,
+          HttpHeaders.IF_NONE_MATCH,
+          HttpHeaders.IF_MODIFIED_SINCE,
+          HttpHeaders.RANGE,
+          HttpHeaders.IF_RANGE);
+
+  private static final Set<String> FORWARDED_RESPONSE_HEADERS =
+      Set.of(
+          HttpHeaders.CONTENT_TYPE,
+          HttpHeaders.CACHE_CONTROL,
+          HttpHeaders.PRAGMA,
+          HttpHeaders.EXPIRES,
+          HttpHeaders.ETAG,
+          HttpHeaders.LAST_MODIFIED,
+          HttpHeaders.CONTENT_RANGE,
+          HttpHeaders.ACCEPT_RANGES);
+
   public ImageServiceController(@Qualifier("imageServiceClient") WebClient webClient) {
     this.webClient = webClient;
   }
 
-  @GetMapping("/image/{*imagePath}")
-  public Mono<ResponseEntity<byte[]>> image(@PathVariable String imagePath) {
+  @RequestMapping(
+      method = {RequestMethod.GET, RequestMethod.HEAD},
+      path = "/image/{*imagePath}")
+  public ResponseEntity<?> image(@PathVariable String imagePath, HttpServletRequest request) {
     if (imagePath.contains("..")) {
-      return Mono.just(ResponseEntity.badRequest().build());
+      return ResponseEntity.badRequest().build();
     }
     try {
       URI uri = new URI(imagePath);
       if (uri.isAbsolute()) {
-        return Mono.just(ResponseEntity.badRequest().build());
+        return ResponseEntity.badRequest().build();
       }
     } catch (URISyntaxException _) {
       // relative URLs are OK
     }
-    return webClient
-        .get()
-        .uri(imagePath)
-        .exchangeToMono(
-            response -> {
-              HttpHeaders headers = response.headers().asHttpHeaders();
-              MediaType contentType = headers.getContentType();
-              String cacheControl = headers.getFirst(HttpHeaders.CACHE_CONTROL);
-              String vary = headers.getFirst(HttpHeaders.VARY);
-              var builder = ResponseEntity.status(response.statusCode());
-              builder.contentType(
-                  contentType != null ? contentType : MediaType.APPLICATION_OCTET_STREAM);
-              if (cacheControl != null) {
-                builder.header(HttpHeaders.CACHE_CONTROL, cacheControl);
-              }
-              if (vary != null) {
-                builder.header(HttpHeaders.VARY, vary);
-              }
-              return response.bodyToMono(byte[].class).map(builder::body);
-            });
+    HttpMethod method = HttpMethod.valueOf(request.getMethod());
+    WebClient.RequestHeadersSpec<?> requestSpec = webClient.method(method).uri(imagePath);
+    copyRequestHeaders(request, requestSpec);
+
+    UpstreamResponse upstream;
+    try {
+      upstream =
+          requestSpec
+              .exchangeToMono(
+                  response -> {
+                    HttpHeaders headers = copyResponseHeaders(response.headers().asHttpHeaders());
+                    if (method == HttpMethod.HEAD) {
+                      return Mono.just(new UpstreamResponse(response.statusCode(), headers, null));
+                    }
+                    return response
+                        .bodyToMono(byte[].class)
+                        .defaultIfEmpty(new byte[0])
+                        .map(body -> new UpstreamResponse(response.statusCode(), headers, body));
+                  })
+              .block();
+    } catch (WebClientRequestException _) {
+      return ResponseEntity.status(HttpStatus.BAD_GATEWAY).build();
+    }
+    if (upstream == null) {
+      return ResponseEntity.status(HttpStatus.BAD_GATEWAY).build();
+    }
+    if (method == HttpMethod.HEAD) {
+      return new ResponseEntity<>(upstream.headers(), upstream.status());
+    }
+    return new ResponseEntity<>(upstream.body(), upstream.headers(), upstream.status());
   }
+
+  private static void copyRequestHeaders(
+      HttpServletRequest request, WebClient.RequestHeadersSpec<?> requestSpec) {
+    FORWARDED_REQUEST_HEADERS.forEach(
+        headerName -> {
+          var values = request.getHeaders(headerName);
+          while (values.hasMoreElements()) {
+            requestSpec.header(headerName, values.nextElement());
+          }
+        });
+  }
+
+  private static HttpHeaders copyResponseHeaders(HttpHeaders source) {
+    HttpHeaders headers = new HttpHeaders();
+    FORWARDED_RESPONSE_HEADERS.forEach(
+        headerName -> {
+          var values = source.get(headerName);
+          if (values != null && !values.isEmpty()) {
+            headers.put(headerName, values);
+          }
+        });
+    return headers;
+  }
+
+  private record UpstreamResponse(HttpStatusCode status, HttpHeaders headers, byte[] body) {}
 }
