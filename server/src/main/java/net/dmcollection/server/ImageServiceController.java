@@ -53,7 +53,7 @@ public class ImageServiceController {
   @RequestMapping(
       method = {RequestMethod.GET, RequestMethod.HEAD},
       path = "/image/{*imagePath}")
-  public ResponseEntity<?> image(@PathVariable String imagePath, HttpServletRequest request) {
+  public ResponseEntity<byte[]> image(@PathVariable String imagePath, HttpServletRequest request) {
     if (imagePath.contains("..")) {
       return ResponseEntity.badRequest().build();
     }
