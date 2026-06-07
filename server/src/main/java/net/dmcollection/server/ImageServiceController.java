@@ -1,6 +1,8 @@
 package net.dmcollection.server;
 
 import jakarta.servlet.http.HttpServletRequest;
+import java.util.Arrays;
+import java.util.Objects;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
@@ -9,6 +11,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
+import org.springframework.lang.Nullable;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -108,5 +112,29 @@ public class ImageServiceController {
     return headers;
   }
 
-  private record UpstreamResponse(HttpStatusCode status, HttpHeaders headers, byte[] body) {}
+  private record UpstreamResponse(
+      @NonNull HttpStatusCode status, @NonNull HttpHeaders headers, @Nullable byte[] body) {
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) return true;
+      if (o == null || getClass() != o.getClass()) return false;
+      UpstreamResponse that = (UpstreamResponse) o;
+      return this.status.equals(that.status)
+          && this.headers.equals(that.headers)
+          && Arrays.equals(this.body, that.body);
+    }
+
+    @Override
+    public int hashCode() {
+      int result = Objects.hash(status, headers);
+      result = 31 * result + Arrays.hashCode(body);
+      return result;
+    }
+
+    @Override
+    @NonNull
+    public String toString() {
+      return "UpstreamResponse{" + "status=" + status + "headers=" + headers + "}";
+    }
+  }
 }
