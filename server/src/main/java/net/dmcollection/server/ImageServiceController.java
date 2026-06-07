@@ -1,8 +1,6 @@
 package net.dmcollection.server;
 
 import jakarta.servlet.http.HttpServletRequest;
-import java.net.URI;
-import java.net.URISyntaxException;
 import java.util.Set;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
@@ -54,14 +52,6 @@ public class ImageServiceController {
   public ResponseEntity<?> image(@PathVariable String imagePath, HttpServletRequest request) {
     if (imagePath.contains("..")) {
       return ResponseEntity.badRequest().build();
-    }
-    try {
-      URI uri = new URI(imagePath);
-      if (uri.isAbsolute()) {
-        return ResponseEntity.badRequest().build();
-      }
-    } catch (URISyntaxException _) {
-      // relative URLs are OK
     }
     HttpMethod method = HttpMethod.valueOf(request.getMethod());
     WebClient.RequestHeadersSpec<?> requestSpec = webClient.method(method).uri(imagePath);
