@@ -33,7 +33,7 @@
     <java.version>25</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <!-- override some dependency versions set by Spring -->
-    <jooq.version>3.21.5</jooq.version>
+    <jooq.version>3.21.6</jooq.version>
     <postgresql.version>42.7.11</postgresql.version>
     <testcontainers.version>2.0.5</testcontainers.version>
   </properties>
