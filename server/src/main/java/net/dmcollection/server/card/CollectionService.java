@@ -7,10 +7,6 @@ import static org.jooq.impl.DSL.coalesce;
 import static org.jooq.impl.DSL.count;
 import static org.jooq.impl.DSL.sum;
 
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -28,6 +24,9 @@ import org.jooq.Field;
 import org.springframework.data.web.PagedModel;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 @Service
 public class CollectionService {
@@ -41,7 +40,7 @@ public class CollectionService {
   private final V2Exporter exporter;
   private final V1Importer v1Importer;
   private final V2Importer v2Importer;
-  private final ObjectMapper objectMapper;
+  private final JsonMapper objectMapper;
 
   public CollectionService(
       DSLContext dsl,
@@ -49,7 +48,7 @@ public class CollectionService {
       V2Exporter exporter,
       V1Importer v1Importer,
       V2Importer v2Importer,
-      ObjectMapper objectMapper) {
+      JsonMapper objectMapper) {
     this.dsl = dsl;
     this.cardQueryService = cardQueryService;
     this.exporter = exporter;
@@ -68,7 +67,7 @@ public class CollectionService {
     return exporter.export(userId);
   }
 
-  public void importCollection(UUID userId, byte[] fileBytes) throws IOException {
+  public void importCollection(UUID userId, byte[] fileBytes) {
     JsonNode root = objectMapper.readTree(fileBytes);
     JsonNode versionNode = root.get("version");
     if (versionNode != null && versionNode.isNumber()) {
@@ -88,7 +87,7 @@ public class CollectionService {
     v2Importer.importCollection(toImport, userId);
   }
 
-  private <T> T readAs(JsonNode node, Class<T> type) throws IOException {
+  private <T> T readAs(JsonNode node, Class<T> type) {
     return objectMapper
         .readerFor(type)
         .without(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)

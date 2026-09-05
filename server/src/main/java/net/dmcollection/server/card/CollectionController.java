@@ -1,10 +1,7 @@
 package net.dmcollection.server.card;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -30,6 +27,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 @Controller
 public class CollectionController {
@@ -37,10 +36,10 @@ public class CollectionController {
   private static final Logger log = LoggerFactory.getLogger(CollectionController.class);
   private final CollectionService collectionService;
   private final AppProperties appProperties;
-  private final ObjectMapper objectMapper;
+  private final JsonMapper objectMapper;
 
   public CollectionController(
-      CollectionService collectionService, AppProperties appProperties, ObjectMapper objectMapper) {
+      CollectionService collectionService, AppProperties appProperties, JsonMapper objectMapper) {
     this.collectionService = collectionService;
     this.appProperties = appProperties;
     this.objectMapper = objectMapper;
@@ -80,7 +79,7 @@ public class CollectionController {
       headers.setContentLength(jsonBytes.length);
       return new ResponseEntity<>(jsonBytes, headers, HttpStatus.OK);
 
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       log.error("Error serializing collection data to JSON: ", e);
       return ResponseEntity.internalServerError().build();
     } catch (Exception e) {
@@ -100,7 +99,7 @@ public class CollectionController {
     } catch (IllegalArgumentException e) {
       log.warn("Unrecognized collection import format: {}", e.getMessage());
       return ResponseEntity.badRequest().build();
-    } catch (IOException e) {
+    } catch (JacksonException e) {
       log.error("Error reading uploaded file: ", e);
       return ResponseEntity.badRequest().build();
     }

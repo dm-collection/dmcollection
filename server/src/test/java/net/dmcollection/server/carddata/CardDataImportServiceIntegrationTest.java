@@ -20,7 +20,6 @@ import static net.dmcollection.server.jooq.generated.Tables.RARITY;
 import static net.dmcollection.server.jooq.generated.Tables.SET_GROUP;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.io.InputStream;
 import java.util.List;
 import java.util.UUID;
@@ -32,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.json.JsonMapper;
 
 @Transactional
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -39,7 +39,7 @@ class CardDataImportServiceIntegrationTest extends IntegrationTestBase {
 
   @Autowired CardDataImportService importService;
 
-  @Autowired ObjectMapper objectMapper;
+  @Autowired JsonMapper objectMapper;
 
   private CardDataJson data;
 

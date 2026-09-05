@@ -9,9 +9,9 @@ import java.util.Map;
 import net.dmcollection.server.card.Rarity;
 import net.dmcollection.server.card.RarityCode;
 import org.jooq.DSLContext;
+import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 @Service

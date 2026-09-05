@@ -9,7 +9,6 @@ import static net.dmcollection.server.jooq.generated.Tables.COLLECTION_ENTRY;
 import static net.dmcollection.server.jooq.generated.Tables.COLLECTION_HISTORY_ENTRY;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalDateTime;
 import java.util.Arrays;
 import java.util.List;
@@ -25,12 +24,13 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.json.JsonMapper;
 
 @Transactional
 class CollectionServiceIntegrationTest extends IntegrationTestBase {
 
   @Autowired CollectionService collectionService;
-  @Autowired ObjectMapper objectMapper;
+  @Autowired JsonMapper objectMapper;
 
   private TestFixtureBuilder fixtures;
   private UUID userId;
