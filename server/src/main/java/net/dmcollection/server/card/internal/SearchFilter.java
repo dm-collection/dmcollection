@@ -5,8 +5,8 @@ import java.util.Set;
 import java.util.UUID;
 import net.dmcollection.server.card.Civilization;
 import net.dmcollection.server.card.RarityCode;
+import org.jspecify.annotations.NonNull;
 import org.springframework.data.domain.Pageable;
-import org.springframework.lang.NonNull;
 
 /**
  * Search filter for card search.

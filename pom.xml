@@ -13,7 +13,7 @@
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
-    <version>3.5.15</version>
+    <version>4.1.1</version>
     <relativePath/> <!-- lookup parent from repository -->
   </parent>
 
@@ -32,10 +32,6 @@
     <sonar.coverage.exclusions>**/jooq/generated/**</sonar.coverage.exclusions>
     <java.version>25</java.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <!-- override some dependency versions set by Spring -->
-    <jooq.version>3.21.6</jooq.version>
-    <postgresql.version>42.7.12</postgresql.version>
-    <testcontainers.version>2.0.5</testcontainers.version>
   </properties>
 
   <dependencyManagement>

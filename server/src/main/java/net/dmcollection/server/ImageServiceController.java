@@ -4,6 +4,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Set;
+import org.jspecify.annotations.NonNull;
+import org.jspecify.annotations.Nullable;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.http.HttpHeaders;
@@ -11,8 +13,6 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
-import org.springframework.lang.NonNull;
-import org.springframework.lang.Nullable;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -113,7 +113,7 @@ public class ImageServiceController {
   }
 
   private record UpstreamResponse(
-      @NonNull HttpStatusCode status, @NonNull HttpHeaders headers, @Nullable byte[] body) {
+      @NonNull HttpStatusCode status, @NonNull HttpHeaders headers, byte @Nullable [] body) {
     @Override
     public boolean equals(Object o) {
       if (this == o) return true;

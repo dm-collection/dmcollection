@@ -1,18 +1,8 @@
 package net.dmcollection.server.card;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.DeserializationFeature;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
 import net.dmcollection.server.card.DeckService.DeckDto;
 import net.dmcollection.server.card.DeckService.DeckInfo;
 import net.dmcollection.server.card.serialization.deck.format.v1.DeckExport;
@@ -31,15 +21,25 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.json.JsonMapper;
+
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
 
 @Controller
 public class DeckController {
 
   private static final Logger log = LoggerFactory.getLogger(DeckController.class);
   private final DeckService deckService;
-  private final ObjectMapper objectMapper;
+  private final JsonMapper objectMapper;
 
-  public DeckController(DeckService deckService, ObjectMapper objectMapper) {
+  public DeckController(DeckService deckService, JsonMapper objectMapper) {
     this.deckService = deckService;
     this.objectMapper = objectMapper;
   }
@@ -140,7 +140,7 @@ public class DeckController {
       headers.setContentLength(jsonBytes.length);
       return new ResponseEntity<>(jsonBytes, headers, HttpStatus.OK);
 
-    } catch (JsonProcessingException e) {
+    } catch (JacksonException e) {
       log.error("Error serializing deck data to JSON: ", e);
       return ResponseEntity.internalServerError().build();
     } catch (Exception e) {
@@ -157,20 +157,22 @@ public class DeckController {
           objectMapper
               .reader()
               .without(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-              .readValue(fileBytes, DeckExport.class);
+              .forType(DeckExport.class)
+              .readValue(fileBytes);
       deckService.importDeck(currentUserId, toImport);
       return ResponseEntity.ok().build();
-    } catch (IOException e) {
+    } catch (JacksonException e) {
       try {
         List<DeckExport> toImport =
             Arrays.asList(
                 objectMapper
                     .reader()
                     .without(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
-                    .readValue(fileBytes, DeckExport[].class));
+                    .forType(DeckExport[].class)
+                    .readValue(fileBytes));
         toImport.forEach(i -> deckService.importDeck(currentUserId, i));
         return ResponseEntity.ok().build();
-      } catch (IOException _) {
+      } catch (JacksonException _) {
         log.error("Error reading uploaded file: ", e);
         return ResponseEntity.badRequest().build();
       }

@@ -1,7 +1,5 @@
 package net.dmcollection.server.carddata;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.IOException;
 import java.nio.file.Path;
 import net.dmcollection.server.card.internal.RarityService;
 import net.dmcollection.server.card.internal.query.CardTypeResolver;
@@ -12,6 +10,8 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.annotation.Profile;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
+import tools.jackson.core.JacksonException;
+import tools.jackson.databind.json.JsonMapper;
 
 @Component
 @Profile("!test")
@@ -20,14 +20,14 @@ public class CardDataStartupListener {
   private static final Logger log = LoggerFactory.getLogger(CardDataStartupListener.class);
 
   private final CardDataImportService importService;
-  private final ObjectMapper objectMapper;
+  private final JsonMapper objectMapper;
   private final String cardDataPath;
   private final CardTypeResolver cardTypeResolver;
   private final RarityService rarityService;
 
   public CardDataStartupListener(
       CardDataImportService importService,
-      ObjectMapper objectMapper,
+      JsonMapper objectMapper,
       @Value("${dmcollection.card-data-path:}") String cardDataPath,
       CardTypeResolver cardTypeResolver,
       RarityService rarityService) {
@@ -51,7 +51,7 @@ public class CardDataStartupListener {
       importService.importCardData(data);
       cardTypeResolver.loadNameToId();
       rarityService.loadRarities();
-    } catch (IOException e) {
+    } catch (JacksonException e) {
       log.error("Failed to load card data from {}", cardDataPath, e);
     }
   }
