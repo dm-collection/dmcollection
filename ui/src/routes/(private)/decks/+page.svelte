@@ -203,7 +203,7 @@
 							<td class="tbl-row font-semibold">
 								{deck.name}
 							</td>
-							<td class="tbl-row">{deck.numberOfPrintings}</td>
+							<td class="tbl-row">{deck.numberOfCards}</td>
 							<td class="tbl-row" class:text-red-700={deck.numberOfCopies > 40}
 								>{deck.numberOfCopies}</td
 							>
