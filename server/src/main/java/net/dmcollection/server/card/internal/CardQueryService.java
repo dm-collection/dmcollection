@@ -10,6 +10,7 @@ import static net.dmcollection.server.jooq.generated.tables.PrintingSide.PRINTIN
 import static net.dmcollection.server.jooq.generated.tables.Rarity.RARITY;
 import static org.jooq.impl.DSL.coalesce;
 import static org.jooq.impl.DSL.count;
+import static org.jooq.impl.DSL.countDistinct;
 import static org.jooq.impl.DSL.sum;
 
 import java.util.ArrayList;
@@ -43,11 +44,12 @@ public class CardQueryService {
 
   private static final Logger log = LoggerFactory.getLogger(CardQueryService.class);
 
-  private static final Field<Long> TOTAL_COUNT = count().over().cast(Long.class).as("total_count");
+  private static final Field<Long> PRINTING_COUNT =
+      count().over().cast(Long.class).as("printing_count");
   private static final Field<Integer> AMOUNT_FIELD =
       coalesce(COLLECTION_ENTRY.QUANTITY, 0).as("amount");
-  private static final Field<Long> TOTAL_COLLECTED =
-      sum(COLLECTION_ENTRY.QUANTITY).over().cast(Long.class).as("total_collected");
+  private static final Field<Long> COPIES_COUNT =
+      sum(COLLECTION_ENTRY.QUANTITY).over().cast(Long.class).as("copies_count");
 
   private final DSLContext dsl;
   private final SearchFilterTranslator searchFilterTranslator;
@@ -57,12 +59,12 @@ public class CardQueryService {
     this.searchFilterTranslator = searchFilterTranslator;
   }
 
-  public record SearchResult(Page<CardStub> pageOfCards, long totalCollected) {}
+  public record SearchResult(Page<CardStub> pageOfCards, long numberOfCopies, long numberOfCards) {}
 
   public SearchResult search(@NonNull SearchFilter searchFilter) {
     if (searchFilter.isInvalid()) {
       log.warn("Invalid search filter: {}", searchFilter);
-      return new SearchResult(new PageImpl<>(List.of()), 0);
+      return new SearchResult(new PageImpl<>(List.of()), 0, 0);
     }
     log.debug("Searching with filter: {}", searchFilter);
 
@@ -86,9 +88,9 @@ public class CardQueryService {
                   PRINTING.ID,
                   PRINTING.OFFICIAL_SITE_ID,
                   PRINTING.COLLECTOR_NUMBER,
-                  TOTAL_COUNT,
+                  PRINTING_COUNT,
                   AMOUNT_FIELD,
-                  TOTAL_COLLECTED)
+                  COPIES_COUNT)
               .from(PRINTING)
               .join(CARD)
               .on(CARD.ID.eq(PRINTING.CARD_ID))
@@ -104,7 +106,8 @@ public class CardQueryService {
                       .and(COLLECTION_ENTRY.USER_ID.eq(collectionFilter.userId())));
     } else {
       fromClause =
-          dsl.select(PRINTING.ID, PRINTING.OFFICIAL_SITE_ID, PRINTING.COLLECTOR_NUMBER, TOTAL_COUNT)
+          dsl.select(
+                  PRINTING.ID, PRINTING.OFFICIAL_SITE_ID, PRINTING.COLLECTOR_NUMBER, PRINTING_COUNT)
               .from(PRINTING)
               .join(CARD)
               .on(CARD.ID.eq(PRINTING.CARD_ID))
@@ -129,9 +132,9 @@ public class CardQueryService {
         int printingId,
         String officialSiteId,
         String collectorNumber,
-        long totalCount,
+        long numberOfPrintings,
         int amount,
-        long totalCollected) {}
+        long numberOfCopies) {}
 
     Map<Integer, PrintingRow> matchedPrintings = new LinkedHashMap<>();
     query.forEach(
@@ -143,18 +146,41 @@ public class CardQueryService {
                   printingId,
                   r.get(PRINTING.OFFICIAL_SITE_ID),
                   r.get(PRINTING.COLLECTOR_NUMBER),
-                  r.get(TOTAL_COUNT),
+                  r.get(PRINTING_COUNT),
                   hasCollection ? r.get(AMOUNT_FIELD) : 0,
-                  hasCollection ? valueOrZero(r.get(TOTAL_COLLECTED)) : 0));
+                  hasCollection ? valueOrZero(r.get(COPIES_COUNT)) : 0));
         });
 
     if (matchedPrintings.isEmpty()) {
-      return new SearchResult(new PageImpl<>(List.of(), pageable, 0), 0);
+      return new SearchResult(new PageImpl<>(List.of(), pageable, 0), 0, 0);
     }
 
-    long totalCount = matchedPrintings.values().iterator().next().totalCount();
-    long totalCollected =
-        hasCollection ? matchedPrintings.values().iterator().next().totalCollected() : 0;
+    var cardNumFrom =
+        dsl.select(countDistinct(PRINTING.CARD_ID))
+            .from(PRINTING)
+            .join(CARD)
+            .on(CARD.ID.eq(PRINTING.CARD_ID))
+            .join(CARD_SET)
+            .on(CARD_SET.ID.eq(PRINTING.SET_ID))
+            .leftJoin(RARITY)
+            .on(RARITY.ID.eq(PRINTING.RARITY_ID));
+    if (hasCollection) {
+      cardNumFrom =
+          cardNumFrom
+              .leftJoin(COLLECTION_ENTRY)
+              .on(
+                  COLLECTION_ENTRY
+                      .PRINTING_ID
+                      .eq(PRINTING.ID)
+                      .and(COLLECTION_ENTRY.USER_ID.eq(collectionFilter.userId())));
+    }
+    var finalQuery =
+        cardNumFrom.where(PRINTING.CARD_ID.in(civSubquery)).and(translated.mainCondition());
+    Integer numberOfCards = finalQuery.fetchOne(0, int.class);
+
+    long numberOfPrintings = matchedPrintings.values().iterator().next().numberOfPrintings();
+    long numberOfCopies =
+        hasCollection ? matchedPrintings.values().iterator().next().numberOfCopies() : 0;
 
     // Phase 2: Enrich with side data
     record SideData(List<Short> civilizationIds, String imageFilename) {}
@@ -211,7 +237,10 @@ public class CardQueryService {
               row.amount()));
     }
 
-    return new SearchResult(new PageImpl<>(pageContent, pageable, totalCount), totalCollected);
+    return new SearchResult(
+        new PageImpl<>(pageContent, pageable, numberOfPrintings),
+        numberOfCopies,
+        numberOfCards != null ? numberOfCards : 0);
   }
 
   private static long valueOrZero(Long value) {

@@ -1,5 +1,6 @@
 package net.dmcollection.server.card;
 
+import static net.dmcollection.server.SearchBuilder.search;
 import static net.dmcollection.server.card.Civilization.FIRE;
 import static net.dmcollection.server.card.Civilization.LIGHT;
 import static net.dmcollection.server.card.Civilization.WATER;
@@ -105,10 +106,9 @@ class CollectionServiceIntegrationTest extends IntegrationTestBase {
     collectionService.setCardAmount(userId, zeroCard.id(), 5000);
 
     var result =
-        collectionService.getPrimaryCollection(
-            userId, TestFixtureBuilder.search().addIncludedCivs(ZERO).build());
+        collectionService.getPrimaryCollection(userId, search().addIncludedCivs(ZERO).build());
 
-    assertThat(result.info().uniqueCardCount()).isEqualTo(1);
+    assertThat(result.info().numberOfPrintings()).isEqualTo(1);
     assertThat(result.cardPage().getContent())
         .hasSize(1)
         .allSatisfy(

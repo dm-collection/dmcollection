@@ -75,8 +75,8 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
     mockMvc
         .perform(get("/api/collection").with(user(testUser)))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.info.uniqueCardCount").value(0))
-        .andExpect(jsonPath("$.info.totalCardCount").value(0))
+        .andExpect(jsonPath("$.info.numberOfPrintings").value(0))
+        .andExpect(jsonPath("$.info.numberOfCopies").value(0))
         .andExpect(jsonPath("$.info.ownerId").value(testUser.getId().toString()));
   }
 
@@ -89,8 +89,8 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
     mockMvc
         .perform(get("/api/collection/0").with(user(testUser)))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.info.uniqueCardCount").value(1))
-        .andExpect(jsonPath("$.info.totalCardCount").value(3))
+        .andExpect(jsonPath("$.info.numberOfPrintings").value(1))
+        .andExpect(jsonPath("$.info.numberOfCopies").value(3))
         .andExpect(jsonPath("$.cardPage.content.length()").value(1));
   }
 
@@ -100,8 +100,8 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
 
     putRequest("/api/collection/cards/" + card.id(), "{\"amount\":5}")
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.uniqueCardCount").value(1))
-        .andExpect(jsonPath("$.totalCardCount").value(5));
+        .andExpect(jsonPath("$.numberOfPrintings").value(1))
+        .andExpect(jsonPath("$.numberOfCopies").value(5));
   }
 
   @Test
@@ -185,8 +185,8 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
     mockMvc
         .perform(get("/api/collection/0").with(user(otherUser)))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.info.uniqueCardCount").value(2))
-        .andExpect(jsonPath("$.info.totalCardCount").value(10));
+        .andExpect(jsonPath("$.info.numberOfPrintings").value(2))
+        .andExpect(jsonPath("$.info.numberOfCopies").value(10));
   }
 
   @Test

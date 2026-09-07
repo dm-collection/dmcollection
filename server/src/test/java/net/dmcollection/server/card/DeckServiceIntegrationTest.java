@@ -63,7 +63,7 @@ class DeckServiceIntegrationTest extends IntegrationTestBase {
   void createsNewDecks() {
     var stub = deckService.createDeck(userId, "New Deck");
     assertThat(stub.name()).isEqualTo("New Deck");
-    assertThat(stub.uniqueCardCount()).isZero();
+    assertThat(stub.numberOfPrintings()).isZero();
   }
 
   @Test
@@ -72,12 +72,12 @@ class DeckServiceIntegrationTest extends IntegrationTestBase {
     deckService.setCardAmount(userId, info.id(), lightCard.id(), 5);
     var result = deckService.getDeck(userId, info.id());
     assertThat(result).isNotEmpty();
-    assertThat(result.get().info().uniqueCardCount()).isEqualTo(1);
+    assertThat(result.get().info().numberOfPrintings()).isEqualTo(1);
 
     deckService.setCardAmount(userId, info.id(), rainbowCard.id(), 1);
     result = deckService.getDeck(userId, info.id());
     assertThat(result).isNotEmpty();
-    assertThat(result.get().info().uniqueCardCount()).isEqualTo(2);
+    assertThat(result.get().info().numberOfPrintings()).isEqualTo(2);
   }
 
   @Test
@@ -88,7 +88,7 @@ class DeckServiceIntegrationTest extends IntegrationTestBase {
     deckService.setCardAmount(userId, info.id(), lightCard.id(), 0);
     var result = deckService.getDeck(userId, info.id());
     assertThat(result).isPresent();
-    assertThat(result.get().info().uniqueCardCount()).isEqualTo(1);
+    assertThat(result.get().info().numberOfPrintings()).isEqualTo(1);
   }
 
   @Test
@@ -100,8 +100,8 @@ class DeckServiceIntegrationTest extends IntegrationTestBase {
     deckService.setCardAmount(userId, info.id(), zeroCard.id(), 5000);
     var result = deckService.getDeck(userId, info.id());
     assertThat(result).isPresent();
-    assertThat(result.get().info().totalCardCount()).isEqualTo(5007);
-    assertThat(result.get().info().uniqueCardCount()).isEqualTo(3);
+    assertThat(result.get().info().numberOfCopies()).isEqualTo(5007);
+    assertThat(result.get().info().numberOfPrintings()).isEqualTo(3);
   }
 
   @Test
@@ -187,8 +187,8 @@ class DeckServiceIntegrationTest extends IntegrationTestBase {
     var importedDeck = decks.stream().filter(d -> !d.id().equals(deckInfo.id())).findFirst();
     assertThat(importedDeck).isPresent();
     assertThat(importedDeck.get().name()).isEqualTo("Export Deck");
-    assertThat(importedDeck.get().uniqueCardCount()).isEqualTo(2);
-    assertThat(importedDeck.get().totalCardCount()).isEqualTo(10);
+    assertThat(importedDeck.get().numberOfPrintings()).isEqualTo(2);
+    assertThat(importedDeck.get().numberOfCopies()).isEqualTo(10);
   }
 
   @Test
@@ -210,8 +210,8 @@ class DeckServiceIntegrationTest extends IntegrationTestBase {
     var decks = deckService.getDecks(userId);
     assertThat(decks).hasSize(1);
     assertThat(decks.getFirst().name()).isEqualTo("V1 Deck");
-    assertThat(decks.getFirst().uniqueCardCount()).isEqualTo(2);
-    assertThat(decks.getFirst().totalCardCount()).isEqualTo(8);
+    assertThat(decks.getFirst().numberOfPrintings()).isEqualTo(2);
+    assertThat(decks.getFirst().numberOfCopies()).isEqualTo(8);
   }
 
   @Test

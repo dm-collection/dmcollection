@@ -203,9 +203,9 @@
 							<td class="tbl-row font-semibold">
 								{deck.name}
 							</td>
-							<td class="tbl-row">{deck.uniqueCardCount}</td>
-							<td class="tbl-row" class:text-red-700={deck.totalCardCount > 40}
-								>{deck.totalCardCount}</td
+							<td class="tbl-row">{deck.numberOfPrintings}</td>
+							<td class="tbl-row" class:text-red-700={deck.numberOfCopies> 40}
+								>{deck.numberOfCopies}</td
 							>
 							<td class="tbl-row" title={formatRFC3339(deck.lastModified)}
 								>{formatDistanceToNow(deck.lastModified, { addSuffix: true })}</td

@@ -41,10 +41,10 @@ public class DeckService {
 
   private static final Logger log = LoggerFactory.getLogger(DeckService.class);
   private static final int EXPORT_FORMAT_VERSION = 2;
-  private static final Field<Long> UNIQUE_COUNT =
+  private static final Field<Long> PRINTINGS_COUNT =
       count(DECK_VERSION_ENTRY.ID).cast(Long.class).as("unique_count");
-  private static final Field<Long> TOTAL_COUNT =
-      coalesce(sum(DECK_VERSION_ENTRY.QUANTITY), 0).cast(Long.class).as("total_count");
+  private static final Field<Long> COPIES_COUNT =
+      coalesce(sum(DECK_VERSION_ENTRY.QUANTITY), 0).cast(Long.class).as("copies_count");
 
   private final DSLContext dsl;
   private final CollectionService collectionService;
@@ -57,15 +57,16 @@ public class DeckService {
   public record DeckInfo(
       UUID id,
       String name,
-      long uniqueCardCount,
-      long totalCardCount,
+      long numberOfPrintings,
+      long numberOfCopies,
       LocalDateTime lastModified,
       UUID ownerId) {}
 
   public record DeckDto(DeckInfo info, PagedModel<CardStub> cardPage) {}
 
   public List<DeckInfo> getDecks(UUID userId) {
-    return dsl.select(DECK.ID, DECK.NAME, DECK.UPDATED_AT, DECK.USER_ID, UNIQUE_COUNT, TOTAL_COUNT)
+    return dsl.select(
+            DECK.ID, DECK.NAME, DECK.UPDATED_AT, DECK.USER_ID, PRINTINGS_COUNT, COPIES_COUNT)
         .from(DECK)
         .leftJoin(DECK_VERSION)
         .on(DECK_VERSION.DECK_ID.eq(DECK.ID).and(DECK_VERSION.IS_DRAFT.isTrue()))
@@ -79,8 +80,8 @@ public class DeckService {
                 new DeckInfo(
                     r.get(DECK.ID),
                     r.get(DECK.NAME),
-                    r.get(UNIQUE_COUNT),
-                    r.get(TOTAL_COUNT),
+                    r.get(PRINTINGS_COUNT),
+                    r.get(COPIES_COUNT),
                     r.get(DECK.UPDATED_AT).toLocalDateTime(),
                     r.get(DECK.USER_ID)));
   }
@@ -452,7 +453,7 @@ public class DeckService {
 
   private DeckInfo getDeckInfo(UUID deckId) {
     var result =
-        dsl.select(DECK.ID, DECK.NAME, DECK.UPDATED_AT, DECK.USER_ID, UNIQUE_COUNT, TOTAL_COUNT)
+        dsl.select(DECK.ID, DECK.NAME, DECK.UPDATED_AT, DECK.USER_ID, PRINTINGS_COUNT, COPIES_COUNT)
             .from(DECK)
             .leftJoin(DECK_VERSION)
             .on(DECK_VERSION.DECK_ID.eq(DECK.ID).and(DECK_VERSION.IS_DRAFT.isTrue()))
@@ -465,8 +466,8 @@ public class DeckService {
     return new DeckInfo(
         result.get(DECK.ID),
         result.get(DECK.NAME),
-        result.get(UNIQUE_COUNT),
-        result.get(TOTAL_COUNT),
+        result.get(PRINTINGS_COUNT),
+        result.get(COPIES_COUNT),
         result.get(DECK.UPDATED_AT).toLocalDateTime(),
         result.get(DECK.USER_ID));
   }
