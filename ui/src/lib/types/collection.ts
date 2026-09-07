@@ -1,5 +1,5 @@
-import type {CardStub} from './card';
-import type {PagedResult} from './page';
+import type { CardStub } from './card';
+import type { PagedResult } from './page';
 
 export type CollectionInfo = {
 	id: string; // UUID v7
