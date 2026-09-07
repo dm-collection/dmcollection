@@ -164,8 +164,9 @@
 		</form>
 	</div>
 	<div class="flex flex-row gap-4">
-		<p>Unique Cards: {data.collection.info.uniqueCardCount}</p>
-		<p>Total Cards: {data.collection.info.totalCardCount}</p>
+		<p>Cards: {data.collection.info.numberOfCards}</p>
+		<p>Printings: {data.collection.info.numberOfPrintings}</p>
+		<p>Copies: {data.collection.info.numberOfCopies}</p>
 		<label>
 			<input type="checkbox" bind:checked={editingEnabled} />
 			Allow editing

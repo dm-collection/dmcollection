@@ -4,8 +4,9 @@ import type { PagedResult } from './page';
 export type CollectionInfo = {
 	id: string; // UUID v7
 	name: string;
-	uniqueCardCount: number;
-	totalCardCount: number;
+	numberOfCopies: number;
+	numberOfPrintings: number;
+	numberOfCards: number;
 	lastModified: Date;
 	ownerId: string; // UUID v7
 };

@@ -1,9 +1,9 @@
 package net.dmcollection.server.card;
 
+import static net.dmcollection.server.SearchBuilder.search;
 import static net.dmcollection.server.TestFixtureBuilder.CREATURE;
 import static net.dmcollection.server.TestFixtureBuilder.PSYCHIC_CREATURE;
 import static net.dmcollection.server.TestFixtureBuilder.SPELL;
-import static net.dmcollection.server.TestFixtureBuilder.search;
 import static net.dmcollection.server.card.Civilization.DARK;
 import static net.dmcollection.server.card.Civilization.FIRE;
 import static net.dmcollection.server.card.Civilization.LIGHT;
@@ -16,6 +16,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
 import net.dmcollection.server.IntegrationTestBase;
+import net.dmcollection.server.SearchBuilder;
 import net.dmcollection.server.TestFixtureBuilder;
 import net.dmcollection.server.card.CardService.CardStub;
 import net.dmcollection.server.card.internal.CardQueryService;
@@ -1105,8 +1106,7 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
         .isEqualTo(Arrays.asList(expectedCards));
   }
 
-  private void assertQueryFinds(
-      TestFixtureBuilder.SearchBuilder builder, CardStub... expectedCards) {
+  private void assertQueryFinds(SearchBuilder builder, CardStub... expectedCards) {
     assertQueryFinds(builder.build(), expectedCards);
   }
 

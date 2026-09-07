@@ -141,7 +141,7 @@
 				</button>
 			</div>
 
-			<p>Total Cards: {data.deck.getInfo()?.totalCardCount}</p>
+			<p>Total Cards: {data.deck.getInfo()?.numberOfCopies}</p>
 			<div class="overflow-y-auto landscape:max-h-full">
 				{#if data.deck.getCards().length > 0}
 					<div
