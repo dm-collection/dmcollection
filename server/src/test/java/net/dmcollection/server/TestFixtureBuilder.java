@@ -3,30 +3,14 @@ package net.dmcollection.server;
 import static net.dmcollection.server.card.Civilization.FIRE;
 import static net.dmcollection.server.card.Civilization.NATURE;
 import static net.dmcollection.server.card.Civilization.WATER;
-import static net.dmcollection.server.jooq.generated.Tables.ABILITY;
-import static net.dmcollection.server.jooq.generated.Tables.CARD;
-import static net.dmcollection.server.jooq.generated.Tables.CARD_CIV_GROUP;
-import static net.dmcollection.server.jooq.generated.Tables.CARD_SET;
-import static net.dmcollection.server.jooq.generated.Tables.CARD_SIDE;
-import static net.dmcollection.server.jooq.generated.Tables.CARD_SIDE_CARD_TYPE;
 import static net.dmcollection.server.jooq.generated.Tables.CARD_SIDE_RACE;
-import static net.dmcollection.server.jooq.generated.Tables.CARD_TYPE;
-import static net.dmcollection.server.jooq.generated.Tables.PRINTING;
 import static net.dmcollection.server.jooq.generated.Tables.PRINTING_SIDE;
-import static net.dmcollection.server.jooq.generated.Tables.PRINTING_SIDE_ABILITY;
-import static net.dmcollection.server.jooq.generated.Tables.PRODUCT_TYPE;
-import static net.dmcollection.server.jooq.generated.Tables.RACE;
-import static net.dmcollection.server.jooq.generated.Tables.RARITY;
-import static net.dmcollection.server.jooq.generated.Tables.SET_GROUP;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.EnumMap;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -47,31 +31,15 @@ public class TestFixtureBuilder {
 
   private final DSLContext dsl;
   private final Map<Long, CardStub> testCards = new HashMap<>();
-  private final Map<Integer, Integer> testSets = new HashMap<>(); // setId param -> card_set.id
-  private final Map<String, Short> cardTypes = new HashMap<>();
-  private final Map<String, Short> races = new HashMap<>();
-  private final Map<String, Integer> abilities = new HashMap<>();
-  private final Map<RarityCode, Short> rarities = new EnumMap<>(RarityCode.class);
   private final CardTypeResolver cardTypeResolver;
+  private final DbWriter dbWriter;
 
   private Short defaultProductTypeId;
   private Integer defaultSetGroupId;
 
-  public static final Map<RarityCode, Integer> rarityOrder;
-
-  static {
-    rarityOrder =
-        Map.of(
-            RarityCode.NONE, 0,
-            RarityCode.C, 1,
-            RarityCode.U, 2,
-            RarityCode.R, 3,
-            RarityCode.VR, 4,
-            RarityCode.SR, 5);
-  }
-
   public TestFixtureBuilder(DSLContext dsl, CardTypeResolver cardTypeResolver) {
     this.dsl = dsl;
+    this.dbWriter = new DbWriter(dsl);
     this.cardTypeResolver = cardTypeResolver;
   }
 
@@ -81,7 +49,7 @@ public class TestFixtureBuilder {
 
   /** Returns the actual DB card_set.id for a given set parameter used in card creation. */
   public int getCardSetId(int setParam) {
-    return testSets.get(setParam);
+    return ensureCardSet(setParam);
   }
 
   // --- Convenience card creation methods ---
@@ -193,7 +161,7 @@ public class TestFixtureBuilder {
             .limit(1)
             .fetchOne(PRINTING_SIDE.CARD_SIDE_ID);
 
-    short raceId = ensureRace(speciesName);
+    short raceId = dbWriter.upsertRace(speciesName);
     // Use position based on existing race count for this side
     short position =
         (short)
@@ -461,7 +429,6 @@ public class TestFixtureBuilder {
 
     ensureDefaultLookups();
     int cardSetId = ensureCardSet(setId);
-    Short rarityId = rarity != null ? ensureRarity(rarity) : null;
 
     // Compute sort values from first side
     Integer sortCost = costs != null && !costs.isEmpty() ? costs.getFirst() : null;
@@ -479,18 +446,6 @@ public class TestFixtureBuilder {
       }
     }
 
-    // Compute sort_civilization (union of all side civs, as sorted smallint[])
-    Set<Civilization> allCivs = new LinkedHashSet<>();
-    for (Set<Civilization> sideCivs : facetCivs) {
-      allCivs.addAll(sideCivs);
-    }
-    Short[] sortCivilization =
-        allCivs.stream()
-            .filter(c -> c != Civilization.ZERO)
-            .map(c -> (short) c.ordinal())
-            .sorted()
-            .toArray(Short[]::new);
-
     String cardZone = "main";
     if (facetTypes != null) {
       if (facetTypes.contains(PSYCHIC_CREATURE)) {
@@ -499,94 +454,45 @@ public class TestFixtureBuilder {
     }
 
     // Insert card
-    Integer cardId =
-        dsl.insertInto(CARD)
-            .set(CARD.NAME, officialId) // use officialId as card name for test fixtures
-            .set(CARD.IS_TWINPACT, twinpact)
-            .set(CARD.SORT_COST, sortCost)
-            .set(CARD.SORT_POWER, sortPower)
-            .set(CARD.SORT_CIVILIZATION, sortCivilization)
-            .set(CARD.DECK_ZONE, cardZone)
-            .returningResult(CARD.ID)
-            .fetchOne(CARD.ID);
+    int cardId =
+        dbWriter.upsertCard(officialId, twinpact, sortCost, sortPower, facetCivs, cardZone);
 
     // Insert card sides and collect their IDs
     List<Integer> cardSideIds = new ArrayList<>();
     for (int i = 0; i < facetCivs.size(); i++) {
-      Integer cost = costs != null && costs.size() > i ? costs.get(i) : null;
-      Integer power = powers != null && i < powers.size() ? powers.get(i) : null;
-      boolean costIsInfinity = cost != null && cost == Integer.MAX_VALUE;
-      boolean powerIsInfinity = power != null && power == Integer.MAX_VALUE;
+      Integer costValue = costs != null && i < costs.size() ? costs.get(i) : null;
+      Integer powerValue = powers != null && i < powers.size() ? powers.get(i) : null;
+      DbWriter.IntOrInfinity cost =
+          costValue == null ? null : new DbWriter.IntOrInfinity(costValue);
+      DbWriter.IntOrInfinity power =
+          powerValue == null ? null : new DbWriter.IntOrInfinity(powerValue);
+      String sideType = facetTypes != null && i < facetTypes.size() ? facetTypes.get(i) : null;
+      String sideRace =
+          facetSpecies != null && i < facetSpecies.size() ? facetSpecies.get(i) : null;
 
-      Short[] civIds =
-          facetCivs.get(i).stream()
-              .filter(c -> c != Civilization.ZERO)
-              .map(c -> (short) c.ordinal())
-              .sorted()
-              .toArray(Short[]::new);
-
-      Integer cardSideId =
-          dsl.insertInto(CARD_SIDE)
-              .set(CARD_SIDE.CARD_ID, cardId)
-              .set(CARD_SIDE.SIDE_ORDER, (short) i)
-              .set(CARD_SIDE.NAME, officialId + (facetCivs.size() > 1 ? "-side" + i : ""))
-              .set(CARD_SIDE.COST, costIsInfinity ? null : cost)
-              .set(CARD_SIDE.COST_IS_INFINITY, costIsInfinity)
-              .set(CARD_SIDE.POWER, powerIsInfinity ? null : power)
-              .set(CARD_SIDE.POWER_IS_INFINITY, powerIsInfinity)
-              .set(CARD_SIDE.CIVILIZATION_IDS, civIds)
-              .returningResult(CARD_SIDE.ID)
-              .fetchOne(CARD_SIDE.ID);
+      int cardSideId =
+          dbWriter.upsertCardSide(
+              cardId,
+              i,
+              officialId + (facetCivs.size() > 1 ? "-side" + i : ""),
+              cost,
+              power,
+              facetCivs.get(i),
+              sideType != null ? List.of(sideType) : null,
+              cardTypeResolver,
+              sideRace != null ? List.of(sideRace) : null);
       cardSideIds.add(cardSideId);
-
-      // Insert card_side_card_type
-      String facetType = facetTypes != null && i < facetTypes.size() ? facetTypes.get(i) : null;
-      if (facetType != null) {
-        short cardTypeId = ensureCardType(facetType);
-        dsl.insertInto(CARD_SIDE_CARD_TYPE)
-            .set(CARD_SIDE_CARD_TYPE.CARD_SIDE_ID, cardSideId)
-            .set(CARD_SIDE_CARD_TYPE.CARD_TYPE_ID, cardTypeId)
-            .set(CARD_SIDE_CARD_TYPE.POSITION, (short) 0)
-            .execute();
-      }
-
-      // Insert species for this side
-      if (facetSpecies != null && i < facetSpecies.size() && facetSpecies.get(i) != null) {
-        short raceId = ensureRace(facetSpecies.get(i));
-        dsl.insertInto(CARD_SIDE_RACE)
-            .set(CARD_SIDE_RACE.CARD_SIDE_ID, cardSideId)
-            .set(CARD_SIDE_RACE.RACE_ID, raceId)
-            .set(CARD_SIDE_RACE.POSITION, (short) 0)
-            .execute();
-      }
     }
 
-    // Insert card_civ_group rows
-    insertCivGroups(cardId, twinpact, facetCivs);
-
     // Insert printing
-    Integer printingId =
-        dsl.insertInto(PRINTING)
-            .set(PRINTING.CARD_ID, cardId)
-            .set(PRINTING.SET_ID, cardSetId)
-            .set(PRINTING.OFFICIAL_SITE_ID, officialId)
-            .set(PRINTING.COLLECTOR_NUMBER, idText)
-            .set(PRINTING.RARITY_ID, rarityId)
-            .returningResult(PRINTING.ID)
-            .fetchOne(PRINTING.ID);
+    int printingId = dbWriter.upsertPrinting(cardId, cardSetId, officialId, idText, rarity);
 
     // Insert printing sides
     List<Integer> printingSideIds = new ArrayList<>();
     for (int i = 0; i < cardSideIds.size(); i++) {
       String imageFile = imageFiles != null && imageFiles.size() > i ? imageFiles.get(i) : null;
-      Integer printingSideId =
-          dsl.insertInto(PRINTING_SIDE)
-              .set(PRINTING_SIDE.PRINTING_ID, printingId)
-              .set(PRINTING_SIDE.CARD_SIDE_ID, cardSideIds.get(i))
-              .set(PRINTING_SIDE.IMAGE_FILENAME, imageFile)
-              .returningResult(PRINTING_SIDE.ID)
-              .fetchOne(PRINTING_SIDE.ID);
-      printingSideIds.add(printingSideId);
+      printingSideIds.add(
+          dbWriter.upsertPrintingSide(printingId, cardSideIds.get(i), "", imageFile));
     }
 
     // Insert effects
@@ -601,22 +507,10 @@ public class TestFixtureBuilder {
               // First element is parent, rest are children — all are separate abilities
               // In the new schema, abilities are flat (no parent-child in ability table)
               // but indent_level distinguishes them
-              int parentAbilityId = ensureAbility(effectGroup.getFirst());
-              dsl.insertInto(PRINTING_SIDE_ABILITY)
-                  .set(PRINTING_SIDE_ABILITY.PRINTING_SIDE_ID, printingSideId)
-                  .set(PRINTING_SIDE_ABILITY.ABILITY_ID, parentAbilityId)
-                  .set(PRINTING_SIDE_ABILITY.POSITION, position)
-                  .set(PRINTING_SIDE_ABILITY.INDENT_LEVEL, (short) 0)
-                  .execute();
+              dbWriter.addAbility(printingSideId, effectGroup.getFirst(), position, 0);
               position++;
               for (int childIndex = 1; childIndex < effectGroup.size(); childIndex++) {
-                int childAbilityId = ensureAbility(effectGroup.get(childIndex));
-                dsl.insertInto(PRINTING_SIDE_ABILITY)
-                    .set(PRINTING_SIDE_ABILITY.PRINTING_SIDE_ID, printingSideId)
-                    .set(PRINTING_SIDE_ABILITY.ABILITY_ID, childAbilityId)
-                    .set(PRINTING_SIDE_ABILITY.POSITION, position)
-                    .set(PRINTING_SIDE_ABILITY.INDENT_LEVEL, (short) 1)
-                    .execute();
+                dbWriter.addAbility(printingSideId, effectGroup.get(childIndex), position, 1);
                 position++;
               }
             }
@@ -625,12 +519,14 @@ public class TestFixtureBuilder {
       }
     }
 
+    Set<Civilization> allCivs = facetCivs.stream().flatMap(Set::stream).collect(Collectors.toSet());
+
     CardStub stub =
         new CardStub(
             (long) printingId,
             officialId,
             idText,
-            new HashSet<>(allCivs),
+            allCivs,
             imageFiles != null
                 ? imageFiles.stream().filter(Objects::nonNull).toList()
                 : Collections.emptyList(),
@@ -640,166 +536,17 @@ public class TestFixtureBuilder {
     return stub;
   }
 
-  private void insertCivGroups(int cardId, boolean twinpact, List<Set<Civilization>> facetCivs) {
-    if (twinpact) {
-      // Twinpact: single row with union of all sides' civilizations
-      Set<Civilization> union = new LinkedHashSet<>();
-      boolean includesColorlessSide = false;
-      for (Set<Civilization> sideCivs : facetCivs) {
-        Set<Civilization> nonZero =
-            sideCivs.stream().filter(c -> c != Civilization.ZERO).collect(Collectors.toSet());
-        if (nonZero.isEmpty()) {
-          includesColorlessSide = true;
-        }
-        union.addAll(nonZero);
-      }
-      Short[] civIds = union.stream().map(c -> (short) c.ordinal()).sorted().toArray(Short[]::new);
-      dsl.insertInto(CARD_CIV_GROUP)
-          .set(CARD_CIV_GROUP.CARD_ID, cardId)
-          .set(CARD_CIV_GROUP.CIVILIZATION_IDS, civIds)
-          .set(CARD_CIV_GROUP.INCLUDES_COLORLESS_SIDE, includesColorlessSide)
-          .execute();
-    } else {
-      // Non-twinpact: one row per side
-      for (Set<Civilization> sideCivs : facetCivs) {
-        Set<Civilization> nonZero =
-            sideCivs.stream().filter(c -> c != Civilization.ZERO).collect(Collectors.toSet());
-        Short[] civIds =
-            nonZero.stream().map(c -> (short) c.ordinal()).sorted().toArray(Short[]::new);
-        boolean includesColorlessSide = nonZero.isEmpty();
-        dsl.insertInto(CARD_CIV_GROUP)
-            .set(CARD_CIV_GROUP.CARD_ID, cardId)
-            .set(CARD_CIV_GROUP.CIVILIZATION_IDS, civIds)
-            .set(CARD_CIV_GROUP.INCLUDES_COLORLESS_SIDE, includesColorlessSide)
-            .execute();
-      }
-    }
-  }
-
   private void ensureDefaultLookups() {
     if (defaultProductTypeId == null) {
-      defaultProductTypeId =
-          dsl.select(PRODUCT_TYPE.ID)
-              .from(PRODUCT_TYPE)
-              .where(PRODUCT_TYPE.NAME.eq("ブースターパック"))
-              .fetchOne(PRODUCT_TYPE.ID);
-      if (defaultProductTypeId == null) {
-        defaultProductTypeId =
-            dsl.insertInto(PRODUCT_TYPE)
-                .set(PRODUCT_TYPE.NAME, "ブースターパック")
-                .returningResult(PRODUCT_TYPE.ID)
-                .fetchOne(PRODUCT_TYPE.ID);
-      }
+      defaultProductTypeId = dbWriter.upsertProductType("ブースターパック");
     }
     if (defaultSetGroupId == null) {
-      defaultSetGroupId =
-          dsl.select(SET_GROUP.ID)
-              .from(SET_GROUP)
-              .where(SET_GROUP.NAME.eq("Test Group"))
-              .fetchOne(SET_GROUP.ID);
-      if (defaultSetGroupId == null) {
-        defaultSetGroupId =
-            dsl.insertInto(SET_GROUP)
-                .set(SET_GROUP.NAME, "Test Group")
-                .set(SET_GROUP.SORT_ORDER, 1)
-                .returningResult(SET_GROUP.ID)
-                .fetchOne(SET_GROUP.ID);
-      }
+      defaultSetGroupId = dbWriter.upsertSetGroup("Test Group", 1);
     }
   }
 
   private int ensureCardSet(int setId) {
-    return testSets.computeIfAbsent(
-        setId,
-        id -> {
-          String code = "DM-" + id;
-          // Check if already exists
-          Integer existing =
-              dsl.select(CARD_SET.ID)
-                  .from(CARD_SET)
-                  .where(CARD_SET.CODE.eq(code))
-                  .fetchOne(CARD_SET.ID);
-          if (existing != null) return existing;
-
-          return dsl.insertInto(CARD_SET)
-              .set(CARD_SET.NAME, "Set " + id)
-              .set(CARD_SET.CODE, code)
-              .set(CARD_SET.RELEASE_DATE, LocalDate.now())
-              .set(CARD_SET.PRODUCT_TYPE_ID, defaultProductTypeId)
-              .set(CARD_SET.SET_GROUP_ID, defaultSetGroupId)
-              .returningResult(CARD_SET.ID)
-              .fetchOne(CARD_SET.ID);
-        });
-  }
-
-  private Short ensureRarity(RarityCode rarity) {
-    if (rarity == RarityCode.NONE) return null;
-    return rarities.computeIfAbsent(
-        rarity,
-        r -> {
-          String name = r.toString();
-          Short existing =
-              dsl.select(RARITY.ID).from(RARITY).where(RARITY.NAME.eq(name)).fetchOne(RARITY.ID);
-          if (existing != null) return existing;
-
-          int order = rarityOrder.getOrDefault(r, 0);
-          return dsl.insertInto(RARITY)
-              .set(RARITY.NAME, name)
-              .set(RARITY.SORT_ORDER, (short) order)
-              .returningResult(RARITY.ID)
-              .fetchOne(RARITY.ID);
-        });
-  }
-
-  private short ensureCardType(String typeName) {
-    return cardTypes.computeIfAbsent(
-        typeName,
-        name -> {
-          Short existing =
-              dsl.select(CARD_TYPE.ID)
-                  .from(CARD_TYPE)
-                  .where(CARD_TYPE.NAME.eq(name))
-                  .fetchOne(CARD_TYPE.ID);
-          if (existing != null) return existing;
-
-          var id =
-              dsl.insertInto(CARD_TYPE)
-                  .set(CARD_TYPE.NAME, name)
-                  .returningResult(CARD_TYPE.ID)
-                  .fetchOne(CARD_TYPE.ID);
-          cardTypeResolver.loadNameToId();
-          return id;
-        });
-  }
-
-  private short ensureRace(String raceName) {
-    return races.computeIfAbsent(
-        raceName,
-        name -> {
-          Short existing =
-              dsl.select(RACE.ID).from(RACE).where(RACE.NAME.eq(name)).fetchOne(RACE.ID);
-          if (existing != null) return existing;
-
-          return dsl.insertInto(RACE)
-              .set(RACE.NAME, name)
-              .returningResult(RACE.ID)
-              .fetchOne(RACE.ID);
-        });
-  }
-
-  private int ensureAbility(String text) {
-    return abilities.computeIfAbsent(
-        text,
-        t -> {
-          Integer existing =
-              dsl.select(ABILITY.ID).from(ABILITY).where(ABILITY.TEXT.eq(t)).fetchOne(ABILITY.ID);
-          if (existing != null) return existing;
-
-          return dsl.insertInto(ABILITY)
-              .set(ABILITY.TEXT, t)
-              .set(ABILITY.SEARCH_TEXT, t) // for test fixtures, search_text = text
-              .returningResult(ABILITY.ID)
-              .fetchOne(ABILITY.ID);
-        });
+    return dbWriter.upsertSet(
+        "DM-" + setId, "Set " + setId, LocalDate.now(), "ブースターパック", defaultSetGroupId);
   }
 }
