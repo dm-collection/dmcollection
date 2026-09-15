@@ -1,4 +1,4 @@
-package net.dmcollection.server;
+package net.dmcollection.server.testutils;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -15,7 +15,7 @@ public class SearchBuilder {
 
   private SearchBuilder() {}
 
-  private Long setId;
+  private Integer setId;
   private Set<Civilization> includedCivs;
   private Set<Civilization> excludedCivs;
   private Boolean includeMono = null;
@@ -92,7 +92,7 @@ public class SearchBuilder {
     return this;
   }
 
-  public SearchBuilder setSetId(Long setId) {
+  public SearchBuilder setSetId(Integer setId) {
     this.setId = setId;
     return this;
   }

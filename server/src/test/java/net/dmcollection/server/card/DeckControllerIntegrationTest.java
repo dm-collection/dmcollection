@@ -7,8 +7,8 @@ import static org.springframework.security.test.web.servlet.request.SecurityMock
 import java.io.UnsupportedEncodingException;
 import java.util.UUID;
 import net.dmcollection.server.IntegrationTestBase;
-import net.dmcollection.server.TestFixtureBuilder;
-import net.dmcollection.server.card.CardService.CardStub;
+import net.dmcollection.server.card.CardService.PrintingStub;
+import net.dmcollection.server.testutils.TestFixtureBuilder;
 import net.dmcollection.server.user.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -38,9 +38,9 @@ class DeckControllerIntegrationTest extends IntegrationTestBase {
 
   @Test
   void exportAndImportWorks() throws UnsupportedEncodingException {
-    CardStub granGure = fixtures.monoCard("dm01-001", Civilization.LIGHT);
-    CardStub bolshack = fixtures.monoCard("dm01-008", Civilization.FIRE);
-    CardStub silphy = fixtures.monoCard("dm001-005", Civilization.DARK);
+    PrintingStub granGure = fixtures.testCard("dm01-001").light().build();
+    PrintingStub bolshack = fixtures.testCard("dm01-008").fire().build();
+    PrintingStub silphy = fixtures.testCard("dm001-005").dark().build();
     var deck1 = createDeck("test-1");
     addCardToDeck(deck1, granGure.id(), 4);
     addCardToDeck(deck1, bolshack.id(), 3);

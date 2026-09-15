@@ -26,9 +26,9 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.jooq.DSLContext;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
-@Component
+@Service
 public class CardService {
 
   private final DSLContext dsl;
@@ -37,8 +37,8 @@ public class CardService {
     this.dsl = dsl;
   }
 
-  public record CardStub(
-      Long id,
+  public record PrintingStub(
+      int id,
       String dmId,
       String idText,
       Set<Civilization> civilizations,
@@ -78,7 +78,7 @@ public class CardService {
 
   private record AbilityRow(String text, short position, short indentLevel) {}
 
-  public List<CardStub> getByIds(List<Long> printingIds) {
+  public List<PrintingStub> getByIds(List<Long> printingIds) {
     List<Integer> ids = printingIds.stream().map(Long::intValue).toList();
 
     record PrintingRow(int printingId, String officialSiteId, String collectorNumber) {}
@@ -102,12 +102,12 @@ public class CardService {
 
     Map<Integer, List<SideData>> sidesByPrinting = fetchSideData(printings.keySet());
 
-    List<CardStub> result = new ArrayList<>(printings.size());
+    List<PrintingStub> result = new ArrayList<>(printings.size());
     for (PrintingRow row : printings.values()) {
       List<SideData> sides = sidesByPrinting.getOrDefault(row.printingId(), List.of());
       result.add(
-          new CardStub(
-              (long) row.printingId(),
+          new PrintingStub(
+              row.printingId(),
               row.officialSiteId(),
               row.collectorNumber(),
               collectCivilizations(sides),

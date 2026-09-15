@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import net.dmcollection.server.card.CardService.CardStub;
+import net.dmcollection.server.card.CardService.PrintingStub;
 import net.dmcollection.server.card.Civilization;
 import net.dmcollection.server.card.internal.SearchFilter.CollectionFilter;
 import net.dmcollection.server.card.internal.query.SearchFilterTranslator;
@@ -59,7 +59,8 @@ public class CardQueryService {
     this.searchFilterTranslator = searchFilterTranslator;
   }
 
-  public record SearchResult(Page<CardStub> pageOfCards, long numberOfCopies, long numberOfCards) {}
+  public record SearchResult(
+      Page<PrintingStub> pageOfCards, long numberOfCopies, long numberOfCards) {}
 
   public SearchResult search(@NonNull SearchFilter searchFilter) {
     if (searchFilter.isInvalid()) {
@@ -208,7 +209,7 @@ public class CardQueryService {
                             r.get(PRINTING_SIDE.IMAGE_FILENAME))));
 
     // Phase 3: Assemble CardStub records
-    List<CardStub> pageContent = new ArrayList<>(matchedPrintings.size());
+    List<PrintingStub> pageContent = new ArrayList<>(matchedPrintings.size());
     for (PrintingRow row : matchedPrintings.values()) {
       List<SideData> sides = sidesByPrinting.getOrDefault(row.printingId(), List.of());
 
@@ -227,8 +228,8 @@ public class CardQueryService {
           sides.stream().map(SideData::imageFilename).filter(Objects::nonNull).toList();
 
       pageContent.add(
-          new CardStub(
-              (long) row.printingId(),
+          new PrintingStub(
+              row.printingId(),
               row.officialSiteId(),
               row.collectorNumber(),
               civilizations,

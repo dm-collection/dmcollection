@@ -11,6 +11,7 @@ import static org.jooq.impl.DSL.val;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import net.dmcollection.server.card.SearchFilterApi;
 import org.jooq.Field;
 import org.jooq.OrderField;
 import org.jooq.SortField;
@@ -33,11 +34,11 @@ public class SortBuilder {
     for (Sort.Order order : sort) {
       Field<? extends Comparable<?>> column =
           switch (order.getProperty()) {
-            case "COST", "sort_cost" -> CARD.SORT_COST;
-            case "POWER_SORT", "sort_power" -> CARD.SORT_POWER;
-            case "ORDER" -> coalesce(RARITY.SORT_ORDER, (short) 0);
-            case "RELEASE", "release_date" -> CARD_SET.RELEASE_DATE;
-            case "AMOUNT" ->
+            case SearchFilterApi.SORT_COST -> CARD.SORT_COST;
+            case SearchFilterApi.SORT_POWER -> CARD.SORT_POWER;
+            case SearchFilterApi.SORT_RARITY -> coalesce(RARITY.SORT_ORDER, (short) 0);
+            case SearchFilterApi.SORT_RELEASE -> CARD_SET.RELEASE_DATE;
+            case SearchFilterApi.SORT_AMOUNT ->
                 userId != null
                     ? coalesce(
                         DSL.select(COLLECTION_ENTRY.QUANTITY)
@@ -47,7 +48,7 @@ public class SortBuilder {
                             .asField(),
                         0)
                     : val(0);
-            case "OFFICIAL_ID", "official_site_id" -> PRINTING.OFFICIAL_SITE_ID;
+            case SearchFilterApi.SORT_OFFICIAL_ID -> PRINTING.OFFICIAL_SITE_ID;
             default -> null;
           };
 
@@ -58,6 +59,10 @@ public class SortBuilder {
       SortField<? extends Comparable<?>> sortField =
           order.isAscending() ? column.asc().nullsLast() : column.desc().nullsLast();
       fields.add(sortField);
+      if (column.equals(CARD.SORT_POWER)) {
+        var modifier = CARD.SORT_POWER_MODIFIER;
+        fields.add(order.isAscending() ? modifier.asc() : modifier.desc());
+      }
     }
 
     fields.add(PRINTING.OFFICIAL_SITE_ID.asc());

@@ -23,7 +23,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import net.dmcollection.server.card.CardService.CardStub;
+import net.dmcollection.server.card.CardService.PrintingStub;
 import net.dmcollection.server.card.serialization.deck.format.v1.DeckCardExport;
 import net.dmcollection.server.card.serialization.deck.format.v1.DeckExport;
 import org.jooq.DSLContext;
@@ -62,7 +62,7 @@ public class DeckService {
       LocalDateTime lastModified,
       UUID ownerId) {}
 
-  public record DeckDto(DeckInfo info, PagedModel<CardStub> cardPage) {}
+  public record DeckDto(DeckInfo info, PagedModel<PrintingStub> cardPage) {}
 
   public List<DeckInfo> getDecks(UUID userId) {
     return dsl.select(DECK.ID, DECK.NAME, DECK.UPDATED_AT, DECK.USER_ID, CARD_COUNT, COPIES_COUNT)
@@ -139,7 +139,7 @@ public class DeckService {
   }
 
   @Transactional
-  public Optional<DeckInfo> setCardAmount(UUID userId, UUID deckId, Long printingId, int amount) {
+  public Optional<DeckInfo> setCardAmount(UUID userId, UUID deckId, int printingId, int amount) {
     // Get draft version ID and verify ownership
     UUID draftVersionId =
         dsl.select(DECK_VERSION.ID)
@@ -162,7 +162,7 @@ public class DeckService {
     Integer cardId =
         dsl.select(PRINTING.CARD_ID)
             .from(PRINTING)
-            .where(PRINTING.ID.eq(printingId.intValue()))
+            .where(PRINTING.ID.eq(printingId))
             .fetchOne(PRINTING.CARD_ID);
 
     if (cardId == null) {
@@ -175,13 +175,13 @@ public class DeckService {
               DECK_VERSION_ENTRY
                   .DECK_VERSION_ID
                   .eq(draftVersionId)
-                  .and(DECK_VERSION_ENTRY.PRINTING_ID.eq(printingId.intValue())))
+                  .and(DECK_VERSION_ENTRY.PRINTING_ID.eq(printingId)))
           .execute();
     } else {
       dsl.insertInto(DECK_VERSION_ENTRY)
           .set(DECK_VERSION_ENTRY.DECK_VERSION_ID, draftVersionId)
           .set(DECK_VERSION_ENTRY.CARD_ID, cardId)
-          .set(DECK_VERSION_ENTRY.PRINTING_ID, printingId.intValue())
+          .set(DECK_VERSION_ENTRY.PRINTING_ID, printingId)
           .set(DECK_VERSION_ENTRY.QUANTITY, amount)
           .onConflict(
               DECK_VERSION_ENTRY.DECK_VERSION_ID,
@@ -389,9 +389,9 @@ public class DeckService {
       byPrinting.computeIfAbsent(row.printingId(), k -> new ArrayList<>()).add(row);
     }
 
-    Map<Long, Integer> collectionAmounts = collectionService.getPrimaryStub(userId);
+    Map<Integer, Integer> collectionAmounts = collectionService.getPrimaryStub(userId);
 
-    List<CardStub> stubs =
+    List<PrintingStub> stubs =
         byPrinting.entrySet().stream()
             .map(entry -> toCardStub(entry.getKey(), entry.getValue(), collectionAmounts))
             .sorted(
@@ -418,8 +418,8 @@ public class DeckService {
       List<Short> civilizationIds,
       String imageFilename) {}
 
-  private CardStub toCardStub(
-      int printingId, List<EntryRow> sideRows, Map<Long, Integer> collectionAmounts) {
+  private PrintingStub toCardStub(
+      int printingId, List<EntryRow> sideRows, Map<Integer, Integer> collectionAmounts) {
     EntryRow first = sideRows.getFirst();
 
     Set<Civilization> civs = EnumSet.noneOf(Civilization.class);
@@ -438,10 +438,10 @@ public class DeckService {
       civs.add(Civilization.ZERO);
     }
 
-    int collectionAmount = collectionAmounts.getOrDefault((long) printingId, 0);
+    int collectionAmount = collectionAmounts.getOrDefault(printingId, 0);
 
-    return new CardStub(
-        (long) printingId,
+    return new PrintingStub(
+        printingId,
         first.officialSiteId(),
         first.collectorNumber(),
         civs,

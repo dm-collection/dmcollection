@@ -1,4 +1,4 @@
-package net.dmcollection.server;
+package net.dmcollection.server.testutils;
 
 import static net.dmcollection.server.jooq.generated.Tables.ABILITY;
 import static net.dmcollection.server.jooq.generated.Tables.CARD;
@@ -38,6 +38,7 @@ import net.dmcollection.server.jooq.generated.tables.records.ProductTypeRecord;
 import net.dmcollection.server.jooq.generated.tables.records.RarityRecord;
 import net.dmcollection.server.jooq.generated.tables.records.SetGroupRecord;
 import org.jooq.DSLContext;
+import org.jspecify.annotations.NonNull;
 
 public class DbWriter {
 
@@ -49,11 +50,18 @@ public class DbWriter {
 
   public int upsertSetGroup(String name, int sortOrder) {
     var table = SET_GROUP;
-    db.deleteFrom(table).where(table.NAME.eq(name).and(table.SORT_ORDER.eq(sortOrder))).execute();
-    var group = new SetGroupRecord().setName(name).setSortOrder(sortOrder);
-    Integer id = db.insertInto(table).set(group).returningResult(table.ID).fetchOne(table.ID);
-    assertThat(id).isNotNull();
-    return id;
+    Integer existing =
+        db.select(table.ID)
+            .from(table)
+            .where(table.NAME.eq(name).and(table.SORT_ORDER.eq(sortOrder)))
+            .fetchOne(table.ID);
+    if (existing == null) {
+      var group = new SetGroupRecord().setName(name).setSortOrder(sortOrder);
+      Integer id = db.insertInto(table).set(group).returningResult(table.ID).fetchOne(table.ID);
+      assertThat(id).isNotNull();
+      return id;
+    }
+    return existing;
   }
 
   public int upsertSet(
@@ -235,53 +243,32 @@ public class DbWriter {
     return id;
   }
 
-  public static class IntOrInfinity {
-    private final Integer value;
-    private final boolean isInfinite;
-
-    private IntOrInfinity() {
-      isInfinite = true;
-      value = null;
-    }
-
-    public IntOrInfinity(int value) {
-      if (value == Integer.MAX_VALUE) {
-        this.isInfinite = true;
-        this.value = null;
-      } else {
-        this.value = value;
-        this.isInfinite = false;
-      }
-    }
-
-    public Integer value() {
-      return value;
-    }
-
-    public boolean isInfinite() {
-      return isInfinite;
-    }
-  }
-
   public int upsertCardSide(
       int cardId,
       int position,
       String name,
-      IntOrInfinity cost,
-      IntOrInfinity power,
+      TestFixtureBuilder.Cost cost,
+      TestFixtureBuilder.Power power,
       Collection<Civilization> civs,
       List<String> cardTypes,
       CardTypeResolver cardTypeResolver,
       List<String> races) {
     Short[] civIds = civsWithoutZero(civs);
     var side = new CardSideRecord();
+    if (cost == null) {
+      cost = new TestFixtureBuilder.Cost();
+    }
+    if (power == null) {
+      power = new TestFixtureBuilder.Power();
+    }
     side.setCardId(cardId)
         .setSideOrder((short) position)
         .setName(name)
-        .setCost(cost != null ? cost.value : null)
-        .setCostIsInfinity(cost != null && cost.isInfinite())
-        .setPower(power != null ? power.value() : null)
-        .setPowerIsInfinity(power != null && power.isInfinite())
+        .setCost(cost.value)
+        .setCostIsInfinity(cost.isInfinite)
+        .setPower(power.value)
+        .setPowerIsInfinity(power.isInfinite)
+        .setPowerModifier(power.modifier.value())
         .setCivilizationIds(civIds);
 
     var table = CARD_SIDE;
@@ -342,10 +329,11 @@ public class DbWriter {
   }
 
   public int upsertCard(
-      String name,
+      @NonNull String name,
       boolean twinpact,
       Integer sortCost,
       Integer sortPower,
+      short sortPowerModifier,
       Collection<? extends Collection<Civilization>> sideCivs,
       String zone) {
     var sortCivilization =
@@ -356,6 +344,7 @@ public class DbWriter {
         .setIsTwinpact(twinpact)
         .setSortCost(sortCost)
         .setSortPower(sortPower)
+        .setSortPowerModifier(sortPowerModifier)
         .setSortCivilization(sortCivilization)
         .setDeckZone(zone);
     var c = CARD;

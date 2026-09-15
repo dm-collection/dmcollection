@@ -108,7 +108,7 @@ public class CollectionController {
   @PutMapping("/api/collection/cards/{cardId}")
   ResponseEntity<CollectionInfo> setCardAmount(
       @CurrentUserId UUID currentUserId,
-      @PathVariable Long cardId,
+      @PathVariable int cardId,
       @Valid @RequestBody AmountRequest request) {
     return collectionService
         .setCardAmount(currentUserId, cardId, request.amount())
@@ -118,7 +118,7 @@ public class CollectionController {
 
   @GetMapping("/api/collectionStub/cards/{cardId}")
   ResponseEntity<CollectionService.CollectionCardStub> getSingleCardAmount(
-      @CurrentUserId UUID currentUserId, @PathVariable Long cardId) {
+      @CurrentUserId UUID currentUserId, @PathVariable int cardId) {
     return collectionService
         .getSingleCardAmount(currentUserId, cardId)
         .map(ResponseEntity::ok)
@@ -128,7 +128,7 @@ public class CollectionController {
   @PutMapping("/api/collectionStub/cards/{cardId}")
   ResponseEntity<CollectionService.CollectionCardStub> setSingleCardAmount(
       @CurrentUserId UUID currentUserId,
-      @PathVariable Long cardId,
+      @PathVariable int cardId,
       @Valid @RequestBody AmountRequest request) {
     return collectionService
         .setSingleCardAmount(currentUserId, cardId, request.amount())
@@ -137,7 +137,7 @@ public class CollectionController {
   }
 
   @PutMapping("/api/collectionStub")
-  ResponseEntity<Map<Long, Integer>> setCardAmountOnStub(
+  ResponseEntity<Map<Integer, Integer>> setCardAmountOnStub(
       @CurrentUserId UUID currentUserId, @Valid @RequestBody SetCardAmountRequest request) {
     return collectionService
         .setCardAmountOnStub(currentUserId, request.cardId(), request.amount())
@@ -145,7 +145,7 @@ public class CollectionController {
         .orElse(ResponseEntity.notFound().build());
   }
 
-  record SetCardAmountRequest(long cardId, @Min(0) int amount) {}
+  record SetCardAmountRequest(int cardId, @Min(0) int amount) {}
 
   record AmountRequest(@Min(0) int amount) {}
 }
