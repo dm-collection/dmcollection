@@ -1,23 +1,17 @@
 package net.dmcollection.server.card;
 
-import static net.dmcollection.server.TestFixtureBuilder.D2_FIELD;
-import static net.dmcollection.server.card.Civilization.DARK;
-import static net.dmcollection.server.card.Civilization.FIRE;
-import static net.dmcollection.server.card.Civilization.LIGHT;
-import static net.dmcollection.server.card.Civilization.NATURE;
-import static net.dmcollection.server.card.Civilization.WATER;
-import static net.dmcollection.server.card.Civilization.ZERO;
+import static net.dmcollection.server.card.RarityCode.VR;
+import static net.dmcollection.server.testutils.TestFixtureBuilder.D2_FIELD;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import net.dmcollection.server.IntegrationTestBase;
-import net.dmcollection.server.TestFixtureBuilder;
-import net.dmcollection.server.card.CardService.CardStub;
+import net.dmcollection.server.card.CardService.PrintingStub;
 import net.dmcollection.server.card.serialization.deck.format.v1.DeckCardExport;
 import net.dmcollection.server.card.serialization.deck.format.v1.DeckExport;
+import net.dmcollection.server.testutils.TestFixtureBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,32 +25,28 @@ class DeckServiceIntegrationTest extends IntegrationTestBase {
 
   private UUID userId;
 
-  private CardStub lightCard;
-  private CardStub rainbowCard;
-  private CardStub fireCard;
-  private CardStub zeroCard;
+  private PrintingStub lightCard;
+  private PrintingStub rainbowCard;
+  private PrintingStub fireCard;
+  private PrintingStub zeroCard;
 
   @BeforeEach
   void setup() {
-    TestFixtureBuilder fixtures = new TestFixtureBuilder(dsl, cardTypeResolver);
+    var fixtures = new TestFixtureBuilder(dsl, cardTypeResolver);
 
     userId = createUser("testuser").getId();
 
-    lightCard = fixtures.monoCard("dm01-001", 6, LIGHT);
+    lightCard = fixtures.testCard("dm01-001").light().cost(6).build();
     rainbowCard =
-        fixtures.card(
-            "dm24ex2-040",
-            "DM24EX2 40/100",
-            false,
-            RarityCode.VR,
-            350,
-            List.of("dm24ex2-040.jpg"),
-            List.of(Set.of(LIGHT, WATER, DARK, FIRE, NATURE)),
-            null,
-            null,
-            List.of(D2_FIELD));
-    fireCard = fixtures.monoCard("dmc36-003", 7, 7000, FIRE);
-    zeroCard = fixtures.monoCard("dmr08-021", 5, 2000, ZERO);
+        fixtures
+            .testCard("dm24ex2-040")
+            .type(D2_FIELD)
+            .allCivs()
+            .rarity(VR)
+            .withSetCode("dm24ex2")
+            .build();
+    fireCard = fixtures.testCard("dmc36-003").fire().creature().cost(7).power(7000).build();
+    zeroCard = fixtures.testCard("dmr08-021").creature().cost(5).power(2000).build();
   }
 
   @Test

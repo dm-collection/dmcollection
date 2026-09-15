@@ -47,7 +47,7 @@ import org.springframework.data.domain.Pageable;
  * @param pageable Spring pageable object for pagination and sorting. If null, no paging is used.
  */
 public record SearchFilter(
-    Long setId,
+    Integer setId,
     Set<Civilization> includedCivs,
     Set<Civilization> excludedCivs,
     Boolean includeMono,

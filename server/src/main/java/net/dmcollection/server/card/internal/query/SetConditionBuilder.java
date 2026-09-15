@@ -9,10 +9,10 @@ public class SetConditionBuilder {
 
   private SetConditionBuilder() {}
 
-  public static Condition build(Long setId) {
+  public static Condition build(Integer setId) {
     if (setId == null) {
       return noCondition();
     }
-    return PRINTING.SET_ID.eq(setId.intValue());
+    return PRINTING.SET_ID.eq(setId);
   }
 }

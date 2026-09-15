@@ -14,10 +14,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.List;
 import java.util.UUID;
 import net.dmcollection.server.IntegrationTestBase;
-import net.dmcollection.server.TestFixtureBuilder;
-import net.dmcollection.server.card.CardService.CardStub;
+import net.dmcollection.server.card.CardService.PrintingStub;
 import net.dmcollection.server.card.serialization.collection.format.v2.V2CollectionExport;
 import net.dmcollection.server.jooq.generated.tables.records.CollectionHistoryEntryRecord;
+import net.dmcollection.server.testutils.TestFixtureBuilder;
 import net.dmcollection.server.user.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -83,7 +83,7 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
 
   @Test
   void getCollectionReturnsCardsAfterSettingAmount() throws Exception {
-    CardStub card = fixtures.monoCard("coll-ctrl-1", Civilization.LIGHT);
+    PrintingStub card = fixtures.testCard("coll-ctrl-1").light().build();
 
     putRequest("/api/collection/cards/" + card.id(), "{\"amount\":3}");
 
@@ -98,7 +98,7 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
 
   @Test
   void setCardAmountReturnsCollectionInfo() throws Exception {
-    CardStub card = fixtures.monoCard("coll-ctrl-2", Civilization.WATER);
+    PrintingStub card = fixtures.testCard("coll-ctrl-2").water().build();
 
     putRequest("/api/collection/cards/" + card.id(), "{\"amount\":5}")
         .andExpect(status().isOk())
@@ -114,7 +114,7 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
 
   @Test
   void setSingleCardAmountReturnsStub() throws Exception {
-    CardStub card = fixtures.monoCard("coll-ctrl-3", Civilization.FIRE);
+    PrintingStub card = fixtures.testCard("coll-ctrl-3").fire().build();
 
     putRequest("/api/collectionStub/cards/" + card.id(), "{\"amount\":4}")
         .andExpect(status().isOk())
@@ -124,7 +124,7 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
 
   @Test
   void setCardAmountOnStubReturnsMap() throws Exception {
-    CardStub card = fixtures.monoCard("coll-ctrl-4", Civilization.DARK);
+    PrintingStub card = fixtures.testCard("coll-ctrl-4").dark().build();
 
     putRequest("/api/collectionStub", "{\"cardId\":" + card.id() + ",\"amount\":2}")
         .andExpect(status().isOk())
@@ -133,7 +133,7 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
 
   @Test
   void exportReturnsJsonFile() throws Exception {
-    CardStub card = fixtures.monoCard("coll-ctrl-5", Civilization.NATURE);
+    PrintingStub card = fixtures.testCard("coll-ctrl-5").nature().build();
 
     putRequest("/api/collection/cards/" + card.id(), "{\"amount\":3}");
 
@@ -161,8 +161,8 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
 
   @Test
   void importAndExportRoundTripThroughHttp() throws Exception {
-    CardStub card1 = fixtures.monoCard("coll-ctrl-6a", Civilization.LIGHT);
-    CardStub card2 = fixtures.monoCard("coll-ctrl-6b", Civilization.WATER);
+    PrintingStub card1 = fixtures.testCard("coll-ctrl-6a").light().build();
+    PrintingStub card2 = fixtures.testCard("coll-ctrl-6b").water().build();
 
     putRequest("/api/collection/cards/" + card1.id(), "{\"amount\":3}");
     putRequest("/api/collection/cards/" + card2.id(), "{\"amount\":7}");
@@ -195,7 +195,7 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
 
   @Test
   void historyCreatedWhenSettingCardAmount() throws Exception {
-    CardStub card = fixtures.monoCard("coll-hist-1", Civilization.LIGHT);
+    PrintingStub card = fixtures.testCard("coll-hist-1").light().build();
 
     putRequest("/api/collection/cards/" + card.id(), "{\"amount\":3}");
 
@@ -211,7 +211,7 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
 
   @Test
   void historyCreatedViaStubEndpoints() throws Exception {
-    CardStub card = fixtures.monoCard("coll-hist-2", Civilization.WATER);
+    PrintingStub card = fixtures.testCard("coll-hist-2").water().build();
 
     putRequest("/api/collectionStub/cards/" + card.id(), "{\"amount\":2}");
 
@@ -239,7 +239,7 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
 
   @Test
   void importDoesNotCreateHistoryEntries() throws Exception {
-    CardStub card = fixtures.monoCard("coll-hist-3", Civilization.FIRE);
+    PrintingStub card = fixtures.testCard("coll-hist-3").fire().build();
 
     putRequest("/api/collection/cards/" + card.id(), "{\"amount\":3}");
 

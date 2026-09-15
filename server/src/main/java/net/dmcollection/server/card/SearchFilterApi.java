@@ -14,7 +14,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.domain.Sort.Order;
 
 public record SearchFilterApi(
-    Long setId,
+    Integer setId,
     Set<Civilization> includeCivs,
     Set<Civilization> excludeCivs,
     Boolean matchNumberOfCivs,
@@ -67,12 +67,12 @@ public record SearchFilterApi(
         pageable);
   }
 
-  private static final String SORT_RELEASE = "RELEASE";
-  private static final String SORT_OFFICIAL_ID = "OFFICIAL_ID";
-  private static final String SORT_AMOUNT = "AMOUNT";
-  private static final String SORT_COST = "COST";
-  private static final String SORT_POWER = "POWER_SORT";
-  private static final String SORT_RARITY = "ORDER";
+  public static final String SORT_RELEASE = "RELEASE";
+  public static final String SORT_OFFICIAL_ID = "OFFICIAL_ID";
+  public static final String SORT_AMOUNT = "AMOUNT";
+  public static final String SORT_COST = "COST";
+  public static final String SORT_POWER = "POWER";
+  public static final String SORT_RARITY = "RARITY";
 
   private Sort parseSort() {
     if (sort == null || sort.trim().isBlank()) {

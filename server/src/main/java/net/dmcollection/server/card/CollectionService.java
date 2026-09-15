@@ -11,7 +11,7 @@ import static org.jooq.impl.DSL.sum;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import net.dmcollection.server.card.CardService.CardStub;
+import net.dmcollection.server.card.CardService.PrintingStub;
 import net.dmcollection.server.card.internal.CardQueryService;
 import net.dmcollection.server.card.internal.CardQueryService.SearchResult;
 import net.dmcollection.server.card.internal.SearchFilter;
@@ -64,7 +64,7 @@ public class CollectionService {
   public record CollectionInfo(
       long numberOfCopies, long numberOfPrintings, long numberOfCards, UUID ownerId) {}
 
-  public record CollectionDto(CollectionInfo info, PagedModel<CardStub> cardPage) {}
+  public record CollectionDto(CollectionInfo info, PagedModel<PrintingStub> cardPage) {}
 
   public record CollectionCardStub(long cardId, int amount) {}
 
@@ -111,56 +111,52 @@ public class CollectionService {
     return new CollectionDto(ci, new PagedModel<>(searchResult.pageOfCards()));
   }
 
-  public Map<Long, Integer> getPrimaryStub(UUID userId) {
+  public Map<Integer, Integer> getPrimaryStub(UUID userId) {
     return dsl.select(COLLECTION_ENTRY.PRINTING_ID, COLLECTION_ENTRY.QUANTITY)
         .from(COLLECTION_ENTRY)
         .where(COLLECTION_ENTRY.USER_ID.eq(userId))
-        .fetchMap(
-            r -> r.get(COLLECTION_ENTRY.PRINTING_ID).longValue(),
-            r -> r.get(COLLECTION_ENTRY.QUANTITY));
+        .fetchMap(r -> r.get(COLLECTION_ENTRY.PRINTING_ID), r -> r.get(COLLECTION_ENTRY.QUANTITY));
   }
 
   @Transactional
-  public Optional<Map<Long, Integer>> setCardAmountOnStub(
-      UUID userId, Long printingId, int amount) {
+  public Optional<Map<Integer, Integer>> setCardAmountOnStub(
+      UUID userId, int printingId, int amount) {
     if (!printingExists(printingId)) {
       return Optional.empty();
     }
-    upsertCollectionEntry(userId, printingId.intValue(), amount);
+    upsertCollectionEntry(userId, printingId, amount);
     return Optional.of(getPrimaryStub(userId));
   }
 
   @Transactional
-  public Optional<CollectionCardStub> setSingleCardAmount(
-      UUID userId, Long printingId, int amount) {
+  public Optional<CollectionCardStub> setSingleCardAmount(UUID userId, int printingId, int amount) {
     if (!printingExists(printingId)) {
       return Optional.empty();
     }
-    upsertCollectionEntry(userId, printingId.intValue(), amount);
-    int actualAmount = getQuantity(userId, printingId.intValue());
+    upsertCollectionEntry(userId, printingId, amount);
+    int actualAmount = getQuantity(userId, printingId);
     return Optional.of(new CollectionCardStub(printingId, actualAmount));
   }
 
-  public Optional<CollectionCardStub> getSingleCardAmount(UUID userId, Long printingId) {
+  public Optional<CollectionCardStub> getSingleCardAmount(UUID userId, int printingId) {
     if (!printingExists(printingId)) {
       return Optional.empty();
     }
-    int amount = getQuantity(userId, printingId.intValue());
+    int amount = getQuantity(userId, printingId);
     return Optional.of(new CollectionCardStub(printingId, amount));
   }
 
   @Transactional
-  public Optional<CollectionInfo> setCardAmount(UUID userId, Long printingId, int amount) {
+  public Optional<CollectionInfo> setCardAmount(UUID userId, int printingId, int amount) {
     if (!printingExists(printingId)) {
       return Optional.empty();
     }
-    upsertCollectionEntry(userId, printingId.intValue(), amount);
+    upsertCollectionEntry(userId, printingId, amount);
     return Optional.of(getCollectionInfo(userId));
   }
 
-  private boolean printingExists(Long printingId) {
-    return dsl.fetchExists(
-        dsl.selectOne().from(PRINTING).where(PRINTING.ID.eq(printingId.intValue())));
+  private boolean printingExists(int printingId) {
+    return dsl.fetchExists(dsl.selectOne().from(PRINTING).where(PRINTING.ID.eq(printingId)));
   }
 
   private void upsertCollectionEntry(UUID userId, int printingId, int amount) {

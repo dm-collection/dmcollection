@@ -3,6 +3,12 @@ package net.dmcollection.server.card;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.List;
+import java.util.UUID;
 import net.dmcollection.server.card.DeckService.DeckDto;
 import net.dmcollection.server.card.DeckService.DeckInfo;
 import net.dmcollection.server.card.serialization.deck.format.v1.DeckExport;
@@ -24,13 +30,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import tools.jackson.core.JacksonException;
 import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.json.JsonMapper;
-
-import java.nio.charset.StandardCharsets;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.List;
-import java.util.UUID;
 
 @Controller
 public class DeckController {
@@ -90,7 +89,7 @@ public class DeckController {
   ResponseEntity<DeckInfo> setCardAmount(
       @CurrentUserId UUID currentUserId,
       @PathVariable UUID collectionId,
-      @PathVariable Long cardId,
+      @PathVariable int cardId,
       @Valid @RequestBody AmountRequest request) {
     return deckService
         .setCardAmount(currentUserId, collectionId, cardId, request.amount())

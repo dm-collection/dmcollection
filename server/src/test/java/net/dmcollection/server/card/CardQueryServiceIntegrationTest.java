@@ -1,29 +1,39 @@
 package net.dmcollection.server.card;
 
-import static net.dmcollection.server.SearchBuilder.search;
-import static net.dmcollection.server.TestFixtureBuilder.CREATURE;
-import static net.dmcollection.server.TestFixtureBuilder.PSYCHIC_CREATURE;
-import static net.dmcollection.server.TestFixtureBuilder.SPELL;
 import static net.dmcollection.server.card.Civilization.DARK;
 import static net.dmcollection.server.card.Civilization.FIRE;
 import static net.dmcollection.server.card.Civilization.LIGHT;
 import static net.dmcollection.server.card.Civilization.NATURE;
 import static net.dmcollection.server.card.Civilization.WATER;
 import static net.dmcollection.server.card.Civilization.ZERO;
+import static net.dmcollection.server.card.RarityCode.C;
+import static net.dmcollection.server.card.RarityCode.NONE;
+import static net.dmcollection.server.card.RarityCode.R;
+import static net.dmcollection.server.card.RarityCode.SR;
+import static net.dmcollection.server.card.RarityCode.VIC;
+import static net.dmcollection.server.card.RarityCode.VR;
+import static net.dmcollection.server.card.SearchFilterApi.SORT_COST;
+import static net.dmcollection.server.card.SearchFilterApi.SORT_OFFICIAL_ID;
+import static net.dmcollection.server.card.SearchFilterApi.SORT_POWER;
+import static net.dmcollection.server.card.SearchFilterApi.SORT_RELEASE;
+import static net.dmcollection.server.testutils.SearchBuilder.search;
+import static net.dmcollection.server.testutils.TestFixtureBuilder.Modifier.LEADING_PLUS;
+import static net.dmcollection.server.testutils.TestFixtureBuilder.Modifier.TRAILING_MINUS;
+import static net.dmcollection.server.testutils.TestFixtureBuilder.Modifier.TRAILING_PLUS;
+import static net.dmcollection.server.testutils.TestFixtureBuilder.PSYCHIC_CREATURE;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 import net.dmcollection.server.IntegrationTestBase;
-import net.dmcollection.server.SearchBuilder;
-import net.dmcollection.server.TestFixtureBuilder;
-import net.dmcollection.server.card.CardService.CardStub;
+import net.dmcollection.server.card.CardService.PrintingStub;
 import net.dmcollection.server.card.internal.CardQueryService;
 import net.dmcollection.server.card.internal.SearchFilter;
 import net.dmcollection.server.card.internal.SearchFilter.CardType;
 import net.dmcollection.server.card.internal.SearchFilter.FilterState;
 import net.dmcollection.server.card.internal.SearchFilter.Range;
+import net.dmcollection.server.testutils.SearchBuilder;
+import net.dmcollection.server.testutils.TestFixtureBuilder;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -47,7 +57,7 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void findsColorlessCard() {
-    CardStub zero = utils.monoCard("Zero", ZERO);
+    PrintingStub zero = utils.testCard("Zero").build();
 
     SearchFilter filter =
         search().addIncludedCivs(ZERO).setIncludeMono(true).setIncludeRainbow(false).build();
@@ -57,27 +67,27 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void excludesMultiCivCards() {
-    CardStub mono = utils.monoCard("MONO-1", LIGHT);
+    PrintingStub mono = utils.testCard("MONO-1").light().build();
 
-    utils.multiCard("MULTI-1", LIGHT, DARK);
+    utils.testCard("MULTI-1").light().dark().build();
 
     SearchFilter filter =
         search().addIncludedCivs(LIGHT).setIncludeMono(true).setIncludeRainbow(false).build();
 
-    Page<CardStub> result = cardQueryService.search(filter).pageOfCards();
+    Page<PrintingStub> result = cardQueryService.search(filter).pageOfCards();
     assertPageEquals(result, mono);
   }
 
   @Test
   void excludesMonoCivCards() {
-    utils.monoCard("MONO-1", LIGHT);
-    utils.monoCard("MONO-2", DARK);
-    utils.monoCard("MONO-3", WATER);
+    utils.testCard("MONO-1").light().build();
+    utils.testCard("MONO-2").dark().build();
+    utils.testCard("MONO-3").water().build();
 
-    var multi = utils.multiCard("MULTI-1", LIGHT, DARK);
-    var multi2 = utils.multiCard("MULTI-2", LIGHT, DARK, WATER);
-    var multi3 = utils.multiCard("MULTI-3", WATER, FIRE);
-    utils.multiCard("MULTI-4", FIRE, NATURE);
+    var multi = utils.testCard("MULTI-1").light().dark().build();
+    var multi2 = utils.testCard("MULTI-2").light().dark().water().build();
+    var multi3 = utils.testCard("MULTI-3").water().fire().build();
+    utils.testCard("MULTI-4").fire().nature().build();
 
     SearchFilter filter =
         search()
@@ -90,24 +100,25 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void findsOnlyTwinpacts() {
-    utils.monoCard("NORMAL-1", LIGHT);
+    utils.testCard("NORMAL-1").light().build();
 
-    CardStub twinpact = utils.twinpact("TWIN-1", Set.of(LIGHT), Set.of(DARK));
+    PrintingStub twinpact = utils.testCard("TWIN-1").twinpact().light().secondSide().dark().build();
 
     SearchFilter filter = search().setTwinpact(FilterState.ONLY).build();
 
-    Page<CardStub> result = cardQueryService.search(filter).pageOfCards();
+    Page<PrintingStub> result = cardQueryService.search(filter).pageOfCards();
     assertPageEquals(result, twinpact);
   }
 
   @Test
   void findsOnlyTwinpactsWithoutZero() {
-    utils.monoCard("mono", LIGHT);
-    utils.monoCard("zero", ZERO);
-    var twinpact1 = utils.twinpact("TWIN-1", Set.of(LIGHT), Set.of(LIGHT));
-    var twinpact2 = utils.twinpact("TWIN-2", Set.of(WATER, DARK), Set.of(NATURE));
-    utils.multiCard("multi", NATURE, FIRE);
-    var all = utils.twinpact("all", Set.of(ZERO), Set.of(LIGHT, WATER, DARK, FIRE, NATURE));
+    utils.testCard("mono").light().build();
+    utils.testCard("zero").build();
+    var twinpact1 = utils.testCard("TWIN-1").twinpact().light().secondSide().light().build();
+    var twinpact2 =
+        utils.testCard("TWIN-2").twinpact().water().dark().secondSide().nature().build();
+    utils.testCard("multi").nature().fire().build();
+    var all = utils.testCard("all").twinpact().secondSide().allCivs().build();
 
     SearchFilter filter =
         search()
@@ -120,22 +131,22 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void findsNonTwinpacts() {
-    CardStub mono = utils.monoCard("NORMAL-1", LIGHT);
+    PrintingStub mono = utils.testCard("NORMAL-1").light().build();
 
-    utils.twinpact("TWIN-1", Set.of(LIGHT), Set.of(DARK));
+    utils.testCard("TWIN-1").twinpact().light().secondSide().dark().build();
 
     SearchFilter filter = search().setTwinpact(FilterState.EX).build();
 
-    Page<CardStub> result = cardQueryService.search(filter).pageOfCards();
+    Page<PrintingStub> result = cardQueryService.search(filter).pageOfCards();
     assertPageEquals(result, mono);
   }
 
   @Test
   void findsMultiCivCardsWithTwoExactCivs() {
-    CardStub lightAndDark = utils.multiCard("EXACT-1", LIGHT, DARK);
+    PrintingStub lightAndDark = utils.testCard("EXACT-1").light().dark().build();
 
-    utils.multiCard("EXTRA-1", LIGHT, DARK, NATURE);
-    utils.multiCard("EXTRA-2", LIGHT, NATURE);
+    utils.testCard("EXTRA-1").light().dark().nature().build();
+    utils.testCard("EXTRA-2").light().nature().build();
 
     SearchFilter filter =
         search()
@@ -145,18 +156,18 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
             .setMatchExactRainbowCivs(true)
             .build();
 
-    Page<CardStub> result = cardQueryService.search(filter).pageOfCards();
+    Page<PrintingStub> result = cardQueryService.search(filter).pageOfCards();
     assertPageEquals(result, lightAndDark);
   }
 
   @Test
   void findsMultiCivCardsWithThreeExactCivs() {
-    CardStub lightAndDark = utils.multiCard("EXACT-1", LIGHT, DARK, FIRE);
+    PrintingStub lightAndDark = utils.testCard("EXACT-1").light().dark().fire().build();
 
-    utils.multiCard("EXTRA-1", LIGHT, DARK, NATURE);
-    utils.multiCard("EXTRA-2", LIGHT, DARK);
-    utils.multiCard("EXTRA-3", LIGHT, DARK, FIRE, WATER);
-    utils.multiCard("EXTRA-4", LIGHT, FIRE);
+    utils.testCard("EXTRA-1").light().dark().nature().build();
+    utils.testCard("EXTRA-2").light().dark().build();
+    utils.testCard("EXTRA-3").light().dark().fire().water().build();
+    utils.testCard("EXTRA-4").light().fire().build();
 
     SearchFilter filter =
         search()
@@ -166,16 +177,17 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
             .setMatchExactRainbowCivs(true)
             .build();
 
-    Page<CardStub> result = cardQueryService.search(filter).pageOfCards();
+    Page<PrintingStub> result = cardQueryService.search(filter).pageOfCards();
     assertPageEquals(result, lightAndDark);
   }
 
   @Test
   void findsTwinpactsWithExactCivs() {
-    CardStub rainbow = utils.multiCard("RAINBOW-1", LIGHT, DARK);
-    CardStub twinpact = utils.twinpact("TWIN-1", Set.of(LIGHT), Set.of(DARK));
-    CardStub twinpact2 = utils.twinpact("TWIN-2", Set.of(LIGHT, DARK), Set.of(DARK));
-    utils.twinpact("Exclude", Set.of(LIGHT), Set.of(DARK, WATER));
+    PrintingStub rainbow = utils.testCard("RAINBOW-1").light().dark().build();
+    PrintingStub twinpact = utils.testCard("TWIN-1").twinpact().light().secondSide().dark().build();
+    PrintingStub twinpact2 =
+        utils.testCard("TWIN-2").twinpact().light().dark().secondSide().dark().build();
+    utils.testCard("Exclude").twinpact().light().secondSide().dark().water().build();
 
     SearchFilter filter =
         search()
@@ -185,18 +197,20 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
             .setMatchExactRainbowCivs(true)
             .build();
 
-    Page<CardStub> result = cardQueryService.search(filter).pageOfCards();
+    Page<PrintingStub> result = cardQueryService.search(filter).pageOfCards();
     assertPageEquals(result, rainbow, twinpact, twinpact2);
   }
 
   @Test
   void findsTwinpactsWithThreeExactCivs() {
-    CardStub rainbow = utils.multiCard("RAINBOW-1", LIGHT, DARK, FIRE);
-    utils.multiCard("RAINBOW-2", LIGHT, DARK, FIRE, NATURE);
-    utils.twinpact("TWIN-1", Set.of(LIGHT), Set.of(DARK));
-    CardStub twinpact2 = utils.twinpact("TWIN-2", Set.of(LIGHT, DARK), Set.of(FIRE));
-    CardStub twinpact3 = utils.twinpact("TWIN-3", Set.of(LIGHT, FIRE), Set.of(DARK));
-    utils.twinpact("Exclude", Set.of(LIGHT), Set.of(DARK, WATER));
+    PrintingStub rainbow = utils.testCard("RAINBOW-1").light().dark().fire().build();
+    utils.testCard("RAINBOW-2").light().dark().fire().nature().build();
+    utils.testCard("TWIN-1").twinpact().light().secondSide().dark().build();
+    PrintingStub twinpact2 =
+        utils.testCard("TWIN-2").twinpact().light().dark().secondSide().fire().build();
+    PrintingStub twinpact3 =
+        utils.testCard("TWIN-3").twinpact().light().fire().secondSide().dark().build();
+    utils.testCard("Exclude").twinpact().light().secondSide().dark().water().build();
 
     SearchFilter filter =
         search()
@@ -206,22 +220,25 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
             .setMatchExactRainbowCivs(true)
             .build();
 
-    Page<CardStub> result = cardQueryService.search(filter).pageOfCards();
+    Page<PrintingStub> result = cardQueryService.search(filter).pageOfCards();
     assertPageEquals(result, rainbow, twinpact2, twinpact3);
   }
 
   @Test
   void findsTwinpactCardsWithoutExactMatch() {
-    CardStub fire = utils.monoCard("FIRE", FIRE);
-    CardStub dark = utils.monoCard("DARK", DARK);
-    CardStub rainbow = utils.multiCard("RAINBOW-1", LIGHT, DARK, FIRE);
-    CardStub rainbow2 = utils.multiCard("RAINBOW-2", LIGHT, DARK, FIRE, NATURE);
-    CardStub twinpact = utils.twinpact("TWIN-1", Set.of(LIGHT), Set.of(DARK));
-    CardStub twinpact2 = utils.twinpact("TWIN-2", Set.of(LIGHT, DARK), Set.of(FIRE));
-    CardStub twinpact3 = utils.twinpact("TWIN-3", Set.of(LIGHT, FIRE), Set.of(DARK));
-    CardStub twinpact4 = utils.twinpact("TWIN-4", Set.of(DARK), Set.of(FIRE));
-    CardStub monoTwinpact = utils.twinpact("MONO-TWIN", Set.of(FIRE), Set.of(FIRE));
-    utils.twinpact("Exclude", Set.of(WATER), Set.of(NATURE, WATER));
+    PrintingStub fire = utils.testCard("FIRE").fire().build();
+    PrintingStub dark = utils.testCard("DARK").dark().build();
+    PrintingStub rainbow = utils.testCard("RAINBOW-1").light().dark().fire().build();
+    PrintingStub rainbow2 = utils.testCard("RAINBOW-2").light().dark().fire().nature().build();
+    PrintingStub twinpact = utils.testCard("TWIN-1").twinpact().light().secondSide().dark().build();
+    PrintingStub twinpact2 =
+        utils.testCard("TWIN-2").twinpact().light().dark().secondSide().fire().build();
+    PrintingStub twinpact3 =
+        utils.testCard("TWIN-3").twinpact().light().fire().secondSide().dark().build();
+    PrintingStub twinpact4 = utils.testCard("TWIN-4").twinpact().dark().secondSide().fire().build();
+    PrintingStub monoTwinpact =
+        utils.testCard("MONO-TWIN").twinpact().fire().secondSide().fire().build();
+    utils.testCard("Exclude").twinpact().water().secondSide().nature().water().build();
 
     SearchFilter filter =
         search()
@@ -231,7 +248,7 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
             .setMatchExactRainbowCivs(false)
             .build();
 
-    Page<CardStub> result = cardQueryService.search(filter).pageOfCards();
+    Page<PrintingStub> result = cardQueryService.search(filter).pageOfCards();
     assertPageEquals(
         result,
         fire,
@@ -247,16 +264,18 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void findsTwinpactCardsWithoutExactMatchNoMono() {
-    utils.monoCard("FIRE", FIRE);
-    utils.monoCard("DARK", DARK);
-    CardStub rainbow = utils.multiCard("RAINBOW-1", LIGHT, DARK, FIRE);
-    CardStub rainbow2 = utils.multiCard("RAINBOW-2", LIGHT, DARK, FIRE, NATURE);
-    CardStub twinpact = utils.twinpact("TWIN-1", Set.of(LIGHT), Set.of(DARK));
-    CardStub twinpact2 = utils.twinpact("TWIN-2", Set.of(LIGHT, DARK), Set.of(FIRE));
-    CardStub twinpact3 = utils.twinpact("TWIN-3", Set.of(LIGHT, FIRE), Set.of(DARK));
-    CardStub twinpact4 = utils.twinpact("TWIN-4", Set.of(DARK), Set.of(FIRE));
-    utils.twinpact("MONO-TWIN", Set.of(FIRE), Set.of(FIRE));
-    utils.twinpact("Exclude", Set.of(WATER), Set.of(NATURE, WATER));
+    utils.testCard("FIRE").fire().build();
+    utils.testCard("DARK").dark().build();
+    PrintingStub rainbow = utils.testCard("RAINBOW-1").light().dark().fire().build();
+    PrintingStub rainbow2 = utils.testCard("RAINBOW-2").light().dark().fire().nature().build();
+    PrintingStub twinpact = utils.testCard("TWIN-1").twinpact().light().secondSide().dark().build();
+    PrintingStub twinpact2 =
+        utils.testCard("TWIN-2").twinpact().light().dark().secondSide().fire().build();
+    PrintingStub twinpact3 =
+        utils.testCard("TWIN-3").twinpact().light().fire().secondSide().dark().build();
+    PrintingStub twinpact4 = utils.testCard("TWIN-4").twinpact().dark().secondSide().fire().build();
+    utils.testCard("MONO-TWIN").twinpact().fire().secondSide().fire().build();
+    utils.testCard("Exclude").twinpact().water().secondSide().nature().water().build();
 
     SearchFilter filter =
         search()
@@ -266,95 +285,89 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
             .setMatchExactRainbowCivs(false)
             .build();
 
-    Page<CardStub> result = cardQueryService.search(filter).pageOfCards();
+    Page<PrintingStub> result = cardQueryService.search(filter).pageOfCards();
     assertPageEquals(result, rainbow, rainbow2, twinpact, twinpact2, twinpact3, twinpact4);
   }
 
   @Test
   void defaultFilterFindsSingle() {
-    CardStub dm01 =
-        utils.card(
-            "DM01-001",
-            "DM1 1/110",
-            false,
-            RarityCode.VR,
-            1,
-            List.of("dm01-001.jpg"),
-            List.of(Set.of(LIGHT)),
-            List.of(6),
-            List.of(9000),
-            List.of(CREATURE));
+    PrintingStub dm01 =
+        utils.testCard("dm01-001").creature().light().cost(6).power(9000).rarity(VR).build();
     SearchFilter filter = search().build();
-    Page<CardStub> result = cardQueryService.search(filter).pageOfCards();
+    Page<PrintingStub> result = cardQueryService.search(filter).pageOfCards();
     assertPageEquals(result, dm01);
   }
 
   @Test
   void defaultFilterFindsAll() {
-    CardStub card1 = utils.multiCard("CARD-1", LIGHT, DARK);
+    PrintingStub card1 = utils.testCard("CARD-1").light().dark().build();
 
-    CardStub card2 = utils.twinpact("CARD-2", Set.of(LIGHT, DARK), Set.of(WATER));
+    PrintingStub card2 =
+        utils.testCard("CARD-2").twinpact().light().dark().secondSide().water().build();
 
-    CardStub card3 =
-        utils.card(
-            "CARD-3",
-            false,
-            RarityCode.R,
-            2,
-            List.of("card3.jpg", "card3b.jpg"),
-            List.of(Set.of(FIRE), Set.of(WATER)),
-            List.of(1, 2),
-            List.of(2000, 1000),
-            List.of(PSYCHIC_CREATURE, PSYCHIC_CREATURE));
+    PrintingStub card3 =
+        utils
+            .testCard("card-3")
+            .withSetCode("dm02")
+            .fire()
+            .psychicCreature()
+            .cost(1)
+            .power(2000)
+            .rarity(R)
+            .secondSide()
+            .water()
+            .cost(2)
+            .power(1000)
+            .psychicCreature()
+            .build();
 
-    CardStub card4 =
-        utils.card(
-            "CARD-4",
-            false,
-            RarityCode.VIC,
-            2,
-            List.of("card4.jpg"),
-            List.of(Set.of(ZERO)),
-            List.of(4),
-            List.of(4500),
-            List.of(CREATURE));
+    PrintingStub card4 =
+        utils
+            .testCard("card-4")
+            .withSetCode("dm02")
+            .creature()
+            .cost(4)
+            .power(4500)
+            .rarity(VIC)
+            .build();
 
     SearchFilter filter = search().build();
 
-    Page<CardStub> result = cardQueryService.search(filter).pageOfCards();
+    Page<PrintingStub> result = cardQueryService.search(filter).pageOfCards();
     assertPageEquals(result, card1, card2, card3, card4);
   }
 
   @Test
   void defaultFilterFindsAllPaged() {
-    CardStub card1 = utils.card("CARD-1", List.of("card1.jpg"), List.of(Set.of(LIGHT, DARK)));
+    PrintingStub card1 = utils.testCard("CARD-1").light().dark().build();
 
-    CardStub card2 =
-        utils.card("CARD-2", List.of("card2.jpg"), List.of(Set.of(LIGHT, DARK), Set.of(WATER)));
+    PrintingStub card2 = utils.testCard("CARD-2").light().dark().secondSide().water().build();
 
-    CardStub card3 =
-        utils.card(
-            "CARD-3",
-            false,
-            RarityCode.R,
-            2,
-            List.of("card3.jpg", "card3b.jpg"),
-            List.of(Set.of(FIRE), Set.of(WATER)),
-            List.of(1, 2),
-            List.of(1500, 3000),
-            List.of(PSYCHIC_CREATURE, PSYCHIC_CREATURE));
+    PrintingStub card3 =
+        utils
+            .testCard("card-3")
+            .withSetCode("dm02")
+            .fire()
+            .psychicCreature()
+            .cost(1)
+            .power(1500)
+            .rarity(R)
+            .secondSide()
+            .water()
+            .cost(2)
+            .power(3000)
+            .psychicCreature()
+            .build();
 
-    CardStub card4 =
-        utils.card(
-            "CARD-4",
-            false,
-            RarityCode.VIC,
-            2,
-            List.of("card4.jpg"),
-            List.of(Set.of(ZERO)),
-            List.of(4),
-            List.of(5000),
-            List.of(CREATURE));
+    PrintingStub card4 =
+        utils
+            .testCard("card-4")
+            .withSetCode("dm02")
+            .creature()
+            .cost(4)
+            .power(5000)
+            .rarity(VIC)
+            .build();
 
     SearchFilter filter =
         search()
@@ -362,12 +375,10 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
                 PageRequest.of(
                     0,
                     2,
-                    Sort.by("release_date")
-                        .descending()
-                        .and(Sort.by("official_site_id").ascending())))
+                    Sort.by(SORT_RELEASE).descending().and(Sort.by(SORT_OFFICIAL_ID).ascending())))
             .build();
 
-    Page<CardStub> result = cardQueryService.search(filter).pageOfCards();
+    Page<PrintingStub> result = cardQueryService.search(filter).pageOfCards();
     assertPageEquals(result, card1, card2);
     filter =
         search()
@@ -375,9 +386,7 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
                 PageRequest.of(
                     1,
                     2,
-                    Sort.by("release_date")
-                        .descending()
-                        .and(Sort.by("official_site_id").ascending())))
+                    Sort.by(SORT_RELEASE).descending().and(Sort.by(SORT_OFFICIAL_ID).ascending())))
             .build();
     result = cardQueryService.search(filter).pageOfCards();
     assertPageEquals(result, card3, card4);
@@ -385,50 +394,54 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void findsCardsInSet() {
-    utils.card("CARD-1", List.of("card1.jpg"), List.of(Set.of(LIGHT, DARK)));
+    utils.testCard("CARD-1").light().dark().build();
 
-    CardStub expected =
-        utils.card(
-            "CARD-2",
-            false,
-            RarityCode.R,
-            2,
-            List.of("card2.jpg", "card2b.jpg"),
-            List.of(Set.of(WATER), Set.of(WATER)),
-            List.of(4, 13),
-            List.of(4000, 13000),
-            List.of(PSYCHIC_CREATURE, PSYCHIC_CREATURE));
+    PrintingStub expected =
+        utils
+            .testCard("card-2")
+            .withSetCode("dm02")
+            .rarity(R)
+            .water()
+            .psychicCreature()
+            .cost(4)
+            .power(4000)
+            .secondSide()
+            .water()
+            .psychicCreature()
+            .cost(13)
+            .power(13000)
+            .build();
 
-    SearchFilter filter = search().setSetId((long) utils.getCardSetId(2)).build();
+    SearchFilter filter = search().setSetId(utils.getSetId("dm02")).build();
 
-    Page<CardStub> result = cardQueryService.search(filter).pageOfCards();
+    Page<PrintingStub> result = cardQueryService.search(filter).pageOfCards();
     assertPageEquals(result, expected);
   }
 
   @Test
   void mismatchedMonoFilterFindsNothing() {
-    utils.monoCard("CARD-1", LIGHT);
-    utils.monoCard("CARD-2", FIRE);
-    utils.multiCard("CARD-3", NATURE, DARK);
+    utils.testCard("CARD-1").light().build();
+    utils.testCard("CARD-2").fire().build();
+    utils.testCard("CARD-3").nature().dark().build();
 
     SearchFilter filter = search().addIncludedCivs(WATER).setIncludeMono(true).build();
 
-    Page<CardStub> result = cardQueryService.search(filter).pageOfCards();
+    Page<PrintingStub> result = cardQueryService.search(filter).pageOfCards();
     assertThat(result.getTotalElements()).isZero();
   }
 
   @Test
   void findsMultipleCivilizations() {
-    var mono = utils.monoCard("MONO-1", FIRE);
-    var mono2 = utils.monoCard("MONO-2", LIGHT);
-    var card1 = utils.multiCard("CARD-1", LIGHT, DARK);
-    var card2 = utils.multiCard("CARD-2", LIGHT, DARK, WATER);
-    var card3 = utils.multiCard("CARD-3", FIRE, WATER);
+    var mono = utils.testCard("MONO-1").fire().build();
+    var mono2 = utils.testCard("MONO-2").light().build();
+    var card1 = utils.testCard("CARD-1").light().dark().build();
+    var card2 = utils.testCard("CARD-2").light().dark().water().build();
+    var card3 = utils.testCard("CARD-3").fire().water().build();
 
-    utils.monoCard("MONO-4", WATER);
-    utils.monoCard("MONO-3", NATURE);
-    utils.monoCard("CARD-4", ZERO);
-    utils.multiCard("foo", DARK, NATURE);
+    utils.testCard("MONO-4").water().build();
+    utils.testCard("MONO-3").nature().build();
+    utils.testCard("CARD-4").build();
+    utils.testCard("foo").dark().nature().build();
 
     SearchFilter filter = search().addIncludedCivs(FIRE, LIGHT).build();
     assertQueryFinds(filter, mono, mono2, card1, card2, card3);
@@ -436,16 +449,16 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void findsMultipleCivilizationsExcludingMono() {
-    utils.monoCard("MONO-1", FIRE);
-    utils.monoCard("MONO-2", LIGHT);
-    var card1 = utils.multiCard("CARD-1", LIGHT, DARK);
-    var card2 = utils.multiCard("CARD-2", LIGHT, DARK, WATER);
-    var card3 = utils.multiCard("CARD-3", FIRE, WATER);
+    utils.testCard("MONO-1").fire().build();
+    utils.testCard("MONO-2").light().build();
+    var card1 = utils.testCard("CARD-1").light().dark().build();
+    var card2 = utils.testCard("CARD-2").light().dark().water().build();
+    var card3 = utils.testCard("CARD-3").fire().water().build();
 
-    utils.monoCard("MONO-4", WATER);
-    utils.monoCard("MONO-3", NATURE);
-    utils.monoCard("CARD-4", ZERO);
-    utils.multiCard("foo", DARK, NATURE);
+    utils.testCard("MONO-4").water().build();
+    utils.testCard("MONO-3").nature().build();
+    utils.testCard("CARD-4").build();
+    utils.testCard("foo").dark().nature().build();
 
     SearchFilter filter = search().addIncludedCivs(FIRE, LIGHT).setIncludeMono(false).build();
     assertQueryFinds(filter, card1, card2, card3);
@@ -453,16 +466,16 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void excludesCivilization() {
-    utils.monoCard("light", LIGHT);
-    var fire = utils.monoCard("fire", FIRE);
-    utils.monoCard("water", WATER);
-    utils.monoCard("zero", ZERO);
-    var dark = utils.monoCard("dark", DARK);
+    utils.testCard("light").light().build();
+    var fire = utils.testCard("fire").fire().build();
+    utils.testCard("water").water().build();
+    utils.testCard("zero").build();
+    var dark = utils.testCard("dark").dark().build();
 
-    var darkFire = utils.multiCard("darkFire", DARK, FIRE);
-    utils.multiCard("darkFireLight", DARK, FIRE, LIGHT);
-    utils.multiCard("waterLight", LIGHT, WATER);
-    var darkNature = utils.multiCard("darkNature", DARK, NATURE);
+    var darkFire = utils.testCard("darkFire").dark().fire().build();
+    utils.testCard("darkFireLight").dark().fire().light().build();
+    utils.testCard("waterLight").light().water().build();
+    var darkNature = utils.testCard("darkNature").dark().nature().build();
 
     SearchFilter filter =
         search().addIncludedCivs(DARK, FIRE).addExcludedCivs(LIGHT, WATER).build();
@@ -471,16 +484,16 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void excludesCivilizationsAndMono() {
-    utils.monoCard("light", LIGHT);
-    utils.monoCard("fire", FIRE);
-    utils.monoCard("water", WATER);
-    utils.monoCard("zero", ZERO);
-    utils.monoCard("dark", DARK);
+    utils.testCard("light").light().build();
+    utils.testCard("fire").fire().build();
+    utils.testCard("water").water().build();
+    utils.testCard("zero").build();
+    utils.testCard("dark").dark().build();
 
-    var darkFire = utils.multiCard("darkFire", DARK, FIRE);
-    utils.multiCard("darkFireLight", DARK, FIRE, LIGHT);
-    utils.multiCard("waterLight", LIGHT, WATER);
-    var darkNature = utils.multiCard("darkNature", DARK, NATURE);
+    var darkFire = utils.testCard("darkFire").dark().fire().build();
+    utils.testCard("darkFireLight").dark().fire().light().build();
+    utils.testCard("waterLight").light().water().build();
+    var darkNature = utils.testCard("darkNature").dark().nature().build();
 
     SearchFilter filter =
         search()
@@ -493,14 +506,14 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void findsZeroOnly() {
-    var zero = utils.monoCard("zero", ZERO);
-    utils.monoCard("light", LIGHT);
-    utils.monoCard("fire", FIRE);
-    utils.monoCard("water", WATER);
-    utils.monoCard("nature", NATURE);
-    var zero2 = utils.monoCard("02", ZERO);
-    utils.multiCard("multi1", LIGHT, WATER);
-    utils.multiCard("multi2", DARK, FIRE, LIGHT, WATER, NATURE);
+    var zero = utils.testCard("zero").build();
+    utils.testCard("light").light().build();
+    utils.testCard("fire").fire().build();
+    utils.testCard("water").water().build();
+    utils.testCard("nature").nature().build();
+    var zero2 = utils.testCard("02").build();
+    utils.testCard("multi1").light().water().build();
+    utils.testCard("multi2").dark().fire().light().water().nature().build();
 
     SearchFilter filter =
         search().addIncludedCivs(ZERO).addExcludedCivs(LIGHT, WATER, FIRE, DARK, NATURE).build();
@@ -510,25 +523,25 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
   @Test
   void excludesRainbow() {
     // excluded rainbow cards
-    utils.twinpact("TWIN-1", Set.of(LIGHT), Set.of(DARK));
-    utils.twinpact("TWIN-2", Set.of(LIGHT, DARK), Set.of(FIRE));
-    utils.twinpact("TWIN-3", Set.of(FIRE), Set.of(DARK));
-    utils.twinpact("TWIN-4", Set.of(DARK), Set.of(LIGHT));
-    utils.multiCard("multi1", LIGHT, DARK);
+    utils.testCard("TWIN-1").twinpact().light().secondSide().dark().build();
+    utils.testCard("TWIN-2").twinpact().light().dark().secondSide().fire().build();
+    utils.testCard("TWIN-3").twinpact().fire().secondSide().dark().build();
+    utils.testCard("TWIN-4").twinpact().dark().secondSide().light().build();
+    utils.testCard("multi1").light().dark().build();
 
-    var mono1 = utils.monoCard("mono1", LIGHT);
-    var mono2 = utils.monoCard("mono2", DARK);
-    var monoTwinpact = utils.twinpact("monoTwin", Set.of(LIGHT), Set.of(LIGHT));
-    utils.twinpact("unrelatedMonoTwinpact", Set.of(WATER), Set.of(WATER));
+    var mono1 = utils.testCard("mono1").light().build();
+    var mono2 = utils.testCard("mono2").dark().build();
+    var monoTwinpact = utils.testCard("monoTwin").twinpact().light().secondSide().light().build();
+    utils.testCard("unrelatedMonoTwinpact").twinpact().water().secondSide().water().build();
 
     // included via both sides
-    var twoSides = utils.twoSided("twoSided1", Set.of(LIGHT), Set.of(DARK));
+    var twoSides = utils.testCard("twoSided1").light().secondSide().dark().build();
     // included because of monochrome light side
-    var twoSides2 = utils.twoSided("twoSided2", Set.of(LIGHT), Set.of(FIRE));
+    var twoSides2 = utils.testCard("twoSided2").light().secondSide().fire().build();
     // included because of monochrome dark side
-    var twoSides3 = utils.twoSided("twoSided3", Set.of(LIGHT, FIRE), Set.of(DARK));
+    var twoSides3 = utils.testCard("twoSided3").light().fire().secondSide().dark().build();
     // excluded because no monochrome light or dark side
-    utils.twoSided("exclude", Set.of(WATER), Set.of(NATURE, LIGHT));
+    utils.testCard("exclude").water().secondSide().nature().light().build();
 
     SearchFilter filter = search().setIncludeRainbow(false).addIncludedCivs(LIGHT, DARK).build();
     assertQueryFinds(filter, mono1, mono2, monoTwinpact, twoSides, twoSides2, twoSides3);
@@ -536,13 +549,20 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void findsCardsWithMinimumCost() {
-    utils.monoCard("CHEAP-1", 2, LIGHT);
-    utils.monoCard("CHEAP-2", 3, FIRE);
-    var expensive1 = utils.monoCard("EXPENSIVE-1", 5, WATER);
-    var expensive2 = utils.multiCard("EXPENSIVE-2", 7, DARK, FIRE);
-    var expensive3 = utils.monoCard("EXPENSIVE-3", 6, NATURE);
+    utils.testCard("CHEAP-1").light().cost(2).build();
+    utils.testCard("CHEAP-2").fire().cost(3).build();
+    var expensive1 = utils.testCard("EXPENSIVE-1").water().cost(5).build();
+    var expensive2 = utils.testCard("EXPENSIVE-2").dark().fire().cost(7).build();
+    var expensive3 = utils.testCard("EXPENSIVE-3").nature().cost(6).build();
 
-    var twinpact = utils.twinpact("TWINPACT", Set.of(LIGHT), Set.of(DARK), 5, 3);
+    var twinpact =
+        utils
+            .testCard("twinpact")
+            .twinpact()
+            .light()
+            .cost(5)
+            .secondSide(s -> s.dark().cost(3))
+            .build();
 
     SearchFilter filter = search().setMinCost(5).build();
     assertQueryFinds(filter, expensive1, expensive2, expensive3, twinpact);
@@ -550,14 +570,15 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void findsCardsWithMaximumCost() {
-    var cheap1 = utils.monoCard("CHEAP-1", 2, LIGHT);
-    var cheap2 = utils.monoCard("CHEAP-2", 3, FIRE);
-    var cheap3 = utils.multiCard("CHEAP-3", 4, WATER, DARK);
-    utils.monoCard("EXPENSIVE-1", 5, WATER);
-    utils.multiCard("EXPENSIVE-2", 7, DARK, FIRE);
-    utils.monoCard("EXPENSIVE-3", 6, NATURE);
+    var cheap1 = utils.testCard("CHEAP-1").light().cost(2).build();
+    var cheap2 = utils.testCard("CHEAP-2").fire().cost(3).build();
+    var cheap3 = utils.testCard("CHEAP-3").water().dark().cost(4).build();
+    utils.testCard("EXPENSIVE-1").water().cost(5).build();
+    utils.testCard("EXPENSIVE-2").dark().fire().cost(7).build();
+    utils.testCard("EXPENSIVE-3").nature().cost(6).build();
 
-    var twinpact = utils.twinpact("TWINPACT", Set.of(LIGHT), Set.of(DARK), 5, 3);
+    var twinpact =
+        utils.testCard("twinpact").light().cost(5).secondSide(s -> s.dark().cost(3)).build();
 
     SearchFilter filter = search().setMaxCost(4).build();
     assertQueryFinds(filter, cheap1, cheap2, cheap3, twinpact);
@@ -565,16 +586,17 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void findsCardsWithinCostRange() {
-    utils.monoCard("CHEAP-1", 2, LIGHT);
-    utils.monoCard("CHEAP-2", 3, FIRE);
-    var medium1 = utils.multiCard("MEDIUM-1", 4, WATER, DARK);
-    var medium2 = utils.monoCard("MEDIUM-2", 5, WATER);
-    var medium3 = utils.monoCard("MEDIUM-3", 6, NATURE);
-    utils.multiCard("EXPENSIVE-1", 7, DARK, FIRE);
-    utils.monoCard("EXPENSIVE-2", 8, NATURE);
+    utils.testCard("CHEAP-1").light().cost(2).build();
+    utils.testCard("CHEAP-2").fire().cost(3).build();
+    var medium1 = utils.testCard("MEDIUM-1").water().dark().cost(4).build();
+    var medium2 = utils.testCard("MEDIUM-2").water().cost(5).build();
+    var medium3 = utils.testCard("MEDIUM-3").nature().cost(6).build();
+    utils.testCard("EXPENSIVE-1").dark().fire().cost(7).build();
+    utils.testCard("EXPENSIVE-2").nature().cost(8).build();
 
-    var twinpact = utils.twinpact("TWINPACT", Set.of(LIGHT), Set.of(DARK), 5, 3);
-    utils.twinpact("outside", Set.of(WATER), Set.of(NATURE, FIRE), 3, 8);
+    var twinpact =
+        utils.testCard("twinpact").light().cost(5).secondSide(s -> s.dark().cost(3)).build();
+    utils.testCard("outside").water().cost(3).secondSide(s -> s.nature().fire().cost(8));
 
     SearchFilter filter = search().setMinCost(4).setMaxCost(6).build();
     assertQueryFinds(filter, medium1, medium2, medium3, twinpact);
@@ -582,14 +604,25 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void findsCardsWithMinimumPower() {
-    utils.monoCard("WEAK-1", 2, 2000, LIGHT);
-    utils.monoCard("WEAK-2", 3, 3000, FIRE);
-    var strong1 = utils.monoCard("STRONG-1", 5, 5000, WATER);
-    var strong2 = utils.multiCard("STRONG-2", 7, 7000, DARK, FIRE);
-    var strong3 = utils.monoCard("STRONG-3", 6, 6000, NATURE);
+    utils.testCard("WEAK-1").light().cost(2).power(2000).creature().build();
+    utils.testCard("WEAK-2").fire().cost(3).power(3000).creature().build();
+    var strong1 = utils.testCard("STRONG-1").water().cost(5).power(5000).creature().build();
+    var strong2 = utils.testCard("STRONG-2").dark().fire().cost(7).power(7000).build();
+    var strong3 = utils.testCard("STRONG-3").nature().cost(6).power(6000).creature().build();
 
-    var twinpact = utils.twinpact("TWINPACT", Set.of(LIGHT), Set.of(DARK), 5, 3, 5000);
-    var twoSided = utils.twoSided("two-sides", Set.of(WATER), Set.of(FIRE), 4, 7, 4000, 7000);
+    var twinpact =
+        utils.testCard("twinpact").twinpact().light().power(5000).secondSide().dark().build();
+    var twoSided =
+        utils
+            .testCard("two-sides")
+            .water()
+            .cost(4)
+            .power(4000)
+            .secondSide()
+            .fire()
+            .cost(7)
+            .power(7000)
+            .build();
 
     SearchFilter filter = search().setMinPower(5000).build();
     assertQueryFinds(filter, strong1, strong2, strong3, twinpact, twoSided);
@@ -597,15 +630,34 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void findsCardsWithMaximumPower() {
-    var weak1 = utils.monoCard("WEAK-1", 2, 2000, LIGHT);
-    var weak2 = utils.monoCard("WEAK-2", 3, 3000, FIRE);
-    var weak3 = utils.multiCard("WEAK-3", 4, 4000, WATER, DARK);
-    utils.monoCard("STRONG-1", 5, 5000, WATER);
-    utils.multiCard("STRONG-2", 7, 7000, DARK, FIRE);
-    utils.monoCard("STRONG-3", 6, 6000, NATURE);
+    var weak1 = utils.testCard("WEAK-1").light().cost(2).power(2000).creature().build();
+    var weak2 = utils.testCard("WEAK-2").fire().cost(3).power(3000).creature().build();
+    var weak3 = utils.testCard("WEAK-3").water().dark().cost(4).power(4000).build();
+    utils.testCard("STRONG-1").water().cost(5).power(5000).creature().build();
+    utils.testCard("STRONG-2").dark().fire().cost(7).power(7000).build();
+    utils.testCard("STRONG-3").nature().cost(6).power(6000).creature().build();
 
-    utils.twinpact("TWINPACT", Set.of(LIGHT), Set.of(DARK), 5, 3, 5000);
-    var twoSided = utils.twoSided("two-sides", Set.of(WATER), Set.of(FIRE), 4, 7, 4000, 7000);
+    utils
+        .testCard("twinpact")
+        .twinpact()
+        .light()
+        .cost(5)
+        .power(5000)
+        .secondSide()
+        .dark()
+        .cost(3)
+        .build();
+    var twoSided =
+        utils
+            .testCard("two-sides")
+            .water()
+            .cost(4)
+            .power(4000)
+            .secondSide()
+            .fire()
+            .cost(7)
+            .power(7000)
+            .build();
 
     SearchFilter filter = search().setMaxPower(4000).build();
     assertQueryFinds(filter, weak1, weak2, weak3, twoSided);
@@ -613,17 +665,37 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void findsCardsWithinPowerRange() {
-    utils.monoCard("WEAK-1", 2, 2000, LIGHT);
-    utils.monoCard("WEAK-2", 3, 3000, FIRE);
-    var medium1 = utils.multiCard("MEDIUM-1", 4, 4000, WATER, DARK);
-    var medium2 = utils.monoCard("MEDIUM-2", 5, 5000, WATER);
-    var medium3 = utils.monoCard("MEDIUM-3", 6, 6000, NATURE);
-    utils.multiCard("STRONG-1", 7, 7000, DARK, FIRE);
-    utils.monoCard("STRONG-2", 8, 8000, NATURE);
+    utils.testCard("WEAK-1").light().cost(2).power(2000).creature().build();
+    utils.testCard("WEAK-2").fire().cost(3).power(3000).creature().build();
+    var medium1 = utils.testCard("MEDIUM-1").water().dark().cost(4).power(4000).build();
+    var medium2 = utils.testCard("MEDIUM-2").water().cost(5).power(5000).creature().build();
+    var medium3 = utils.testCard("MEDIUM-3").nature().cost(6).power(6000).creature().build();
+    utils.testCard("STRONG-1").dark().fire().cost(7).power(7000).build();
+    utils.testCard("STRONG-2").nature().cost(8).power(8000).creature().build();
 
-    var twinpact = utils.twinpact("TWINPACT", Set.of(LIGHT), Set.of(DARK), 5, 3, 5000);
-    utils.twinpact("outside", Set.of(WATER), Set.of(NATURE, FIRE), 3, 8, 3000);
-    utils.twoSided("two-sides", Set.of(WATER), Set.of(FIRE), 4, 7, 2000, 7000);
+    var twinpact =
+        utils.testCard("twinpact").light().cost(5).power(5000).secondSide().dark().cost(3).build();
+    utils
+        .testCard("outside")
+        .twinpact()
+        .water()
+        .cost(3)
+        .power(3000)
+        .secondSide()
+        .nature()
+        .fire()
+        .cost(8)
+        .build();
+    utils
+        .testCard("two-sides")
+        .water()
+        .cost(4)
+        .power(2000)
+        .secondSide()
+        .fire()
+        .cost(7)
+        .power(7000)
+        .build();
 
     SearchFilter filter = search().setMinPower(4000).setMaxPower(6000).build();
     assertQueryFinds(filter, medium1, medium2, medium3, twinpact);
@@ -632,7 +704,13 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
   @Test
   void onlyMinPowerOrCostFindsInfinitePowerCard() {
     var thatInfiniteCard =
-        utils.multiCard("dm24ex1-SP2", Integer.MAX_VALUE, Integer.MAX_VALUE, WATER, DARK);
+        utils
+            .testCard("dm24ex1-SP2")
+            .water()
+            .dark()
+            .cost(Integer.MAX_VALUE)
+            .power(Integer.MAX_VALUE)
+            .build();
     SearchFilter filter = search().setMinCost(1000000).build();
     assertQueryFinds(filter, thatInfiniteCard);
     filter = search().setMinPower(1000000).build();
@@ -649,12 +727,12 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void handlesCostRangeWithCivilizationFilter() {
-    utils.monoCard("CHEAP-1", 2, LIGHT);
-    var medium1 = utils.monoCard("MEDIUM-1", 4, LIGHT);
-    var medium2 = utils.multiCard("MEDIUM-2", 5, LIGHT, DARK);
-    utils.monoCard("EXPENSIVE-1", 7, LIGHT);
-    utils.monoCard("OTHER-1", 4, FIRE);
-    utils.multiCard("OTHER-2", 5, WATER, DARK);
+    utils.testCard("CHEAP-1").light().cost(2).build();
+    var medium1 = utils.testCard("MEDIUM-1").light().cost(4).build();
+    var medium2 = utils.testCard("MEDIUM-2").light().dark().cost(5).build();
+    utils.testCard("EXPENSIVE-1").light().cost(7).build();
+    utils.testCard("OTHER-1").fire().cost(4).build();
+    utils.testCard("OTHER-2").water().dark().cost(5).build();
 
     SearchFilter filter = search().setMinCost(4).setMaxCost(6).addIncludedCivs(LIGHT).build();
     assertQueryFinds(filter, medium1, medium2);
@@ -662,23 +740,24 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void includesNullCostWhenNoCostFilter() {
-    utils.monoCard("COST-1", 2, LIGHT);
-    utils.monoCard("COST-2", null, LIGHT);
-    utils.monoCard("COST-3", 4, LIGHT);
-    utils.monoCard("COST-4", null, LIGHT);
-    utils.monoCard("COST-5", 6, LIGHT);
+    var cards =
+        List.of(
+            utils.testCard("COST-1").light().cost(2).build(),
+            utils.testCard("COST-2").light().cost(null).build(),
+            utils.testCard("COST-3").light().cost(4).build(),
+            utils.testCard("COST-4").light().cost(null).build(),
+            utils.testCard("COST-5").light().cost(6).build());
 
-    SearchFilter filter = search().build();
-    assertQueryFindsAllCards(filter);
+    assertQueryFinds(search(), cards);
   }
 
   @Test
   void excludesNullCostWhenCostFilter() {
-    var card1 = utils.monoCard("COST-1", 2, LIGHT);
-    utils.monoCard("COST-null", null, LIGHT);
-    var card2 = utils.monoCard("COST-3", 4, LIGHT);
-    utils.monoCard("COST-null2", null, LIGHT);
-    var card3 = utils.monoCard("COST-5", 6, LIGHT);
+    var card1 = utils.testCard("COST-1").light().cost(2).build();
+    utils.testCard("COST-null").light().cost(null).build();
+    var card2 = utils.testCard("COST-3").light().cost(4).build();
+    utils.testCard("COST-null2").light().cost(null).build();
+    var card3 = utils.testCard("COST-5").light().cost(6).build();
 
     SearchFilter filter = search().setMinCost(3).build();
     assertQueryFinds(filter, card2, card3);
@@ -688,7 +767,7 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void findsThatOneFourSidedCard() {
-    CardStub thatOneCard = utils.createFoursides();
+    PrintingStub thatOneCard = utils.createFourSides();
     SearchFilter filter =
         search()
             .setIncludeMono(false)
@@ -702,25 +781,25 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void twinpactExcludesFoursides() {
-    utils.createFoursides();
+    utils.createFourSides();
     SearchFilter filter = search().setTwinpact(FilterState.ONLY).setIncludeRainbow(false).build();
     assertQueryFindsNothing(filter);
   }
 
   @Test
   void findsAllMultiColoredCards() {
-    utils.monoCard("uncolored", 1, ZERO);
-    utils.monoCard("light", 2, LIGHT);
-    utils.monoCard("water", 3, WATER);
-    utils.monoCard("darkness", 4, DARK);
-    utils.monoCard("fire", 5, FIRE);
-    utils.monoCard("nature", 6, NATURE);
-    utils.twinpact("monoTwin", Set.of(WATER), Set.of(WATER));
+    utils.testCard("uncolored").build();
+    utils.testCard("light").light().build();
+    utils.testCard("water").water().build();
+    utils.testCard("darkness").dark().build();
+    utils.testCard("fire").fire().build();
+    utils.testCard("nature").nature().build();
+    utils.testCard("monoTwin").twinpact().water().secondSide().water().build();
 
-    var multi1 = utils.multiCard("multi1", LIGHT, WATER);
-    var multi2 = utils.multiCard("multi2", FIRE, NATURE);
-    var multi3 = utils.multiCard("multi3", WATER, DARK, NATURE);
-    var multiTwinpact = utils.twinpact("twinpact", Set.of(LIGHT), Set.of(FIRE));
+    var multi1 = utils.testCard("multi1").light().water().build();
+    var multi2 = utils.testCard("multi2").fire().nature().build();
+    var multi3 = utils.testCard("multi3").water().dark().nature().build();
+    var multiTwinpact = utils.testCard("twinpact").twinpact().light().secondSide().fire().build();
 
     SearchFilter filter =
         search()
@@ -733,11 +812,11 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void findsSpellsOrCreatures() {
-    var spell1 = utils.monoCard("spell1", 6, null, LIGHT);
-    var spell2 = utils.monoCard("spell2", 2, null, NATURE);
+    var spell1 = utils.testCard("spell1").spell().light().cost(6).build();
+    var spell2 = utils.testCard("spell2").spell().nature().cost(2).build();
 
-    var creature1 = utils.monoCard("creature1", 1, 4000, LIGHT);
-    var creature2 = utils.monoCard("creature2", 1, 1000, FIRE);
+    var creature1 = utils.testCard("creature1").light().cost(1).power(4000).creature().build();
+    var creature2 = utils.testCard("creature2").fire().cost(1).power(1000).creature().build();
 
     SearchFilter filter = search().setCardType(CardType.CREATURE).build();
     assertQueryFinds(filter, creature1, creature2);
@@ -747,8 +826,8 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void findsOnlyEvolutionCreature() {
-    var creature = utils.monoCard("creature1", 1, 4000, LIGHT);
-    var evolutionCreature = utils.monoCard("evoCreature", DARK, "進化クリーチャー");
+    var creature = utils.testCard("creature1").creature().light().cost(1).power(4000).build();
+    var evolutionCreature = utils.testCard("evoCreature").evolutionCreature().dark().build();
 
     SearchFilter filter = search().setCardType(CardType.CREATURE).build();
     assertQueryFinds(filter, creature);
@@ -760,20 +839,29 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
   @Test
   void findsOthers() {
     var rulePlus =
-        utils.twoSided(
-            "rulePlus",
-            Set.of(WATER),
-            Set.of(WATER, NATURE),
-            null,
-            7,
-            null,
-            4000,
-            "ルール・プラス",
-            PSYCHIC_CREATURE);
+        utils
+            .testCard("rulePlus")
+            .type("ルール・プラス")
+            .water()
+            .secondSide()
+            .withType(PSYCHIC_CREATURE)
+            .water()
+            .nature()
+            .cost(7)
+            .power(4000)
+            .build();
     var sealed =
-        utils.twoSided(
-            "sealed", Set.of(FIRE), Set.of(FIRE), null, 99, null, 99999, "禁断の鼓動", "禁断クリーチャー");
-    utils.monoCard("creature1", 1, 4000, LIGHT);
+        utils
+            .testCard("sealed")
+            .fire()
+            .type("禁断の鼓動")
+            .secondSide()
+            .fire()
+            .withType("禁断クリーチャー")
+            .cost(99)
+            .power(99999)
+            .build();
+    utils.testCard("creature1").light().cost(1).power(4000).creature().build();
 
     SearchFilter filter = search().setCardType(CardType.OTHER).build();
 
@@ -782,13 +870,11 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void findsExactSpecies() {
-    var card1 = utils.monoCard("test", 6, 6000, LIGHT);
-    var card2 = utils.monoCard("test-2", 6, 6000, LIGHT);
-    var card3 = utils.monoCard("test-3", 6, 6000, LIGHT);
-
-    utils.addSpecies(card1, "アーマード・ドラゴン");
-    utils.addSpecies(card2, "アーマード・ドラゴン");
-    utils.addSpecies(card3, "ガーディアン");
+    var card1 =
+        utils.testCard("test").light().cost(6).power(6000).creature().race("アーマード・ドラゴン").build();
+    var card2 =
+        utils.testCard("test-2").light().cost(6).power(6000).creature().race("アーマード・ドラゴン").build();
+    utils.testCard("test-3").light().cost(6).power(6000).creature().race("ガーディアン").build();
 
     SearchFilter filter = search().setSpeciesSearch("アーマード・ドラゴン").build();
     assertQueryFinds(filter, card1, card2);
@@ -796,13 +882,12 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void findsMatchingSpecies() {
-    var card1 = utils.monoCard("test", 6, 6000, LIGHT);
-    var card2 = utils.monoCard("test-2", 6, 6000, LIGHT);
-    var card3 = utils.monoCard("test-3", 6, 6000, LIGHT);
-
-    utils.addSpecies(card1, "アーマード・ドラゴン");
-    utils.addSpecies(card2, "アーマード・ドラゴン");
-    utils.addSpecies(card3, "ガーディアン");
+    var card1 =
+        utils.testCard("test").light().cost(6).power(6000).creature().race("アーマード・ドラゴン").build();
+    var card2 =
+        utils.testCard("test-2").light().cost(6).power(6000).creature().race("アーマード・ドラゴン").build();
+    var card3 =
+        utils.testCard("test-3").light().cost(6).power(6000).creature().race("ガーディアン").build();
 
     SearchFilter filter = search().setSpeciesSearch("マード").build();
     assertQueryFinds(filter, card1, card2);
@@ -814,50 +899,49 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void filtersByRarityEquals() {
-    var commonCard = utils.monoCard("common", 6, 6000, LIGHT);
-    var rareCard = utils.multiCard("rare", 4, 5500, WATER, NATURE);
+    var commonCard = utils.testCard("common").light().cost(6).rarity(C).build();
+    var rareCard = utils.testCard("rare").water().nature().cost(4).rarity(R).build();
 
-    SearchFilter filter = search().setRarity(RarityCode.C).build();
+    SearchFilter filter = search().setRarity(C).build();
     assertQueryFinds(filter, commonCard);
-    filter = search().setRarity(RarityCode.R).build();
+    filter = search().setRarity(R).build();
     assertQueryFinds(filter, rareCard);
   }
 
   @Test
   void filtersByRarityRange() {
-    var commonCard = utils.monoCard("common", 6, 6000, LIGHT);
-    var rareCard = utils.multiCard("rare", 4, 5500, WATER, NATURE);
-    var superRareCard = utils.twinpact("twinpact", Set.of(LIGHT), Set.of(FIRE));
+    var commonCard = utils.testCard("common").light().power(6000).creature().rarity(C).build();
+    var rareCard = utils.testCard("rare").water().nature().cost(4).power(5500).rarity(R).build();
+    var superRareCard = utils.testCard("superRare").fire().cost(5).power(10000).rarity(SR).build();
 
-    SearchFilter filter = search().setRarity(RarityCode.R, Range.LE).build();
+    SearchFilter filter = search().setRarity(R, Range.LE).build();
     assertQueryFinds(filter, commonCard, rareCard);
-    filter = search().setRarity(RarityCode.R, Range.GE).build();
+    filter = search().setRarity(R, Range.GE).build();
     assertQueryFinds(filter, rareCard, superRareCard);
   }
 
   @Test
   void findsCardsWithoutRarity() {
-    CardStub noRarity =
-        utils.card(
-            "dm23rp2x-TF02",
-            "DM23RP2X TF2/TF10",
-            false,
-            RarityCode.NONE,
-            1,
-            List.of("dm23rp2x-TF02.jpg"),
-            List.of(Set.of(WATER, FIRE, NATURE)),
-            List.of(3),
-            List.of(),
-            List.of(SPELL));
-    SearchFilter filter = search().setRarity(RarityCode.NONE, Range.EQ).build();
+    PrintingStub noRarity =
+        utils
+            .testCard("dm23rp2x-TF02")
+            .withSetCode("dm23rp2x")
+            .spell()
+            .water()
+            .fire()
+            .nature()
+            .cost(3)
+            .rarity(NONE)
+            .build();
+    SearchFilter filter = search().setRarity(NONE, Range.EQ).build();
     assertQueryFinds(filter, noRarity);
   }
 
   @Test
   void findsCardsByName() {
-    var card = utils.monoCard("超神星DEATH・ドラゲリオン", 8, 11000, DARK);
-    var card2 = utils.monoCard("超神星ライラ・ボルストーム", 5, 18000, FIRE);
-    var card3 = utils.multiCard("メガ・ドラゲナイ・ドラゴン", 9, 15000, FIRE, NATURE);
+    var card = utils.testCard("超神星DEATH・ドラゲリオン").dark().cost(8).power(11000).creature().build();
+    var card2 = utils.testCard("超神星ライラ・ボルストーム").fire().cost(5).power(18000).creature().build();
+    var card3 = utils.testCard("メガ・ドラゲナイ・ドラゴン").fire().nature().cost(9).power(15000).build();
 
     SearchFilter filter = search().setNameSearch("ラ").build();
     assertQueryFinds(filter, card, card2, card3);
@@ -874,17 +958,44 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void ignoresEmptyNameSearch() {
-    var card = utils.monoCard("超神星DEATH・ドラゲリオン", 8, 11000, DARK);
+    var card = utils.testCard("超神星DEATH・ドラゲリオン").dark().cost(8).power(11000).creature().build();
     SearchFilter filter = search().setNameSearch("").build();
     assertQueryFinds(filter, card);
   }
 
   @Test
   void quotedNameMatchesExactly() {
-    var bolshack = utils.monoCard("ボルシャック・ドラゴン", 6, 6000, FIRE);
-    var neoBolshak = utils.monoCard("ネオ・ボルシャック・ドラゴン", 8, 11000, FIRE);
+    var bolshack =
+        utils
+            .testCard("dm01-008")
+            .withName("ボルシャック・ドラゴン")
+            .fire()
+            .creature()
+            .cost(6)
+            .power(6000, TRAILING_PLUS)
+            .build();
+    var neoBolshak =
+        utils
+            .testCard("dmx19-s32")
+            .withName("ネオ・ボルシャック・ドラゴン")
+            .fire()
+            .creature()
+            .cost(8)
+            .power(11000, TRAILING_PLUS)
+            .build();
     var bolshackCharger =
-        utils.twinpact("ボルシャック・ドラゴン / 決闘者・チャージャー", Set.of(FIRE), Set.of(FIRE), 6, 3, 6000);
+        utils
+            .testCard("dmex04-027")
+            .twinpact()
+            .withName("ボルシャック・ドラゴン")
+            .fire()
+            .cost(6)
+            .power(6000, TRAILING_PLUS)
+            .secondSide()
+            .withName("決闘者・チャージャー")
+            .fire()
+            .cost(3)
+            .build();
 
     SearchFilter filter = search().setNameSearch("ボルシャック・ドラゴン").build();
     assertQueryFinds(filter, bolshack, neoBolshak, bolshackCharger);
@@ -892,15 +1003,15 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
     filter = search().setNameSearch("\"ボルシャック・ドラゴン\"").build();
     assertQueryFinds(filter, bolshack);
 
-    filter = search().setNameSearch("\"ボルシャック・ドラゴン / 決闘者・チャージャー\"").build();
+    filter = search().setNameSearch("\"ボルシャック・ドラゴン／決闘者・チャージャー\"").build();
     assertQueryFinds(filter, bolshackCharger);
   }
 
   @Test
   void findsCardsByEffectText() {
-    var blocker = utils.monoCard("blocker", "ブロッカー");
-    var wBreaker = utils.monoCard("double-breaker", "W・ブレイカー");
-    utils.monoCard("unrelated", "このクリーチャーが攻撃する時、カードを1枚引く。");
+    var blocker = utils.testCard("blocker").withAbility("ブロッカー").build();
+    var wBreaker = utils.testCard("double-breaker").withAbility("W・ブレイカー").build();
+    utils.testCard("unrelated").withAbility("このクリーチャーが攻撃する時、カードを1枚引く。").build();
 
     SearchFilter filter = search().setEffectSearch("ブロッカー").build();
     assertQueryFinds(filter, blocker);
@@ -914,9 +1025,9 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void findsCardsByEffectTextWithSpecialCharacters() {
-    var percentCard = utils.monoCard("percent-card", "パワー+50%");
-    var underscoreCard = utils.monoCard("underscore-card", "test_effect");
-    utils.monoCard("normal-card", "通常の効果");
+    var percentCard = utils.testCard("percent-card").withAbility("パワー+50%").build();
+    var underscoreCard = utils.testCard("underscore-card").withAbility("test_effect").build();
+    utils.testCard("normal-card").withAbility("通常の効果").build();
 
     SearchFilter filter = search().setEffectSearch("%").build();
     assertQueryFinds(filter, percentCard);
@@ -931,19 +1042,25 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
   @Test
   void findsCardsByChildEffectText() {
     var cardWithChildren =
-        utils.monoCard(
-            "modal-effect-card",
-            5,
-            7000,
-            FIRE,
-            List.of(
-                List.of(
-                    "このクリーチャーが出た時、次の中から２回選ぶ。(同じものを選んでもよい)",
-                    "相手のクリーチャーを１体選ぶ。このターン、そのクリーチャーのパワーを－4000する。",
-                    "自分の山札の上から４枚を墓地に置く。",
-                    "コスト４以下のクリーチャーを１体、自分の墓地から出す。")));
-
-    utils.monoCard("different-card", 4, 5000, WATER, "このクリーチャーが出た時、カードを２枚引く。");
+        utils
+            .testCard("modal-effect-card")
+            .fire()
+            .creature()
+            .cost(5)
+            .power(7000)
+            .withAbility("このクリーチャーが出た時、次の中から２回選ぶ。(同じものを選んでもよい)")
+            .withChildAbilities(
+                "相手のクリーチャーを１体選ぶ。このターン、そのクリーチャーのパワーを－4000する。",
+                "自分の山札の上から４枚を墓地に置く。",
+                "コスト４以下のクリーチャーを１体、自分の墓地から出す。")
+            .build();
+    utils
+        .testCard("different-card")
+        .water()
+        .cost(4)
+        .power(5000)
+        .withAbility("このクリーチャーが出た時、カードを２枚引く。")
+        .build();
 
     SearchFilter filter = search().setEffectSearch("墓地に置く").build();
     assertQueryFinds(filter, cardWithChildren);
@@ -957,9 +1074,32 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void combinesEffectSearchWithNameFilter() {
-    var dragonBlocker = utils.monoCard("ボルシャック・ドラゴン", 6, 9000, FIRE, "ブロッカー");
-    var dragonBreaker = utils.monoCard("ボルシャック・大剣", 7, 11000, FIRE, "W・ブレイカー");
-    utils.monoCard("光の守護者", 5, 7000, LIGHT, "ブロッカー");
+    var dragonBlocker =
+        utils
+            .testCard("dm01-008")
+            .withName("ボルシャック・ドラゴン")
+            .fire()
+            .cost(6)
+            .power(9000)
+            .withAbility("ブロッカー")
+            .build();
+    var dragonBreaker =
+        utils
+            .testCard("dmxy-zz")
+            .withName("ボルシャック・大剣")
+            .fire()
+            .cost(7)
+            .power(11000)
+            .withAbility("W・ブレイカー")
+            .build();
+    utils
+        .testCard("dm01-013")
+        .withName("光の守護者")
+        .light()
+        .cost(5)
+        .power(7000)
+        .withAbility("ブロッカー")
+        .build();
 
     SearchFilter filter = search().setEffectSearch("ブロッカー").setNameSearch("ボルシャック").build();
     assertQueryFinds(filter, dragonBlocker);
@@ -973,12 +1113,34 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void combinesEffectSearchWithSpeciesFilter() {
-    var dragonWithBlocker = utils.monoCard("test-dragon-1", 6, 8000, FIRE, "ブロッカー", "アーマード・ドラゴン");
+    var dragonWithBlocker =
+        utils
+            .testCard("test-dragon-1")
+            .fire()
+            .cost(6)
+            .power(8000)
+            .withAbility("ブロッカー")
+            .race("アーマード・ドラゴン")
+            .build();
 
     var dragonWithBreaker =
-        utils.monoCard("test-dragon-2", 7, 10000, FIRE, "W・ブレイカー", "アーマード・ドラゴン");
+        utils
+            .testCard("test-dragon-2")
+            .fire()
+            .cost(7)
+            .power(10000)
+            .withAbility("W・ブレイカー")
+            .race("アーマード・ドラゴン")
+            .build();
 
-    var guardianWithBlocker = utils.monoCard("test-guardian", 5, 6000, LIGHT, "ブロッカー", "ガーディアン");
+    utils
+        .testCard("test-guardian")
+        .light()
+        .cost(5)
+        .power(6000)
+        .withAbility("ブロッカー")
+        .race("ガーディアン")
+        .build();
 
     SearchFilter filter = search().setEffectSearch("ブロッカー").setSpeciesSearch("ドラゴン").build();
     assertQueryFinds(filter, dragonWithBlocker);
@@ -989,9 +1151,10 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void combinesEffectSearchWithNameAndCivilizationFilters() {
-    var lightCard = utils.monoCard("聖なる守護者", 5, 7000, LIGHT, "ブロッカー");
-    var fireCard = utils.monoCard("聖なる炎", 6, 8000, FIRE, "ブロッカー");
-    utils.monoCard("水の守護者", 4, 6000, WATER, "ブロッカー");
+    var lightCard =
+        utils.testCard("聖なる守護者").light().cost(5).power(7000).withAbility("ブロッカー").build();
+    var fireCard = utils.testCard("聖なる炎").fire().cost(6).power(8000).withAbility("ブロッカー").build();
+    utils.testCard("水の守護者").water().cost(4).power(6000).withAbility("ブロッカー").build();
 
     SearchFilter filter =
         search().setEffectSearch("ブロッカー").setNameSearch("守護者").addIncludedCivs(LIGHT).build();
@@ -1003,115 +1166,151 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void findsEffectsCaseInsensitive() {
-    var doubleBreaker = utils.monoCard("w-breaker", "W・ブレイカー");
+    var doubleBreaker = utils.testCard("w-breaker").withAbility("W・ブレイカー").build();
 
     var filter = search().setEffectSearch("w");
     assertQueryFinds(filter, doubleBreaker);
 
-    var exLife = utils.monoCard("exLife", "EXライフ");
+    var exLife = utils.testCard("exLife").withAbility("EXライフ").build();
 
     filter = search().setEffectSearch("ex");
     assertQueryFinds(filter, exLife);
 
-    var over = utils.monoCard("over", "OVERハイパー化：自分の他のクリーチャーを２体タップする。");
+    var over = utils.testCard("over").withAbility("OVERハイパー化：自分の他のクリーチャーを２体タップする。").build();
     assertQueryFinds(search().setEffectSearch("over"), over);
 
-    var dlsys = utils.monoCard("dlsys", "DL-Sys：これを付けたクリーチャーの攻撃の終わりに、相手の...");
+    var dlsys = utils.testCard("dlsys").withAbility("DL-Sys：これを付けたクリーチャーの攻撃の終わりに、相手の...").build();
     assertQueryFinds(search().setEffectSearch("dl-sys"), dlsys);
 
     var code =
-        utils.monoCard(
-            "code", "S-MAX進化：自分がゲームに負ける時、かわりにこのクリーチャーを破壊するか、自分の手札から《Code:-MAX》を１枚捨てる...）");
+        utils
+            .testCard("code")
+            .withAbility("S-MAX進化：自分がゲームに負ける時、かわりにこのクリーチャーを破壊するか、自分の手札から《Code:-MAX》を１枚捨てる...）")
+            .build();
     assertQueryFinds(search().setEffectSearch("code"), code);
     assertQueryFinds(search().setEffectSearch("max"), code);
     assertQueryFinds(search().setEffectSearch("s-max"), code);
 
     var artifact =
-        utils.monoCard(
-            "artifact", "このArtifactが出た時、封印を３つ付ける。（カードを封印するには、自分の山札の上から１枚目を裏向きのままそのカードの上に置く）");
+        utils
+            .testCard("artifact")
+            .withAbility("このArtifactが出た時、封印を３つ付ける。（カードを封印するには、自分の山札の上から１枚目を裏向きのままそのカードの上に置く）")
+            .build();
     assertQueryFinds(search().setEffectSearch("artifact"), artifact);
 
-    var revo = utils.monoCard("revo", "キリフダReVo：このクリーチャーが「キリフダッシュ」能力によってバトルゾーンに出たターンの間、...");
+    var revo =
+        utils
+            .testCard("revo")
+            .withAbility("キリフダReVo：このクリーチャーが「キリフダッシュ」能力によってバトルゾーンに出たターンの間、...")
+            .build();
     assertQueryFinds(search().setEffectSearch("revo"), revo);
 
     var mt =
-        utils.monoCard("mt", "バトルゾーンに自分の他の《Mt.富士山ックス》があれば、このクリーチャーのパワーを+11000し、「T・ブレイカー」を与える。");
+        utils
+            .testCard("mt")
+            .withAbility("バトルゾーンに自分の他の《Mt.富士山ックス》があれば、このクリーチャーのパワーを+11000し、「T・ブレイカー」を与える。")
+            .build();
     assertQueryFinds(search().setEffectSearch("mt"), mt);
 
     var shigenobu =
-        utils.monoCard(
-            "shigenobu-m",
-            "自分の、イラストレーター名がShigenobu Matsumotoのクリーチャーの召喚コストを１少なくしてもよい。ただし、コストは０以下にならない。");
+        utils
+            .testCard("shigenobu-m")
+            .withAbility(
+                "自分の、イラストレーター名がShigenobu Matsumotoのクリーチャーの召喚コストを１少なくしてもよい。ただし、コストは０以下にならない。")
+            .build();
     assertQueryFinds(search().setEffectSearch("shigenobu"), shigenobu);
     assertQueryFinds(search().setEffectSearch("matsumoto"), shigenobu);
 
     var second =
-        utils.monoCard(
-            "second",
-            "G・ゼロ―このターン、カードを６枚以上引いていて、自分の 《天災超邪 クロスファイア ２nd》がバトルゾーンになければ、このクリーチャーをコストを支払わずに召喚してもよい。");
+        utils
+            .testCard("second")
+            .withAbility(
+                "G・ゼロ―このターン、カードを６枚以上引いていて、自分の 《天災超邪 クロスファイア ２nd》がバトルゾーンになければ、このクリーチャーをコストを支払わずに召喚してもよい。")
+            .build();
     assertQueryFinds(search().setEffectSearch("nd"), second);
   }
 
   @Test
   void sortsByCost() {
-    var oneCost = utils.monoCard("one", 1, FIRE);
-    var zeroCost = utils.monoCard("zero", 0, DARK);
-    var fiveCost = utils.monoCard("five", 5, WATER);
+    var oneCost = utils.testCard("one").fire().cost(1).build();
+    var zeroCost = utils.testCard("zero").dark().cost(0).build();
+    var fiveCost = utils.testCard("five").water().cost(5).build();
 
     SearchFilter filter =
-        search().setPageable(Pageable.unpaged(Sort.by("sort_cost").ascending())).build();
+        search().setPageable(Pageable.unpaged(Sort.by(SORT_COST).ascending())).build();
     assertQueryFindsInOrder(filter, zeroCost, oneCost, fiveCost);
-    filter = search().setPageable(Pageable.unpaged(Sort.by("sort_cost").descending())).build();
+    filter = search().setPageable(Pageable.unpaged(Sort.by(SORT_COST).descending())).build();
     assertQueryFindsInOrder(filter, fiveCost, oneCost, zeroCost);
   }
 
   @Test
-  void sortsByMaxCost() {
-    var oneCost = utils.monoCard("one", 1, FIRE);
-    var zeroCost = utils.monoCard("zero", 0, DARK);
-    var fiveCost = utils.monoCard("five", 5, WATER);
-    var threeCost = utils.twoSided("three", Set.of(FIRE), Set.of(WATER), 1, 3, 4000, 8000);
-    var fourCost = utils.twinpact("four", Set.of(LIGHT), Set.of(LIGHT), 4, 3, 5500);
+  void sortsByFirstSideCost() {
+    var oneCost = utils.testCard("one").fire().cost(1).build();
+    var zeroCost = utils.testCard("zero").dark().cost(0).build();
+    var fiveCost = utils.testCard("five").water().cost(5).build();
+    var threeCost = utils.testCard("three").fire().cost(3).secondSide().water().cost(1).build();
+    var fourCost =
+        utils.testCard("four").twinpact().light().cost(4).secondSide().light().cost(3).build();
 
     SearchFilter filter =
-        search().setPageable(Pageable.unpaged(Sort.by("sort_cost").ascending())).build();
+        search().setPageable(Pageable.unpaged(Sort.by(SORT_COST).ascending())).build();
     assertQueryFindsInOrder(filter, zeroCost, oneCost, threeCost, fourCost, fiveCost);
-    filter = search().setPageable(Pageable.unpaged(Sort.by("sort_cost").descending())).build();
+    filter = search().setPageable(Pageable.unpaged(Sort.by(SORT_COST).descending())).build();
     assertQueryFindsInOrder(filter, fiveCost, fourCost, threeCost, oneCost, zeroCost);
   }
 
   @Test
   void sortsNullCostLast() {
-    var oneCost = utils.monoCard("one", 1, FIRE);
-    var zeroCost = utils.monoCard("zero", 0, DARK);
-    var nullCost = utils.monoCard("null", null, WATER);
-    var fiveCost = utils.monoCard("five", 5, WATER);
-    var threeCost = utils.twoSided("three", Set.of(FIRE), Set.of(WATER), 1, 3, 4000, 8000);
+    var oneCost = utils.testCard("one").fire().cost(1).build();
+    var zeroCost = utils.testCard("zero").dark().cost(0).build();
+    var nullCost = utils.testCard("null").water().cost(null).build();
+    var fiveCost = utils.testCard("five").water().cost(5).build();
+    var threeCost = utils.testCard("three").fire().cost(3).secondSide().water().cost(1).build();
 
     SearchFilter filter =
-        search().setPageable(Pageable.unpaged(Sort.by("sort_cost").ascending())).build();
+        search().setPageable(Pageable.unpaged(Sort.by(SORT_COST).ascending())).build();
     assertQueryFindsInOrder(filter, zeroCost, oneCost, threeCost, fiveCost, nullCost);
-    filter = search().setPageable(Pageable.unpaged(Sort.by("sort_cost").descending())).build();
+    filter = search().setPageable(Pageable.unpaged(Sort.by(SORT_COST).descending())).build();
     assertQueryFindsInOrder(filter, fiveCost, threeCost, oneCost, zeroCost, nullCost);
   }
 
-  private void assertQueryFindsAllCards(SearchFilter filter) {
-    assertQueryFinds(filter, utils.getTestCards().values().toArray(new CardStub[0]));
+  @Test
+  void sortsByFirstSidePower() {
+    var negative = utils.testCard("negative").cost(0).power(-5000).secondSide().power(5000).build();
+    var zero = utils.testCard("zero").cost(0).power(0).build();
+    var noPower = utils.testCard("none").spell().build();
+    var plusZero = utils.testCard("plusZero").power(0, LEADING_PLUS).build();
+    var zeroPlus = utils.testCard("zeroPlus").power(0, TRAILING_PLUS).build();
+    var tenk = utils.testCard("10k").power(10000).secondSide().power(2000).build();
+    var tenkPlus = utils.testCard("10k+").power(10000, TRAILING_PLUS).build();
+    var tenkMinus = utils.testCard("10k-").power(10000, TRAILING_MINUS).build();
+
+    SearchFilter filter =
+        search().setPageable(Pageable.unpaged(Sort.by(SORT_POWER).ascending())).build();
+    assertQueryFindsInOrder(
+        filter, negative, zero, plusZero, zeroPlus, tenkMinus, tenk, tenkPlus, noPower);
+    filter = search().setPageable(Pageable.unpaged(Sort.by(SORT_POWER).descending())).build();
+    assertQueryFindsInOrder(
+        filter, tenkPlus, tenk, tenkMinus, zeroPlus, plusZero, zero, negative, noPower);
   }
 
-  private void assertQueryFindsInOrder(SearchFilter filter, CardStub... expectedCards) {
-    Page<CardStub> result = cardQueryService.search(filter).pageOfCards();
+  private void assertQueryFindsInOrder(SearchFilter filter, PrintingStub... expectedCards) {
+    Page<PrintingStub> result = cardQueryService.search(filter).pageOfCards();
     assertThat(result.getContent())
         .usingRecursiveComparison()
         .isEqualTo(Arrays.asList(expectedCards));
   }
 
-  private void assertQueryFinds(SearchBuilder builder, CardStub... expectedCards) {
+  private void assertQueryFinds(SearchBuilder builder, List<PrintingStub> expectedCards) {
+    assertQueryFinds(builder, expectedCards.toArray(PrintingStub[]::new));
+  }
+
+  private void assertQueryFinds(SearchBuilder builder, PrintingStub... expectedCards) {
     assertQueryFinds(builder.build(), expectedCards);
   }
 
-  private void assertQueryFinds(SearchFilter filter, CardStub... expectedCards) {
-    Page<CardStub> result = cardQueryService.search(filter).pageOfCards();
+  private void assertQueryFinds(SearchFilter filter, PrintingStub... expectedCards) {
+    Page<PrintingStub> result = cardQueryService.search(filter).pageOfCards();
     assertPageEquals(result, expectedCards);
   }
 
@@ -1119,7 +1318,7 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
     assertQueryFinds(filter);
   }
 
-  private void assertPageEquals(Page<CardStub> result, CardStub... expectedCards) {
+  private void assertPageEquals(Page<PrintingStub> result, PrintingStub... expectedCards) {
     assertThat(result.getContent())
         .usingRecursiveComparison()
         .ignoringCollectionOrder()

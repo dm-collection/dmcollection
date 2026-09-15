@@ -6,8 +6,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import net.dmcollection.server.IntegrationTestBase;
-import net.dmcollection.server.TestFixtureBuilder;
-import net.dmcollection.server.card.CardService.CardStub;
+import net.dmcollection.server.card.CardService.PrintingStub;
+import net.dmcollection.server.testutils.TestFixtureBuilder;
 import net.dmcollection.server.user.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,8 +33,8 @@ class CardControllerIntegrationTest extends IntegrationTestBase {
 
   @Test
   void getCardsReturnsPageOfCards() throws Exception {
-    fixtures.monoCard("ctrl-card-1", Civilization.LIGHT);
-    fixtures.monoCard("ctrl-card-2", Civilization.WATER);
+    fixtures.testCard("ctrl-card-1").light().build();
+    fixtures.testCard("ctrl-card-2").water().build();
 
     mockMvc
         .perform(get("/api/cards/0").with(user(testUser)))
@@ -54,9 +54,9 @@ class CardControllerIntegrationTest extends IntegrationTestBase {
 
   @Test
   void getCardsRespectsPageSize() throws Exception {
-    fixtures.monoCard("ctrl-page-1", Civilization.LIGHT);
-    fixtures.monoCard("ctrl-page-2", Civilization.WATER);
-    fixtures.monoCard("ctrl-page-3", Civilization.DARK);
+    fixtures.testCard("ctrl-page-1").light().build();
+    fixtures.testCard("ctrl-page-2").water().build();
+    fixtures.testCard("ctrl-page-3").dark().build();
 
     mockMvc
         .perform(get("/api/cards/0").param("pageSize", "2").with(user(testUser)))
@@ -68,8 +68,8 @@ class CardControllerIntegrationTest extends IntegrationTestBase {
 
   @Test
   void getCardsFiltersByName() throws Exception {
-    fixtures.monoCard("ctrl-alpha", Civilization.LIGHT);
-    fixtures.monoCard("ctrl-beta", Civilization.WATER);
+    fixtures.testCard("ctrl-alpha").light().build();
+    fixtures.testCard("ctrl-beta").water().build();
 
     mockMvc
         .perform(get("/api/cards/0").param("name", "alpha").with(user(testUser)))
@@ -85,7 +85,7 @@ class CardControllerIntegrationTest extends IntegrationTestBase {
 
   @Test
   void getCardReturnsCardWhenFound() throws Exception {
-    fixtures.monoCard("ctrl-detail-1", Civilization.LIGHT);
+    fixtures.testCard("ctrl-detail-1").light().build();
 
     mockMvc
         .perform(get("/api/card/ctrl-detail-1").with(user(testUser)))
@@ -98,7 +98,7 @@ class CardControllerIntegrationTest extends IntegrationTestBase {
 
   @Test
   void getCardIncludesDeckZone() throws Exception {
-    var expected = fixtures.createFoursides();
+    var expected = fixtures.createFourSides();
 
     mockMvc
         .perform(get("/api/card/" + expected.dmId()).with(user(testUser)))
@@ -120,8 +120,8 @@ class CardControllerIntegrationTest extends IntegrationTestBase {
 
   @Test
   void getCardsByIdReturnsMatchingCards() throws Exception {
-    CardStub card1 = fixtures.monoCard("ctrl-byid-1", Civilization.LIGHT);
-    CardStub card2 = fixtures.monoCard("ctrl-byid-2", Civilization.WATER);
+    PrintingStub card1 = fixtures.testCard("ctrl-byid-1").light().build();
+    PrintingStub card2 = fixtures.testCard("ctrl-byid-2").water().build();
 
     mockMvc
         .perform(

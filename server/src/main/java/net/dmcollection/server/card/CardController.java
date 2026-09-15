@@ -3,7 +3,7 @@ package net.dmcollection.server.card;
 import java.util.List;
 import java.util.UUID;
 import net.dmcollection.server.AppProperties;
-import net.dmcollection.server.card.CardService.CardStub;
+import net.dmcollection.server.card.CardService.PrintingStub;
 import net.dmcollection.server.card.internal.CardQueryService;
 import net.dmcollection.server.user.CurrentUserId;
 import org.slf4j.Logger;
@@ -32,7 +32,7 @@ public class CardController {
   }
 
   @GetMapping("/api/cards/{pageNumber}")
-  ResponseEntity<PagedModel<CardStub>> getCards(
+  ResponseEntity<PagedModel<PrintingStub>> getCards(
       @CurrentUserId UUID currentUserId,
       @PathVariable int pageNumber,
       @ModelAttribute SearchFilterApi searchParams) {
@@ -61,7 +61,7 @@ public class CardController {
   }
 
   @GetMapping("/api/cards")
-  ResponseEntity<List<CardStub>> getCardsById(@RequestParam List<Long> cardIds) {
+  ResponseEntity<List<PrintingStub>> getCardsById(@RequestParam List<Long> cardIds) {
     var cards = cardService.getByIds(cardIds);
     if (cards.isEmpty()) {
       return ResponseEntity.notFound().build();
