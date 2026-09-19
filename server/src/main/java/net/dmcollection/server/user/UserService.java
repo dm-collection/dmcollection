@@ -2,6 +2,7 @@ package net.dmcollection.server.user;
 
 import static net.dmcollection.server.jooq.generated.tables.AppUser.APP_USER;
 
+import java.util.Optional;
 import org.jooq.DSLContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -38,21 +39,25 @@ public class UserService implements UserDetailsService {
         .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
   }
 
-  public User createUser(String username, String password) {
-    return dsl.insertInto(APP_USER)
-        .set(APP_USER.USERNAME, username)
-        .set(APP_USER.PASSWORD_HASH, passwordEncoder.encode(password))
-        .set(APP_USER.DISPLAY_NAME, username)
-        .returning()
-        .fetchOne(
-            r ->
-                new User(
-                    r.get(APP_USER.ID),
-                    r.get(APP_USER.USERNAME),
-                    r.get(APP_USER.PASSWORD_HASH),
-                    r.get(APP_USER.DISPLAY_NAME),
-                    r.get(APP_USER.AVATAR_PATH),
-                    r.get(APP_USER.IS_ADMIN)));
+  public Optional<User> createUser(String username, String password) {
+    var newUser =
+        dsl.insertInto(APP_USER)
+            .set(APP_USER.USERNAME, username)
+            .set(APP_USER.PASSWORD_HASH, passwordEncoder.encode(password))
+            .set(APP_USER.DISPLAY_NAME, username)
+            .onConflict(APP_USER.USERNAME)
+            .doNothing()
+            .returning()
+            .fetchOne(
+                r ->
+                    new User(
+                        r.get(APP_USER.ID),
+                        r.get(APP_USER.USERNAME),
+                        r.get(APP_USER.PASSWORD_HASH),
+                        r.get(APP_USER.DISPLAY_NAME),
+                        r.get(APP_USER.AVATAR_PATH),
+                        r.get(APP_USER.IS_ADMIN)));
+    return Optional.ofNullable(newUser);
   }
 
   public boolean existsByUsername(String username) {
