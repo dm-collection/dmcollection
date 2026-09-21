@@ -6,7 +6,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import net.dmcollection.server.IntegrationTestBase;
-import net.dmcollection.server.card.CardService.PrintingStub;
 import net.dmcollection.server.testutils.TestFixtureBuilder;
 import net.dmcollection.server.user.User;
 import org.junit.jupiter.api.BeforeEach;
@@ -75,7 +74,7 @@ class CardControllerIntegrationTest extends IntegrationTestBase {
         .perform(get("/api/cards/0").param("name", "alpha").with(user(testUser)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.content.length()").value(1))
-        .andExpect(jsonPath("$.content[0].dmId").value("ctrl-alpha"));
+        .andExpect(jsonPath("$.content[0].printings[0].officialId").value("ctrl-alpha"));
   }
 
   @Test
@@ -101,7 +100,7 @@ class CardControllerIntegrationTest extends IntegrationTestBase {
     var expected = fixtures.createFourSides();
 
     mockMvc
-        .perform(get("/api/card/" + expected.dmId()).with(user(testUser)))
+        .perform(get("/api/card/" + expected.officialId()).with(user(testUser)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.zone").value("hyperspatial"));
   }

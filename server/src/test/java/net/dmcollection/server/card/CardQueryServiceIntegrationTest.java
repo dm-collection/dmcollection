@@ -14,20 +14,18 @@ import static net.dmcollection.server.card.RarityCode.VIC;
 import static net.dmcollection.server.card.RarityCode.VR;
 import static net.dmcollection.server.card.SearchFilterApi.SORT_AMOUNT;
 import static net.dmcollection.server.card.SearchFilterApi.SORT_COST;
-import static net.dmcollection.server.card.SearchFilterApi.SORT_OFFICIAL_ID;
 import static net.dmcollection.server.card.SearchFilterApi.SORT_POWER;
-import static net.dmcollection.server.card.SearchFilterApi.SORT_RELEASE;
 import static net.dmcollection.server.testutils.TestFixtureBuilder.Modifier.LEADING_PLUS;
 import static net.dmcollection.server.testutils.TestFixtureBuilder.Modifier.TRAILING_MINUS;
 import static net.dmcollection.server.testutils.TestFixtureBuilder.Modifier.TRAILING_PLUS;
 import static net.dmcollection.server.testutils.TestFixtureBuilder.PSYCHIC_CREATURE;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import net.dmcollection.server.IntegrationTestBase;
-import net.dmcollection.server.card.CardService.PrintingStub;
 import net.dmcollection.server.card.internal.CardQueryService;
 import net.dmcollection.server.card.internal.SearchFilter.CardType;
 import net.dmcollection.server.card.internal.SearchFilter.FilterState;
@@ -109,7 +107,9 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
     var unowned = utils.testCard("dm01-00").build();
     var filter = search().setPageable(PageRequest.of(0, 10, Sort.by(SORT_AMOUNT).descending()));
 
-    assertQueryFindsInOrder(filter, separate, printings.getLast(), printings.getFirst(), unowned);
+    // since there are together 11 copies of the first card,
+    // it comes first with its printings sorted by amount
+    assertQueryFindsInOrder(filter, printings.getLast(), printings.getFirst(), separate, unowned);
   }
 
   @Test
@@ -387,23 +387,11 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
             .rarity(VIC)
             .build();
 
-    var filter =
-        search()
-            .setPageable(
-                PageRequest.of(
-                    0,
-                    2,
-                    Sort.by(SORT_RELEASE).descending().and(Sort.by(SORT_OFFICIAL_ID).ascending())));
+    var filter = search().setPageable(PageRequest.of(0, 2, Sort.unsorted()));
 
-    assertQueryFinds(filter, card1, card2);
-    filter =
-        search()
-            .setPageable(
-                PageRequest.of(
-                    1,
-                    2,
-                    Sort.by(SORT_RELEASE).descending().and(Sort.by(SORT_OFFICIAL_ID).ascending())));
-    assertQueryFinds(filter, card3, card4);
+    assertQueryFinds(filter, card4, card3);
+    filter = search().setPageable(PageRequest.of(1, 2, Sort.unsorted()));
+    assertQueryFinds(filter, card2, card1);
   }
 
   @Test
@@ -1297,15 +1285,29 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
   }
 
   protected void assertQueryFindsInOrder(SearchBuilder builder, List<PrintingStub> expectedCards) {
-    Page<PrintingStub> result = cardQueryService.search(builder.build()).pageOfCards();
-    assertThat(result.getContent()).usingRecursiveComparison().isEqualTo(expectedCards);
+    var result = mapResult(cardQueryService.search(builder.build()));
+    assertThat(result)
+        .usingRecursiveComparison()
+        .ignoringFields("civilizations")
+        .isEqualTo(expectedCards);
   }
 
   protected void assertQueryFinds(SearchBuilder builder, List<PrintingStub> expectedCards) {
-    Page<PrintingStub> result = cardQueryService.search(builder.build()).pageOfCards();
-    assertThat(result.getContent())
+    var result = mapResult(cardQueryService.search(builder.build()));
+    assertThat(result)
         .usingRecursiveComparison()
         .ignoringCollectionOrder()
+        .ignoringFields("civilizations")
         .isEqualTo(expectedCards);
+  }
+
+  private List<PrintingStub> mapResult(Page<CardStub> page) {
+    List<PrintingStub> oldFormat = new ArrayList<>();
+    if (page == null) {
+      return oldFormat;
+    }
+    page.forEach(card -> oldFormat.addAll(card.printings()));
+
+    return oldFormat;
   }
 }

@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import net.dmcollection.server.IntegrationTestBase;
-import net.dmcollection.server.card.CardService.PrintingStub;
 import net.dmcollection.server.card.serialization.collection.format.v1.V1CollectionCardExport;
 import net.dmcollection.server.card.serialization.collection.format.v1.V1CollectionExport;
 import net.dmcollection.server.card.serialization.collection.format.v2.V2CollectionExport;
@@ -107,13 +106,12 @@ class CollectionServiceIntegrationTest extends IntegrationTestBase {
         collectionService.getPrimaryCollection(
             user.getId(), search(user).addIncludedCivs(ZERO).build());
 
-    assertThat(result.info().numberOfPrintings()).isEqualTo(1);
     assertThat(result.cardPage().getContent())
         .hasSize(1)
         .allSatisfy(
             cardStub -> {
-              assertThat(cardStub.dmId()).isEqualTo("dmr08-021");
-              assertThat(cardStub.amount()).isEqualTo(5000);
+              assertThat(cardStub.printings().getFirst().officialId()).isEqualTo("dmr08-021");
+              assertThat(cardStub.printings().getFirst().amount()).isEqualTo(5000);
             });
   }
 
@@ -151,8 +149,8 @@ class CollectionServiceIntegrationTest extends IntegrationTestBase {
     collectionService.setCardAmount(user.getId(), card2.id(), 7);
     List<V1CollectionCardExport> importCards =
         Arrays.asList(
-            new V1CollectionCardExport("first card", card1.dmId(), 6),
-            new V1CollectionCardExport("third card", card3.dmId(), 4));
+            new V1CollectionCardExport("first card", card1.officialId(), 6),
+            new V1CollectionCardExport("third card", card3.officialId(), 4));
     V1CollectionExport toImport =
         new V1CollectionExport(
             1, LocalDateTime.now().minusDays(1), "collection", 10, 2, importCards);
@@ -188,9 +186,9 @@ class CollectionServiceIntegrationTest extends IntegrationTestBase {
             0,
             0,
             List.of(
-                new V1CollectionCardExport("Unchanged", unchanged.dmId(), 2),
-                new V1CollectionCardExport("Updated", updated.dmId(), 9),
-                new V1CollectionCardExport("Added", added.dmId(), 5)));
+                new V1CollectionCardExport("Unchanged", unchanged.officialId(), 2),
+                new V1CollectionCardExport("Updated", updated.officialId(), 9),
+                new V1CollectionCardExport("Added", added.officialId(), 5)));
 
     collectionService.importCollection(user.getId(), importData);
 

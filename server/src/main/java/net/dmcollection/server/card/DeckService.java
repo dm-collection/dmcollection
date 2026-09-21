@@ -23,7 +23,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import net.dmcollection.server.card.CardService.PrintingStub;
+import net.dmcollection.server.card.CardService.OldPrintingStub;
 import net.dmcollection.server.card.serialization.deck.format.v1.DeckCardExport;
 import net.dmcollection.server.card.serialization.deck.format.v1.DeckExport;
 import org.jooq.DSLContext;
@@ -62,7 +62,7 @@ public class DeckService {
       LocalDateTime lastModified,
       UUID ownerId) {}
 
-  public record DeckDto(DeckInfo info, PagedModel<PrintingStub> cardPage) {}
+  public record DeckDto(DeckInfo info, PagedModel<OldPrintingStub> cardPage) {}
 
   public List<DeckInfo> getDecks(UUID userId) {
     return dsl.select(DECK.ID, DECK.NAME, DECK.UPDATED_AT, DECK.USER_ID, CARD_COUNT, COPIES_COUNT)
@@ -391,7 +391,7 @@ public class DeckService {
 
     Map<Integer, Integer> collectionAmounts = collectionService.getPrimaryStub(userId);
 
-    List<PrintingStub> stubs =
+    List<OldPrintingStub> stubs =
         byPrinting.entrySet().stream()
             .map(entry -> toCardStub(entry.getKey(), entry.getValue(), collectionAmounts))
             .sorted(
@@ -418,7 +418,7 @@ public class DeckService {
       List<Short> civilizationIds,
       String imageFilename) {}
 
-  private PrintingStub toCardStub(
+  private OldPrintingStub toCardStub(
       int printingId, List<EntryRow> sideRows, Map<Integer, Integer> collectionAmounts) {
     EntryRow first = sideRows.getFirst();
 
@@ -440,7 +440,7 @@ public class DeckService {
 
     int collectionAmount = collectionAmounts.getOrDefault(printingId, 0);
 
-    return new PrintingStub(
+    return new OldPrintingStub(
         printingId,
         first.officialSiteId(),
         first.collectorNumber(),

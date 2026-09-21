@@ -14,7 +14,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import java.util.List;
 import java.util.UUID;
 import net.dmcollection.server.IntegrationTestBase;
-import net.dmcollection.server.card.CardService.PrintingStub;
 import net.dmcollection.server.card.serialization.collection.format.v2.V2CollectionExport;
 import net.dmcollection.server.jooq.generated.tables.records.CollectionHistoryEntryRecord;
 import net.dmcollection.server.testutils.TestFixtureBuilder;
@@ -75,14 +74,13 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
         .perform(get("/api/collection/0").with(user(testUser)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.info.numberOfCards").value(0))
-        .andExpect(jsonPath("$.info.numberOfPrintings").value(0))
         .andExpect(jsonPath("$.info.numberOfCopies").value(0))
         .andExpect(jsonPath("$.info.ownerId").value(testUser.getId().toString()));
   }
 
   @Test
   void getCollectionReturnsCardsAfterSettingAmount() throws Exception {
-    PrintingStub card = fixtures.testCard("coll-ctrl-1").light().build();
+    var card = fixtures.testCard("coll-ctrl-1").light().build();
 
     putRequest("/api/collection/cards/" + card.id(), "{\"amount\":3}");
 
@@ -90,19 +88,17 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
         .perform(get("/api/collection/0").with(user(testUser)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.info.numberOfCards").value(1))
-        .andExpect(jsonPath("$.info.numberOfPrintings").value(1))
         .andExpect(jsonPath("$.info.numberOfCopies").value(3))
         .andExpect(jsonPath("$.cardPage.content.length()").value(1));
   }
 
   @Test
   void setCardAmountReturnsCollectionInfo() throws Exception {
-    PrintingStub card = fixtures.testCard("coll-ctrl-2").water().build();
+    var card = fixtures.testCard("coll-ctrl-2").water().build();
 
     putRequest("/api/collection/cards/" + card.id(), "{\"amount\":5}")
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.numberOfCards").value(1))
-        .andExpect(jsonPath("$.numberOfPrintings").value(1))
         .andExpect(jsonPath("$.numberOfCopies").value(5));
   }
 
@@ -188,7 +184,6 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
         .perform(get("/api/collection/0").with(user(otherUser)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.info.numberOfCards").value(2))
-        .andExpect(jsonPath("$.info.numberOfPrintings").value(2))
         .andExpect(jsonPath("$.info.numberOfCopies").value(10));
   }
 
@@ -238,7 +233,7 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
 
   @Test
   void importDoesNotCreateHistoryEntries() throws Exception {
-    PrintingStub card = fixtures.testCard("coll-hist-3").fire().build();
+    var card = fixtures.testCard("coll-hist-3").fire().build();
 
     putRequest("/api/collection/cards/" + card.id(), "{\"amount\":3}");
 
