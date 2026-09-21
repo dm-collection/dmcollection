@@ -5,7 +5,6 @@ import static net.dmcollection.server.card.Civilization.FIRE;
 import static net.dmcollection.server.card.Civilization.LIGHT;
 import static net.dmcollection.server.card.Civilization.NATURE;
 import static net.dmcollection.server.card.Civilization.WATER;
-import static net.dmcollection.server.jooq.generated.Tables.CARD_SET;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -22,6 +21,7 @@ import net.dmcollection.server.card.CardService.PrintingStub;
 import net.dmcollection.server.card.Civilization;
 import net.dmcollection.server.card.RarityCode;
 import net.dmcollection.server.card.internal.query.CardTypeResolver;
+import net.dmcollection.server.user.User;
 import org.jooq.DSLContext;
 
 public class TestFixtureBuilder {
@@ -37,29 +37,32 @@ public class TestFixtureBuilder {
   public static final String TWINPACT_SEPARATOR = "／";
 
   private final DbWriter dbWriter;
-  private final DSLContext db;
   private final CardTypeResolver cardTypeResolver;
+  private final User user;
 
-  public TestFixtureBuilder(DSLContext db, CardTypeResolver cardTypeResolver) {
-    this.db = db;
+  public interface PrintingBuilder {
+    List<PrintingStub> buildAll();
+
+    PrintingStub build();
+  }
+
+  public TestFixtureBuilder(DSLContext db, CardTypeResolver cardTypeResolver, User user) {
     this.dbWriter = new DbWriter(db);
     this.cardTypeResolver = cardTypeResolver;
+    this.user = user;
   }
 
   public TestCardBuilder testCard(String printingId) {
     return new TestCardBuilder(printingId);
   }
 
+  public void addToCollection(PrintingStub printing, int quantity, User user) {
+    dbWriter.upsertCollectionEntry(user.getId(), printing.id(), quantity);
+  }
+
   public int getSetId(String setCode) {
-    Integer id =
-        db.select(CARD_SET.ID)
-            .from(CARD_SET)
-            .where(CARD_SET.CODE.eq(setCode))
-            .fetchOne(CARD_SET.ID);
-    if (id == null) {
-      throw new IllegalArgumentException("No set with code " + setCode);
-    }
-    return id;
+    int defaultGroupId = dbWriter.upsertSetGroup(DEFAULT_SET_GROUP, 1);
+    return dbWriter.upsertSet(setCode, "", LocalDate.now(), DEFAULT_PRODUCT_TYPE, defaultGroupId);
   }
 
   public PrintingStub createFourSides() {
@@ -182,7 +185,7 @@ public class TestFixtureBuilder {
     }
   }
 
-  public class TestCardBuilder {
+  public class TestCardBuilder implements PrintingBuilder {
     private String cardName;
     private boolean twinpact;
     private String deckZone;
@@ -313,6 +316,23 @@ public class TestFixtureBuilder {
 
     public TestCardBuilder withSetCode(String setCode) {
       this.printings.getFirst().setCode = setCode;
+      return this;
+    }
+
+    public TestCardBuilder withSet(String setCode, String releaseDate) {
+      LocalDate release = LocalDate.parse(releaseDate);
+      this.printings.getFirst().setCode = setCode;
+      this.printings.getFirst().setRelease = release;
+      return this;
+    }
+
+    public TestCardBuilder withPrinting(String officialId, String setCode, String releaseDate) {
+      LocalDate release = LocalDate.parse(releaseDate);
+      var printing = new TestPrintingBuilder();
+      printing.officialId = officialId;
+      printing.setCode = setCode;
+      printing.setRelease = release;
+      this.printings.add(printing);
       return this;
     }
 
@@ -459,7 +479,7 @@ public class TestFixtureBuilder {
             dbWriter.upsertSet(
                 setCode,
                 "Set \"" + setCode + "\"",
-                LocalDate.now(),
+                printing.setRelease == null ? LocalDate.now() : printing.setRelease,
                 DEFAULT_PRODUCT_TYPE,
                 defaultGroupId);
         if (printing.officialId == null) {
@@ -511,7 +531,7 @@ public class TestFixtureBuilder {
           .toList();
     }
 
-    public class SideBuilder {
+    public class SideBuilder implements PrintingBuilder {
       Set<Civilization> civilizations = EnumSet.noneOf(Civilization.class);
       String name;
       Cost cost;
@@ -531,6 +551,10 @@ public class TestFixtureBuilder {
 
       public PrintingStub build() {
         return this.parent.build();
+      }
+
+      public List<PrintingStub> buildAll() {
+        return this.parent.buildAll();
       }
 
       public SideBuilder withName(String name) {
@@ -612,6 +636,7 @@ public class TestFixtureBuilder {
       private int id;
 
       private String setCode;
+      private LocalDate setRelease;
 
       private String officialId;
 

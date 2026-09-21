@@ -8,6 +8,7 @@ import static net.dmcollection.server.jooq.generated.Tables.CARD_SIDE;
 import static net.dmcollection.server.jooq.generated.Tables.CARD_SIDE_CARD_TYPE;
 import static net.dmcollection.server.jooq.generated.Tables.CARD_SIDE_RACE;
 import static net.dmcollection.server.jooq.generated.Tables.CARD_TYPE;
+import static net.dmcollection.server.jooq.generated.Tables.COLLECTION_ENTRY;
 import static net.dmcollection.server.jooq.generated.Tables.PRINTING;
 import static net.dmcollection.server.jooq.generated.Tables.PRINTING_SIDE;
 import static net.dmcollection.server.jooq.generated.Tables.PRINTING_SIDE_ABILITY;
@@ -20,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import net.dmcollection.server.card.Civilization;
 import net.dmcollection.server.card.RarityCode;
@@ -31,6 +33,7 @@ import net.dmcollection.server.jooq.generated.tables.records.CardSetRecord;
 import net.dmcollection.server.jooq.generated.tables.records.CardSideCardTypeRecord;
 import net.dmcollection.server.jooq.generated.tables.records.CardSideRaceRecord;
 import net.dmcollection.server.jooq.generated.tables.records.CardSideRecord;
+import net.dmcollection.server.jooq.generated.tables.records.CollectionEntryRecord;
 import net.dmcollection.server.jooq.generated.tables.records.PrintingRecord;
 import net.dmcollection.server.jooq.generated.tables.records.PrintingSideAbilityRecord;
 import net.dmcollection.server.jooq.generated.tables.records.PrintingSideRecord;
@@ -132,7 +135,11 @@ public class DbWriter {
     short raceId = upsertRace(race);
     var rel = new CardSideRaceRecord();
     rel.setCardSideId(cardSideId).setRaceId(raceId).setPosition((short) position);
-    db.insertInto(CARD_SIDE_RACE).set(rel).execute();
+    db.insertInto(CARD_SIDE_RACE)
+        .set(rel)
+        .onConflict(CARD_SIDE_RACE.RACE_ID, CARD_SIDE_RACE.CARD_SIDE_ID)
+        .doNothing()
+        .execute();
   }
 
   public void addAbility(int printingSideId, String text, int position, int indent) {
@@ -197,6 +204,21 @@ public class DbWriter {
     Short id = db.insertInto(r).set(rarity).returningResult(r.ID).fetchOne(r.ID);
     assertThat(id).isNotNull();
     return id;
+  }
+
+  public void upsertCollectionEntry(UUID userId, int printingId, int quantity) {
+    var table = COLLECTION_ENTRY;
+    CollectionEntryRecord entry =
+        new CollectionEntryRecord()
+            .setUserId(userId)
+            .setPrintingId(printingId)
+            .setQuantity(quantity);
+    db.insertInto(table)
+        .set(entry)
+        .onConflict(table.USER_ID, table.PRINTING_ID)
+        .doUpdate()
+        .set(entry)
+        .execute();
   }
 
   public int upsertPrinting(

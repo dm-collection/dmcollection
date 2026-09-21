@@ -27,7 +27,7 @@ class CardControllerIntegrationTest extends IntegrationTestBase {
 
   @BeforeEach
   void setup() {
-    fixtures = new TestFixtureBuilder(dsl, cardTypeResolver);
+    fixtures = new TestFixtureBuilder(dsl, cardTypeResolver, testUser);
     testUser = createUser("cardtest");
   }
 

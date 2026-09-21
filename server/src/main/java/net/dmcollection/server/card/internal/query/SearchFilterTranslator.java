@@ -1,6 +1,8 @@
 package net.dmcollection.server.card.internal.query;
 
 import static net.dmcollection.server.jooq.generated.tables.CardSide.CARD_SIDE;
+import static net.dmcollection.server.jooq.generated.tables.CollectionEntry.COLLECTION_ENTRY;
+import static net.dmcollection.server.jooq.generated.tables.Printing.PRINTING;
 import static org.jooq.impl.DSL.noCondition;
 
 import java.util.List;
@@ -12,6 +14,7 @@ import net.dmcollection.server.card.internal.SearchFilter.CollectionFilter;
 import net.dmcollection.server.card.internal.SearchFilter.RarityFilter;
 import org.jooq.Condition;
 import org.jooq.OrderField;
+import org.jooq.impl.DSL;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -42,7 +45,7 @@ public class SearchFilterTranslator {
                 RangeConditionBuilder.build(
                     CARD_SIDE.POWER_FILTER, filter.minPower(), filter.maxPower()))
             .and(translateRarity(filter.rarityFilter()))
-            .and(RaceConditionBuilder.build(filter.speciesSearch()))
+            .and(RaceConditionBuilder.build(filter.raceSearch()))
             .and(translateCardType(filter.cardType()))
             .and(NameConditionBuilder.build(filter.nameSearch()))
             .and(AbilityTextConditionBuilder.build(filter.effectSearch()))
@@ -83,9 +86,17 @@ public class SearchFilterTranslator {
   }
 
   private Condition translateCollection(CollectionFilter collectionFilter) {
-    if (collectionFilter == null || !collectionFilter.searchCollection()) {
+    if (!collectionFilter.ownedOnly()) {
       return noCondition();
     }
-    return CollectionConditionBuilder.build(collectionFilter.userId(), true);
+    UUID userId = collectionFilter.userId();
+    if (userId == null) {
+      return noCondition();
+    }
+    var ownedPrintings =
+        DSL.select(COLLECTION_ENTRY.PRINTING_ID)
+            .from(COLLECTION_ENTRY)
+            .where(COLLECTION_ENTRY.USER_ID.eq(userId));
+    return PRINTING.ID.in(ownedPrintings);
   }
 }

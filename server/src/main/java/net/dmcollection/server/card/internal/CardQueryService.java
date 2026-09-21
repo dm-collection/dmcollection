@@ -71,7 +71,6 @@ public class CardQueryService {
 
     TranslatedFilter translated = searchFilterTranslator.translate(searchFilter);
     CollectionFilter collectionFilter = searchFilter.collectionFilter();
-    boolean hasCollection = collectionFilter != null;
     Pageable pageable = searchFilter.pageable();
 
     // Phase 1: Filter and paginate
@@ -82,41 +81,27 @@ public class CardQueryService {
             .on(CARD_CIV_GROUP.CARD_ID.eq(CARD.ID))
             .where(translated.civilizationCondition());
 
-    SelectJoinStep<? extends Record> fromClause;
-    if (hasCollection) {
-      fromClause =
-          dsl.select(
-                  PRINTING.ID,
-                  PRINTING.OFFICIAL_SITE_ID,
-                  PRINTING.COLLECTOR_NUMBER,
-                  PRINTING_COUNT,
-                  AMOUNT_FIELD,
-                  COPIES_COUNT)
-              .from(PRINTING)
-              .join(CARD)
-              .on(CARD.ID.eq(PRINTING.CARD_ID))
-              .join(CARD_SET)
-              .on(CARD_SET.ID.eq(PRINTING.SET_ID))
-              .leftJoin(RARITY)
-              .on(RARITY.ID.eq(PRINTING.RARITY_ID))
-              .leftJoin(COLLECTION_ENTRY)
-              .on(
-                  COLLECTION_ENTRY
-                      .PRINTING_ID
-                      .eq(PRINTING.ID)
-                      .and(COLLECTION_ENTRY.USER_ID.eq(collectionFilter.userId())));
-    } else {
-      fromClause =
-          dsl.select(
-                  PRINTING.ID, PRINTING.OFFICIAL_SITE_ID, PRINTING.COLLECTOR_NUMBER, PRINTING_COUNT)
-              .from(PRINTING)
-              .join(CARD)
-              .on(CARD.ID.eq(PRINTING.CARD_ID))
-              .join(CARD_SET)
-              .on(CARD_SET.ID.eq(PRINTING.SET_ID))
-              .leftJoin(RARITY)
-              .on(RARITY.ID.eq(PRINTING.RARITY_ID));
-    }
+    SelectJoinStep<? extends Record> fromClause =
+        dsl.select(
+                PRINTING.ID,
+                PRINTING.OFFICIAL_SITE_ID,
+                PRINTING.COLLECTOR_NUMBER,
+                PRINTING_COUNT,
+                AMOUNT_FIELD,
+                COPIES_COUNT)
+            .from(PRINTING)
+            .join(CARD)
+            .on(CARD.ID.eq(PRINTING.CARD_ID))
+            .join(CARD_SET)
+            .on(CARD_SET.ID.eq(PRINTING.SET_ID))
+            .leftJoin(RARITY)
+            .on(RARITY.ID.eq(PRINTING.RARITY_ID))
+            .leftJoin(COLLECTION_ENTRY)
+            .on(
+                COLLECTION_ENTRY
+                    .PRINTING_ID
+                    .eq(PRINTING.ID)
+                    .and(COLLECTION_ENTRY.USER_ID.eq(collectionFilter.userId())));
 
     SelectConditionStep<? extends Record> filtered =
         fromClause.where(PRINTING.CARD_ID.in(civSubquery)).and(translated.mainCondition());
@@ -148,8 +133,8 @@ public class CardQueryService {
                   r.get(PRINTING.OFFICIAL_SITE_ID),
                   r.get(PRINTING.COLLECTOR_NUMBER),
                   r.get(PRINTING_COUNT),
-                  hasCollection ? r.get(AMOUNT_FIELD) : 0,
-                  hasCollection ? valueOrZero(r.get(COPIES_COUNT)) : 0));
+                  r.get(AMOUNT_FIELD),
+                  valueOrZero(r.get(COPIES_COUNT))));
         });
 
     if (matchedPrintings.isEmpty()) {
@@ -165,23 +150,20 @@ public class CardQueryService {
             .on(CARD_SET.ID.eq(PRINTING.SET_ID))
             .leftJoin(RARITY)
             .on(RARITY.ID.eq(PRINTING.RARITY_ID));
-    if (hasCollection) {
-      cardNumFrom =
-          cardNumFrom
-              .leftJoin(COLLECTION_ENTRY)
-              .on(
-                  COLLECTION_ENTRY
-                      .PRINTING_ID
-                      .eq(PRINTING.ID)
-                      .and(COLLECTION_ENTRY.USER_ID.eq(collectionFilter.userId())));
-    }
+    cardNumFrom =
+        cardNumFrom
+            .leftJoin(COLLECTION_ENTRY)
+            .on(
+                COLLECTION_ENTRY
+                    .PRINTING_ID
+                    .eq(PRINTING.ID)
+                    .and(COLLECTION_ENTRY.USER_ID.eq(collectionFilter.userId())));
     var finalQuery =
         cardNumFrom.where(PRINTING.CARD_ID.in(civSubquery)).and(translated.mainCondition());
     Integer numberOfCards = finalQuery.fetchOne(0, int.class);
 
     long numberOfPrintings = matchedPrintings.values().iterator().next().numberOfPrintings();
-    long numberOfCopies =
-        hasCollection ? matchedPrintings.values().iterator().next().numberOfCopies() : 0;
+    long numberOfCopies = matchedPrintings.values().iterator().next().numberOfCopies();
 
     // Phase 2: Enrich with side data
     record SideData(List<Short> civilizationIds, String imageFilename) {}

@@ -41,9 +41,8 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
 
   @BeforeEach
   void setup() {
-    fixtures = new TestFixtureBuilder(dsl, cardTypeResolver);
-
     testUser = createUser("collTest-");
+    fixtures = new TestFixtureBuilder(dsl, cardTypeResolver, testUser);
   }
 
   private List<CollectionHistoryEntryRecord> fetchHistory(UUID userId, long printingId) {
@@ -73,7 +72,7 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
   @Test
   void getCollectionReturnsEmptyForNewUser() throws Exception {
     mockMvc
-        .perform(get("/api/collection").with(user(testUser)))
+        .perform(get("/api/collection/0").with(user(testUser)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.info.numberOfCards").value(0))
         .andExpect(jsonPath("$.info.numberOfPrintings").value(0))

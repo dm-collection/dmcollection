@@ -45,22 +45,18 @@ public class CollectionController {
     this.objectMapper = objectMapper;
   }
 
-  @GetMapping(value = {"/api/collection", "/api/collection/{pageNumber}"})
+  @GetMapping(value = {"/api/collection/{pageNumber}"})
   ResponseEntity<CollectionDto> getPrimaryCollection(
       @CurrentUserId UUID currentUserId,
-      @PathVariable(required = false) Integer pageNumber,
+      @PathVariable int pageNumber,
       @ModelAttribute SearchFilterApi searchParams) {
-    SearchFilter searchFilter;
-    if (pageNumber != null) {
-      Integer pageSize = searchParams.pageSize();
-      if (pageSize == null) {
-        pageSize =
-            Math.min(appProperties.cardPage().defaultSize(), appProperties.cardPage().maxSize());
-      }
-      searchFilter = searchParams.toSearchFilter(pageNumber, pageSize);
-    } else {
-      searchFilter = searchParams.toSearchFilter();
+    Integer pageSize = searchParams.pageSize();
+    if (pageSize == null) {
+      pageSize =
+          Math.min(appProperties.cardPage().defaultSize(), appProperties.cardPage().maxSize());
     }
+    SearchFilter searchFilter =
+        searchParams.toSearchFilter(currentUserId, true, pageNumber, pageSize);
     return ResponseEntity.ok(collectionService.getPrimaryCollection(currentUserId, searchFilter));
   }
 

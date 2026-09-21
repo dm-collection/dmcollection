@@ -100,7 +100,6 @@ public class CollectionService {
   }
 
   public CollectionDto getPrimaryCollection(UUID userId, SearchFilter searchFilter) {
-    searchFilter = searchFilter.withCollectionFilter(userId, true);
     SearchResult searchResult = cardQueryService.search(searchFilter);
     CollectionInfo ci =
         new CollectionInfo(

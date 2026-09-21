@@ -1,20 +1,30 @@
 package net.dmcollection.server.testutils;
 
+import static net.dmcollection.server.card.SearchFilterApi.SORT_OFFICIAL_ID;
+import static net.dmcollection.server.card.SearchFilterApi.SORT_RELEASE;
+
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 import net.dmcollection.server.card.Civilization;
 import net.dmcollection.server.card.RarityCode;
 import net.dmcollection.server.card.internal.SearchFilter;
+import net.dmcollection.server.user.User;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 
 public class SearchBuilder {
 
-  public static SearchBuilder search() {
-    return new SearchBuilder();
+  public static SearchBuilder search(User user) {
+    return new SearchBuilder(user != null ? user.getId() : null);
   }
 
-  private SearchBuilder() {}
+  private SearchBuilder(UUID userId) {
+    this.userId = userId;
+  }
 
+  private final UUID userId;
   private Integer setId;
   private Set<Civilization> includedCivs;
   private Set<Civilization> excludedCivs;
@@ -31,7 +41,9 @@ public class SearchBuilder {
   private String effectSearch = null;
   private SearchFilter.RarityFilter rarity = null;
   private String nameSearch = null;
-  private Pageable pageable = null;
+  private Pageable pageable =
+      PageRequest.of(
+          0, 500, Sort.by(SORT_RELEASE).descending().and(Sort.by(SORT_OFFICIAL_ID).ascending()));
 
   private void makeCivSet() {
     if (includedCivs == null) {
@@ -152,7 +164,7 @@ public class SearchBuilder {
         speciesSearch,
         nameSearch,
         effectSearch,
-        null,
+        new SearchFilter.CollectionFilter(userId, false),
         pageable);
   }
 }

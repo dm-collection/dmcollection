@@ -32,8 +32,8 @@ class DeckControllerIntegrationTest extends IntegrationTestBase {
 
   @BeforeEach
   void setup() {
-    fixtures = new TestFixtureBuilder(dsl, cardTypeResolver);
     testUser = createUser("deckTest-");
+    fixtures = new TestFixtureBuilder(dsl, cardTypeResolver, testUser);
   }
 
   @Test
