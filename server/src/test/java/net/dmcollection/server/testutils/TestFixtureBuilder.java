@@ -15,10 +15,8 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import net.dmcollection.server.card.CardService.PrintingStub;
 import net.dmcollection.server.card.Civilization;
+import net.dmcollection.server.card.PrintingStub;
 import net.dmcollection.server.card.RarityCode;
 import net.dmcollection.server.card.internal.query.CardTypeResolver;
 import net.dmcollection.server.user.User;
@@ -36,15 +34,11 @@ public class TestFixtureBuilder {
   public static final String D2_FIELD = "D2フィールド";
   public static final String TWINPACT_SEPARATOR = "／";
 
+  public static LocalDate DEFAULT_SET_RELEASE = LocalDate.of(2002, 5, 30);
+
   private final DbWriter dbWriter;
   private final CardTypeResolver cardTypeResolver;
   private final User user;
-
-  public interface PrintingBuilder {
-    List<PrintingStub> buildAll();
-
-    PrintingStub build();
-  }
 
   public TestFixtureBuilder(DSLContext db, CardTypeResolver cardTypeResolver, User user) {
     this.dbWriter = new DbWriter(db);
@@ -58,7 +52,8 @@ public class TestFixtureBuilder {
 
   public int getSetId(String setCode) {
     int defaultGroupId = dbWriter.upsertSetGroup(DEFAULT_SET_GROUP, 1);
-    return dbWriter.upsertSet(setCode, "", LocalDate.now(), DEFAULT_PRODUCT_TYPE, defaultGroupId);
+    return dbWriter.upsertSet(
+        setCode, "", DEFAULT_SET_RELEASE, DEFAULT_PRODUCT_TYPE, defaultGroupId);
   }
 
   public PrintingStub createFourSides() {
@@ -181,7 +176,7 @@ public class TestFixtureBuilder {
     }
   }
 
-  public class TestCardBuilder implements PrintingBuilder {
+  public class TestCardBuilder {
     private String cardName;
     private boolean twinpact;
     private String deckZone;
@@ -487,16 +482,21 @@ public class TestFixtureBuilder {
       }
 
       for (var printing : this.printings) {
-        String setCode = printing.setCode == null ? DEFAULT_SET_CODE : printing.setCode;
+        if (printing.setCode == null) {
+          printing.setCode = DEFAULT_SET_CODE;
+        }
+        if (printing.setRelease == null) {
+          printing.setRelease = DEFAULT_SET_RELEASE;
+        }
         int setId =
             dbWriter.upsertSet(
-                setCode,
-                "Set \"" + setCode + "\"",
-                printing.setRelease == null ? LocalDate.now() : printing.setRelease,
+                printing.setCode,
+                "Set \"" + printing.setCode + "\"",
+                printing.setRelease,
                 DEFAULT_PRODUCT_TYPE,
                 defaultGroupId);
         if (printing.officialId == null) {
-          printing.officialId = setCode + "-" + this.cardName;
+          printing.officialId = printing.setCode + "-" + this.cardName;
         }
         printing.idText = printing.officialId.replace("-", " ").toUpperCase(Locale.ROOT);
         printing.id =
@@ -524,15 +524,6 @@ public class TestFixtureBuilder {
         }
       }
 
-      Set<Civilization> allCivilizations =
-          this.cardSides.stream()
-              .flatMap(
-                  side ->
-                      side.civilizations.isEmpty()
-                          ? Stream.of(Civilization.ZERO)
-                          : side.civilizations.stream())
-              .collect(Collectors.toSet());
-
       return this.printings.stream()
           .map(
               printing ->
@@ -540,14 +531,14 @@ public class TestFixtureBuilder {
                       printing.id,
                       printing.officialId,
                       printing.idText,
-                      allCivilizations,
-                      printing.imageFileNames,
+                      printing.setCode,
+                      printing.setRelease,
                       printing.collectionQuantity,
-                      printing.collectionQuantity))
+                      printing.imageFileNames))
           .toList();
     }
 
-    public class SideBuilder implements PrintingBuilder {
+    public class SideBuilder {
       Set<Civilization> civilizations = EnumSet.noneOf(Civilization.class);
       String name;
       Cost cost;

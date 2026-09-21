@@ -8,7 +8,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import net.dmcollection.server.IntegrationTestBase;
-import net.dmcollection.server.card.CardService.PrintingStub;
 import net.dmcollection.server.card.serialization.deck.format.v1.DeckCardExport;
 import net.dmcollection.server.card.serialization.deck.format.v1.DeckExport;
 import net.dmcollection.server.testutils.TestFixtureBuilder;

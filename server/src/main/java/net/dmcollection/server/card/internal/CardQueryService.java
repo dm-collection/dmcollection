@@ -1,99 +1,284 @@
 package net.dmcollection.server.card.internal;
 
-import static net.dmcollection.server.jooq.generated.tables.Card.CARD;
-import static net.dmcollection.server.jooq.generated.tables.CardCivGroup.CARD_CIV_GROUP;
-import static net.dmcollection.server.jooq.generated.tables.CardSet.CARD_SET;
-import static net.dmcollection.server.jooq.generated.tables.CardSide.CARD_SIDE;
+import static net.dmcollection.server.card.SearchFilterApi.SORT_AMOUNT;
+import static net.dmcollection.server.card.SearchFilterApi.SORT_COST;
+import static net.dmcollection.server.card.SearchFilterApi.SORT_POWER;
+import static net.dmcollection.server.card.SearchFilterApi.SORT_RARITY;
+import static net.dmcollection.server.card.SearchFilterApi.SORT_RELEASE;
+import static net.dmcollection.server.jooq.generated.Tables.ABILITY;
+import static net.dmcollection.server.jooq.generated.Tables.CARD;
+import static net.dmcollection.server.jooq.generated.Tables.CARD_CIV_GROUP;
+import static net.dmcollection.server.jooq.generated.Tables.CARD_SET;
+import static net.dmcollection.server.jooq.generated.Tables.CARD_SIDE;
+import static net.dmcollection.server.jooq.generated.Tables.CARD_SIDE_CARD_TYPE;
+import static net.dmcollection.server.jooq.generated.Tables.CARD_SIDE_RACE;
+import static net.dmcollection.server.jooq.generated.Tables.PRINTING;
+import static net.dmcollection.server.jooq.generated.Tables.PRINTING_SIDE;
+import static net.dmcollection.server.jooq.generated.Tables.PRINTING_SIDE_ABILITY;
+import static net.dmcollection.server.jooq.generated.Tables.RACE;
 import static net.dmcollection.server.jooq.generated.tables.CollectionEntry.COLLECTION_ENTRY;
-import static net.dmcollection.server.jooq.generated.tables.Printing.PRINTING;
-import static net.dmcollection.server.jooq.generated.tables.PrintingSide.PRINTING_SIDE;
 import static net.dmcollection.server.jooq.generated.tables.Rarity.RARITY;
 import static org.jooq.impl.DSL.coalesce;
 import static org.jooq.impl.DSL.count;
-import static org.jooq.impl.DSL.countDistinct;
+import static org.jooq.impl.DSL.exists;
+import static org.jooq.impl.DSL.lateral;
+import static org.jooq.impl.DSL.min;
+import static org.jooq.impl.DSL.multiset;
+import static org.jooq.impl.DSL.name;
+import static org.jooq.impl.DSL.noCondition;
+import static org.jooq.impl.DSL.notExists;
+import static org.jooq.impl.DSL.nullif;
+import static org.jooq.impl.DSL.select;
+import static org.jooq.impl.DSL.selectOne;
 import static org.jooq.impl.DSL.sum;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
-import net.dmcollection.server.card.CardService.PrintingStub;
-import net.dmcollection.server.card.Civilization;
-import net.dmcollection.server.card.internal.SearchFilter.CollectionFilter;
-import net.dmcollection.server.card.internal.query.SearchFilterTranslator;
-import net.dmcollection.server.card.internal.query.SearchFilterTranslator.TranslatedFilter;
+import net.dmcollection.server.card.CardStub;
+import net.dmcollection.server.card.PrintingStub;
+import net.dmcollection.server.card.internal.query.CardTypeResolver;
+import net.dmcollection.server.card.internal.query.CivilizationConditionBuilder;
+import net.dmcollection.server.card.internal.query.NameConditionBuilder;
+import net.dmcollection.server.card.internal.query.RangeConditionBuilder;
+import net.dmcollection.server.card.internal.query.TwinpactConditionBuilder;
+import net.dmcollection.server.jooq.generated.tables.CardSide;
+import org.jooq.Condition;
 import org.jooq.DSLContext;
 import org.jooq.Field;
-import org.jooq.Record;
-import org.jooq.SelectConditionStep;
-import org.jooq.SelectJoinStep;
+import org.jooq.OrderField;
+import org.jooq.SortOrder;
+import org.jooq.Table;
 import org.jspecify.annotations.NonNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 @Service
 public class CardQueryService {
-
   private static final Logger log = LoggerFactory.getLogger(CardQueryService.class);
-
-  private static final Field<Long> PRINTING_COUNT =
-      count().over().cast(Long.class).as("printing_count");
-  private static final Field<Integer> AMOUNT_FIELD =
-      coalesce(COLLECTION_ENTRY.QUANTITY, 0).as("amount");
-  private static final Field<Long> COPIES_COUNT =
-      sum(COLLECTION_ENTRY.QUANTITY).over().cast(Long.class).as("copies_count");
-
   private final DSLContext dsl;
-  private final SearchFilterTranslator searchFilterTranslator;
 
-  public CardQueryService(DSLContext dsl, SearchFilterTranslator searchFilterTranslator) {
+  private final RarityService rarityService;
+  private final CardTypeResolver cardTypeResolver;
+
+  private static final Field<Integer> cardCount = count().over().as("card_count");
+
+  private static final String CARD_RELEASE_AGG = "earliest_release";
+  private static final String CARD_COPIES_AGG = "card_copies";
+  private static final String CARD_RARITY_AGG = "card_rarity";
+
+  public CardQueryService(
+      DSLContext dsl, RarityService rarityService, CardTypeResolver cardTypeResolver) {
     this.dsl = dsl;
-    this.searchFilterTranslator = searchFilterTranslator;
+    this.rarityService = rarityService;
+    this.cardTypeResolver = cardTypeResolver;
   }
 
-  public record SearchResult(
-      Page<PrintingStub> pageOfCards, long numberOfCopies, long numberOfCards) {}
+  public record PrintingSide(String imageFileName) {}
 
-  public SearchResult search(@NonNull SearchFilter searchFilter) {
-    if (searchFilter.isInvalid()) {
-      log.warn("Invalid search filter: {}", searchFilter);
-      return new SearchResult(new PageImpl<>(List.of()), 0, 0);
+  private static final Field<Integer> AMOUNT_FIELD =
+      coalesce(COLLECTION_ENTRY.QUANTITY, 0).as("amount");
+
+  public Page<CardStub> search(@NonNull SearchFilter filter) {
+    if (filter.isInvalid()) {
+      log.warn("Invalid search filter: {}", filter);
+      return Page.empty();
     }
-    log.debug("Searching with filter: {}", searchFilter);
+    log.debug("Searching with filter: {}", filter);
+    Short raritySortOrder = null;
+    if (filter.rarityFilter() != null) {
+      raritySortOrder = (short) rarityService.getOrder(filter.rarityFilter().rarityCode());
+    }
+    CardTypeResolver.IncludedExcluded cardTypeIds = null;
+    if (filter.cardType() != null) {
+      cardTypeIds = cardTypeResolver.resolve(filter.cardType());
+    }
+    var printingSides =
+        multiset(
+                select(PRINTING_SIDE.IMAGE_FILENAME, CARD_SIDE.SIDE_ORDER)
+                    .from(PRINTING_SIDE)
+                    .join(CARD_SIDE)
+                    .on(PRINTING_SIDE.CARD_SIDE_ID.eq(CARD_SIDE.ID))
+                    .where(PRINTING_SIDE.PRINTING_ID.eq(PRINTING.ID))
+                    .orderBy(CARD_SIDE.SIDE_ORDER))
+            .as("printingSides")
+            .convertFrom(r -> r.map(s -> s.get(PRINTING_SIDE.IMAGE_FILENAME)));
+    var printings =
+        multiset(
+                select(
+                        PRINTING.ID,
+                        PRINTING.OFFICIAL_SITE_ID,
+                        PRINTING.COLLECTOR_NUMBER,
+                        CARD_SET.CODE,
+                        CARD_SET.RELEASE_DATE,
+                        AMOUNT_FIELD,
+                        printingSides)
+                    .from(PRINTING)
+                    .join(CARD_SET)
+                    .on(PRINTING.SET_ID.eq(CARD_SET.ID))
+                    .leftJoin(RARITY)
+                    .on(RARITY.ID.eq(PRINTING.RARITY_ID))
+                    .leftJoin(COLLECTION_ENTRY)
+                    .on(
+                        COLLECTION_ENTRY
+                            .PRINTING_ID
+                            .eq(PRINTING.ID)
+                            .and(COLLECTION_ENTRY.USER_ID.eq(filter.collectionFilter().userId())))
+                    .where(
+                        PRINTING
+                            .CARD_ID
+                            .eq(CARD.ID)
+                            .and(printingCondition(filter, raritySortOrder)))
+                    .orderBy(printingOrderFields(filter)))
+            .as("printings")
+            .convertFrom(
+                r ->
+                    r.map(
+                        p ->
+                            new PrintingStub(
+                                p.get(PRINTING.ID),
+                                p.get(PRINTING.OFFICIAL_SITE_ID),
+                                p.get(PRINTING.COLLECTOR_NUMBER),
+                                p.get(CARD_SET.CODE),
+                                p.get(CARD_SET.RELEASE_DATE),
+                                p.get(AMOUNT_FIELD),
+                                p.get(printingSides).stream().filter(Objects::nonNull).toList())));
+    var cardAggregates =
+        lateral(
+                select(
+                        min(CARD_SET.RELEASE_DATE).as(CARD_RELEASE_AGG),
+                        coalesce(sum(COLLECTION_ENTRY.QUANTITY), 0).as(CARD_COPIES_AGG),
+                        coalesce(min(nullif(RARITY.SORT_ORDER, 0)), 0).as(CARD_RARITY_AGG))
+                    .from(PRINTING)
+                    .join(CARD_SET)
+                    .on(PRINTING.SET_ID.eq(CARD_SET.ID))
+                    .leftJoin(RARITY)
+                    .on(RARITY.ID.eq(PRINTING.RARITY_ID))
+                    .leftJoin(COLLECTION_ENTRY)
+                    .on(
+                        COLLECTION_ENTRY
+                            .PRINTING_ID
+                            .eq(PRINTING.ID)
+                            .and(COLLECTION_ENTRY.USER_ID.eq(filter.collectionFilter().userId())))
+                    .where(
+                        PRINTING
+                            .CARD_ID
+                            .eq(CARD.ID)
+                            .and(printingCondition(filter, raritySortOrder))))
+            .as("card_aggregates");
+    var filteredCards =
+        name("filtered_cards")
+            .as(
+                select(
+                        CARD.ID,
+                        CARD.NAME,
+                        CARD.SORT_CIVILIZATION,
+                        CARD.SORT_COST,
+                        CARD.SORT_POWER,
+                        CARD.SORT_POWER_MODIFIER,
+                        cardAggregates.field(CARD_RELEASE_AGG, LocalDate.class),
+                        cardAggregates.field(CARD_COPIES_AGG, Long.class),
+                        cardAggregates.field(CARD_RARITY_AGG, Short.class),
+                        printings)
+                    .from(CARD)
+                    .crossJoin(cardAggregates)
+                    .where(
+                        cardConditions(filter, cardTypeIds)
+                            .and(printingExistsCondition(filter, raritySortOrder)))
+                    .orderBy(cardOrderFields(filter, CARD, cardAggregates)));
+    var rows =
+        dsl.with(filteredCards)
+            .select(filteredCards.asterisk(), cardCount)
+            .from(filteredCards)
+            .orderBy(cardOrderFields(filter, filteredCards, filteredCards))
+            .limit(filter.pageable().getPageSize())
+            .offset(filter.pageable().getOffset())
+            .fetch();
 
-    TranslatedFilter translated = searchFilterTranslator.translate(searchFilter);
-    CollectionFilter collectionFilter = searchFilter.collectionFilter();
-    Pageable pageable = searchFilter.pageable();
+    int totalCount = rows.isEmpty() ? 0 : rows.getFirst().get(cardCount);
+    List<CardStub> cards =
+        rows.map(r -> new CardStub(r.get(CARD.ID), r.get(CARD.NAME), r.get(printings)));
 
-    // Phase 1: Filter and paginate
-    var civSubquery =
-        dsl.selectDistinct(CARD.ID)
-            .from(CARD)
-            .join(CARD_CIV_GROUP)
-            .on(CARD_CIV_GROUP.CARD_ID.eq(CARD.ID))
-            .where(translated.civilizationCondition());
+    return new PageImpl<>(cards, filter.pageable(), totalCount);
+  }
 
-    SelectJoinStep<? extends Record> fromClause =
-        dsl.select(
-                PRINTING.ID,
-                PRINTING.OFFICIAL_SITE_ID,
-                PRINTING.COLLECTOR_NUMBER,
-                PRINTING_COUNT,
-                AMOUNT_FIELD,
-                COPIES_COUNT)
+  private static List<OrderField<?>> printingOrderFields(SearchFilter filter) {
+    var sort = filter.pageable().getSort();
+    List<OrderField<?>> fields = new ArrayList<>();
+    sort.forEach(
+        order -> {
+          SortOrder sortOrder = order.isAscending() ? SortOrder.ASC : SortOrder.DESC;
+          switch (order.getProperty()) {
+            case SORT_AMOUNT:
+              {
+                var field = COLLECTION_ENTRY.QUANTITY.sort(sortOrder);
+                field = sortOrder == SortOrder.ASC ? field.nullsFirst() : field.nullsLast();
+                fields.add(field);
+                break;
+              }
+            case SORT_RELEASE:
+              {
+                fields.add(CARD_SET.RELEASE_DATE.sort(sortOrder));
+                break;
+              }
+            case SORT_RARITY:
+              {
+                fields.add(RARITY.SORT_ORDER.sort(sortOrder).nullsLast());
+                break;
+              }
+            default:
+          }
+        });
+    if (sort.stream().noneMatch(order -> SORT_RELEASE.equals(order.getProperty()))) {
+      fields.add(CARD_SET.RELEASE_DATE.desc());
+    }
+    fields.add(PRINTING.COLLECTOR_NUMBER.asc());
+    return fields;
+  }
+
+  private static List<OrderField<?>> cardOrderFields(
+      SearchFilter filter, Table<?> cards, Table<?> aggregates) {
+    var sort = filter.pageable().getSort();
+    List<OrderField<?>> fields = new ArrayList<>();
+    sort.forEach(
+        order -> {
+          Field<?> field =
+              switch (order.getProperty()) {
+                case SORT_COST -> cards.field(CARD.SORT_COST);
+                case SORT_POWER -> cards.field(CARD.SORT_POWER);
+                case SORT_RARITY -> aggregates.field(CARD_RARITY_AGG);
+                case SORT_RELEASE -> aggregates.field(CARD_RELEASE_AGG, LocalDate.class);
+                case SORT_AMOUNT -> aggregates.field(CARD_COPIES_AGG);
+                default -> null;
+              };
+          if (field != null) {
+            SortOrder sortOrder = order.isAscending() ? SortOrder.ASC : SortOrder.DESC;
+            var sortField = field.sort(sortOrder).nullsLast();
+            fields.add(sortField);
+            if (order.getProperty().equals(SORT_POWER)) {
+              fields.add(cards.field(CARD.SORT_POWER_MODIFIER).sort(sortOrder));
+            }
+          }
+        });
+    if (sort.stream().noneMatch(order -> SORT_RELEASE.equals(order.getProperty()))) {
+      fields.add(aggregates.field(CARD_RELEASE_AGG, LocalDate.class).desc());
+    }
+    fields.add(cards.field(CARD.ID).desc());
+    return fields;
+  }
+
+  private static Condition printingExistsCondition(SearchFilter filter, Short raritySortOrder) {
+    var printingCondition = printingCondition(filter, raritySortOrder);
+    if (printingCondition.equals(noCondition())) {
+      return printingCondition;
+    }
+    return exists(
+        selectOne()
             .from(PRINTING)
-            .join(CARD)
-            .on(CARD.ID.eq(PRINTING.CARD_ID))
-            .join(CARD_SET)
-            .on(CARD_SET.ID.eq(PRINTING.SET_ID))
             .leftJoin(RARITY)
             .on(RARITY.ID.eq(PRINTING.RARITY_ID))
             .leftJoin(COLLECTION_ENTRY)
@@ -101,132 +286,135 @@ public class CardQueryService {
                 COLLECTION_ENTRY
                     .PRINTING_ID
                     .eq(PRINTING.ID)
-                    .and(COLLECTION_ENTRY.USER_ID.eq(collectionFilter.userId())));
-
-    SelectConditionStep<? extends Record> filtered =
-        fromClause.where(PRINTING.CARD_ID.in(civSubquery)).and(translated.mainCondition());
-
-    var ordered = filtered.orderBy(translated.orderBy());
-
-    var query =
-        pageable.isPaged()
-            ? ordered.limit(pageable.getPageSize()).offset((int) pageable.getOffset())
-            : ordered;
-
-    // Execute and collect results
-    record PrintingRow(
-        int printingId,
-        String officialSiteId,
-        String collectorNumber,
-        long numberOfPrintings,
-        int amount,
-        long numberOfCopies) {}
-
-    Map<Integer, PrintingRow> matchedPrintings = new LinkedHashMap<>();
-    query.forEach(
-        r -> {
-          int printingId = r.get(PRINTING.ID);
-          matchedPrintings.putIfAbsent(
-              printingId,
-              new PrintingRow(
-                  printingId,
-                  r.get(PRINTING.OFFICIAL_SITE_ID),
-                  r.get(PRINTING.COLLECTOR_NUMBER),
-                  r.get(PRINTING_COUNT),
-                  r.get(AMOUNT_FIELD),
-                  valueOrZero(r.get(COPIES_COUNT))));
-        });
-
-    if (matchedPrintings.isEmpty()) {
-      return new SearchResult(new PageImpl<>(List.of(), pageable, 0), 0, 0);
-    }
-
-    var cardNumFrom =
-        dsl.select(countDistinct(PRINTING.CARD_ID))
-            .from(PRINTING)
-            .join(CARD)
-            .on(CARD.ID.eq(PRINTING.CARD_ID))
-            .join(CARD_SET)
-            .on(CARD_SET.ID.eq(PRINTING.SET_ID))
-            .leftJoin(RARITY)
-            .on(RARITY.ID.eq(PRINTING.RARITY_ID));
-    cardNumFrom =
-        cardNumFrom
-            .leftJoin(COLLECTION_ENTRY)
-            .on(
-                COLLECTION_ENTRY
-                    .PRINTING_ID
-                    .eq(PRINTING.ID)
-                    .and(COLLECTION_ENTRY.USER_ID.eq(collectionFilter.userId())));
-    var finalQuery =
-        cardNumFrom.where(PRINTING.CARD_ID.in(civSubquery)).and(translated.mainCondition());
-    Integer numberOfCards = finalQuery.fetchOne(0, int.class);
-
-    long numberOfPrintings = matchedPrintings.values().iterator().next().numberOfPrintings();
-    long numberOfCopies = matchedPrintings.values().iterator().next().numberOfCopies();
-
-    // Phase 2: Enrich with side data
-    record SideData(List<Short> civilizationIds, String imageFilename) {}
-
-    Map<Integer, List<SideData>> sidesByPrinting = new LinkedHashMap<>();
-    dsl.select(
-            PRINTING.ID,
-            CARD_SIDE.SIDE_ORDER,
-            CARD_SIDE.CIVILIZATION_IDS,
-            PRINTING_SIDE.IMAGE_FILENAME)
-        .from(PRINTING_SIDE)
-        .join(PRINTING)
-        .on(PRINTING.ID.eq(PRINTING_SIDE.PRINTING_ID))
-        .join(CARD_SIDE)
-        .on(CARD_SIDE.ID.eq(PRINTING_SIDE.CARD_SIDE_ID))
-        .where(PRINTING.ID.in(matchedPrintings.keySet()))
-        .orderBy(PRINTING.ID, CARD_SIDE.SIDE_ORDER)
-        .forEach(
-            r ->
-                sidesByPrinting
-                    .computeIfAbsent(r.get(PRINTING.ID), k -> new ArrayList<>())
-                    .add(
-                        new SideData(
-                            Arrays.stream(r.get(CARD_SIDE.CIVILIZATION_IDS)).toList(),
-                            r.get(PRINTING_SIDE.IMAGE_FILENAME))));
-
-    // Phase 3: Assemble CardStub records
-    List<PrintingStub> pageContent = new ArrayList<>(matchedPrintings.size());
-    for (PrintingRow row : matchedPrintings.values()) {
-      List<SideData> sides = sidesByPrinting.getOrDefault(row.printingId(), List.of());
-
-      Set<Civilization> civilizations = EnumSet.noneOf(Civilization.class);
-      for (SideData side : sides) {
-        if (side.civilizationIds() == null || side.civilizationIds().isEmpty()) {
-          civilizations.add(Civilization.ZERO);
-        } else {
-          for (short civId : side.civilizationIds()) {
-            civilizations.add(Civilization.values()[civId]);
-          }
-        }
-      }
-
-      List<String> imageFiles =
-          sides.stream().map(SideData::imageFilename).filter(Objects::nonNull).toList();
-
-      pageContent.add(
-          new PrintingStub(
-              row.printingId(),
-              row.officialSiteId(),
-              row.collectorNumber(),
-              civilizations,
-              imageFiles,
-              row.amount(),
-              row.amount()));
-    }
-
-    return new SearchResult(
-        new PageImpl<>(pageContent, pageable, numberOfPrintings),
-        numberOfCopies,
-        numberOfCards != null ? numberOfCards : 0);
+                    .and(COLLECTION_ENTRY.USER_ID.eq(filter.collectionFilter().userId())))
+            .where(PRINTING.CARD_ID.eq(CARD.ID).and(printingCondition)));
   }
 
-  private static long valueOrZero(Long value) {
-    return value != null ? value : 0;
+  private static Condition printingCondition(SearchFilter filter, Short raritySortOrder) {
+    Condition result = noCondition();
+    if (filter.setId() != null) {
+      result = result.and(PRINTING.SET_ID.eq(filter.setId()));
+    }
+    if (filter.collectionFilter().ownedOnly()) {
+      result = result.and(COLLECTION_ENTRY.PRINTING_ID.isNotNull());
+    }
+    if (raritySortOrder != null) {
+      result = result.and(rarityCondition(raritySortOrder, filter.rarityFilter().range()));
+    }
+    return result;
+  }
+
+  private static Condition cardConditions(
+      SearchFilter filter, CardTypeResolver.IncludedExcluded cardTypeIds) {
+    return civGroupCondition(filter)
+        .and(NameConditionBuilder.build(filter.nameSearch()))
+        .and(TwinpactConditionBuilder.build(filter.twinpact()))
+        .and(
+            RangeConditionBuilder.build(
+                CardSide.CARD_SIDE.COST_FILTER, filter.minCost(), filter.maxCost()))
+        .and(
+            RangeConditionBuilder.build(
+                CardSide.CARD_SIDE.POWER_FILTER, filter.minPower(), filter.maxPower()))
+        .and(abilityCondition(filter))
+        .and(raceCondition(filter))
+        .and(typeCondition(cardTypeIds));
+  }
+
+  private static Condition civGroupCondition(SearchFilter filter) {
+    var civGroupCondition =
+        CivilizationConditionBuilder.build(
+            filter.includedCivs(),
+            filter.excludedCivs(),
+            filter.includeMono(),
+            filter.includeRainbow(),
+            filter.matchExactRainbowCivs());
+    if (civGroupCondition.equals(noCondition())) {
+      return civGroupCondition;
+    }
+    return exists(
+        selectOne()
+            .from(CARD_CIV_GROUP)
+            .where(CARD_CIV_GROUP.CARD_ID.eq(CARD.ID).and(civGroupCondition)));
+  }
+
+  private static Condition abilityCondition(SearchFilter filter) {
+    if (filter.effectSearch() == null || filter.effectSearch().isBlank()) {
+      return noCondition();
+    }
+
+    return exists(
+        selectOne()
+            .from(PRINTING)
+            .join(PRINTING_SIDE)
+            .on(PRINTING_SIDE.PRINTING_ID.eq(PRINTING.ID))
+            .join(PRINTING_SIDE_ABILITY)
+            .on(PRINTING_SIDE_ABILITY.PRINTING_SIDE_ID.eq(PRINTING_SIDE.ID))
+            .join(ABILITY)
+            .on(ABILITY.ID.eq(PRINTING_SIDE_ABILITY.ABILITY_ID))
+            .where(
+                PRINTING
+                    .CARD_ID
+                    .eq(CARD.ID)
+                    .and(ABILITY.SEARCH_TEXT.containsIgnoreCase(filter.effectSearch()))));
+  }
+
+  private static Condition typeCondition(CardTypeResolver.IncludedExcluded typeIds) {
+    Condition sideCondition = noCondition();
+    if (typeIds == null) {
+      return sideCondition;
+    }
+
+    if (!typeIds.included().isEmpty()) {
+      sideCondition =
+          sideCondition.and(
+              exists(
+                  selectOne()
+                      .from(CARD_SIDE_CARD_TYPE)
+                      .where(CARD_SIDE_CARD_TYPE.CARD_SIDE_ID.eq(CARD_SIDE.ID))
+                      .and(CARD_SIDE_CARD_TYPE.CARD_TYPE_ID.in(typeIds.included()))));
+    }
+
+    if (!typeIds.excluded().isEmpty()) {
+      sideCondition =
+          sideCondition.and(
+              notExists(
+                  selectOne()
+                      .from(CARD_SIDE_CARD_TYPE)
+                      .where(CARD_SIDE_CARD_TYPE.CARD_SIDE_ID.eq(CARD_SIDE.ID))
+                      .and(CARD_SIDE_CARD_TYPE.CARD_TYPE_ID.in(typeIds.excluded()))));
+    }
+
+    return exists(
+        selectOne().from(CARD_SIDE).where(CARD_SIDE.CARD_ID.eq(CARD.ID)).and(sideCondition));
+  }
+
+  private static Condition raceCondition(SearchFilter filter) {
+    if (filter.raceSearch() == null || filter.raceSearch().isBlank()) {
+      return noCondition();
+    }
+
+    return exists(
+        selectOne()
+            .from(CARD_SIDE)
+            .join(CARD_SIDE_RACE)
+            .on(CARD_SIDE_RACE.CARD_SIDE_ID.eq(CARD_SIDE.ID))
+            .join(RACE)
+            .on(RACE.ID.eq(CARD_SIDE_RACE.RACE_ID))
+            .where(
+                CARD_SIDE
+                    .CARD_ID
+                    .eq(CARD.ID)
+                    .and(RACE.NAME.containsIgnoreCase(filter.raceSearch()))));
+  }
+
+  private static Condition rarityCondition(short sortOrder, SearchFilter.Range range) {
+
+    Field<Short> effectiveSortOrder = coalesce(RARITY.SORT_ORDER, (short) 0);
+
+    return switch (range) {
+      case EQ -> effectiveSortOrder.eq(sortOrder);
+      case LE -> effectiveSortOrder.le(sortOrder);
+      case GE -> effectiveSortOrder.ge(sortOrder);
+    };
   }
 }

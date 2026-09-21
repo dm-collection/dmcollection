@@ -37,7 +37,7 @@ public class CardService {
     this.dsl = dsl;
   }
 
-  public record PrintingStub(
+  public record OldPrintingStub(
       int id,
       String dmId,
       String idText,
@@ -46,7 +46,7 @@ public class CardService {
       int amount,
       int collectionAmount) {}
 
-  public record CardDto(
+  public record PrintingDto(
       Long id,
       String name,
       String dmId,
@@ -78,7 +78,7 @@ public class CardService {
 
   private record AbilityRow(String text, short position, short indentLevel) {}
 
-  public List<PrintingStub> getByIds(List<Long> printingIds) {
+  public List<OldPrintingStub> getByIds(List<Long> printingIds) {
     List<Integer> ids = printingIds.stream().map(Long::intValue).toList();
 
     record PrintingRow(int printingId, String officialSiteId, String collectorNumber) {}
@@ -102,11 +102,11 @@ public class CardService {
 
     Map<Integer, List<SideData>> sidesByPrinting = fetchSideData(printings.keySet());
 
-    List<PrintingStub> result = new ArrayList<>(printings.size());
+    List<OldPrintingStub> result = new ArrayList<>(printings.size());
     for (PrintingRow row : printings.values()) {
       List<SideData> sides = sidesByPrinting.getOrDefault(row.printingId(), List.of());
       result.add(
-          new PrintingStub(
+          new OldPrintingStub(
               row.printingId(),
               row.officialSiteId(),
               row.collectorNumber(),
@@ -122,7 +122,7 @@ public class CardService {
     return dsl.fetchExists(dsl.selectOne().from(PRINTING).where(PRINTING.ID.eq(id.intValue())));
   }
 
-  public Optional<CardDto> getCardDto(String dmId) {
+  public Optional<PrintingDto> getCardDto(String dmId) {
     // Phase 1: Main printing data
     var printingRecord =
         dsl.select(
@@ -210,7 +210,7 @@ public class CardService {
 
     if (sideRows.isEmpty()) {
       return Optional.of(
-          new CardDto(
+          new PrintingDto(
               (long) printingId,
               cardName,
               htmlEscape(officialSiteId, StandardCharsets.UTF_8.name()),
@@ -313,7 +313,7 @@ public class CardService {
     }
 
     return Optional.of(
-        new CardDto(
+        new PrintingDto(
             (long) printingId,
             cardName,
             htmlEscape(officialSiteId, StandardCharsets.UTF_8.name()),
