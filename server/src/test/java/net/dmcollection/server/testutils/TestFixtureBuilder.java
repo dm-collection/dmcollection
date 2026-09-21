@@ -56,10 +56,6 @@ public class TestFixtureBuilder {
     return new TestCardBuilder(printingId);
   }
 
-  public void addToCollection(PrintingStub printing, int quantity, User user) {
-    dbWriter.upsertCollectionEntry(user.getId(), printing.id(), quantity);
-  }
-
   public int getSetId(String setCode) {
     int defaultGroupId = dbWriter.upsertSetGroup(DEFAULT_SET_GROUP, 1);
     return dbWriter.upsertSet(setCode, "", LocalDate.now(), DEFAULT_PRODUCT_TYPE, defaultGroupId);
@@ -326,12 +322,23 @@ public class TestFixtureBuilder {
       return this;
     }
 
+    public TestCardBuilder withCollectionAmount(int collectionAmount) {
+      this.printings.getFirst().collectionQuantity = collectionAmount;
+      return this;
+    }
+
     public TestCardBuilder withPrinting(String officialId, String setCode, String releaseDate) {
+      return this.withPrinting(officialId, setCode, releaseDate, 0);
+    }
+
+    public TestCardBuilder withPrinting(
+        String officialId, String setCode, String releaseDate, int collectionQuantity) {
       LocalDate release = LocalDate.parse(releaseDate);
       var printing = new TestPrintingBuilder();
       printing.officialId = officialId;
       printing.setCode = setCode;
       printing.setRelease = release;
+      printing.collectionQuantity = collectionQuantity;
       this.printings.add(printing);
       return this;
     }
@@ -489,6 +496,9 @@ public class TestFixtureBuilder {
         printing.id =
             dbWriter.upsertPrinting(
                 id, setId, printing.officialId, printing.idText, printing.rarity);
+        if (printing.collectionQuantity > 0) {
+          dbWriter.upsertCollectionEntry(user.getId(), printing.id, printing.collectionQuantity);
+        }
         for (int i = 0; i < this.cardSides.size(); i++) {
           String sideLetter = this.cardSides.size() > 1 ? String.valueOf((char) (i + 'a')) : "";
           String imageFileName = printing.officialId + sideLetter + ".jpg";
@@ -526,8 +536,8 @@ public class TestFixtureBuilder {
                       printing.idText,
                       allCivilizations,
                       printing.imageFileNames,
-                      0,
-                      0))
+                      printing.collectionQuantity,
+                      printing.collectionQuantity))
           .toList();
     }
 
@@ -648,6 +658,7 @@ public class TestFixtureBuilder {
       private final List<String> imageFileNames = new ArrayList<>();
 
       private RarityCode rarity;
+      private int collectionQuantity = 0;
 
       private TestPrintingBuilder() {}
 

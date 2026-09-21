@@ -52,8 +52,8 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @BeforeEach
   void setup() {
-    utils = new TestFixtureBuilder(dsl, cardTypeResolver, testUser);
     testUser = createUser("queryTest-");
+    utils = new TestFixtureBuilder(dsl, cardTypeResolver, testUser);
   }
 
   protected SearchBuilder search() {
@@ -79,6 +79,20 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
             .buildAll();
 
     assertQueryFinds(search(), printings);
+  }
+
+  @Test
+  void filtersByOwned() {
+    var printings =
+        utils
+            .testCard("dm01-05")
+            .withCollectionAmount(5)
+            .withPrinting("dm26-01", "dm26", "2026-01-01")
+            .withPrinting("dm26-02", "dm26", "2026-01-01", 5)
+            .buildAll();
+    var filter = search().setOwnedOnly();
+
+    assertQueryFinds(filter, printings.getFirst(), printings.getLast());
   }
 
   @Test

@@ -41,6 +41,7 @@ public class SearchBuilder {
   private String effectSearch = null;
   private SearchFilter.RarityFilter rarity = null;
   private String nameSearch = null;
+  private boolean ownedOnly = false;
   private Pageable pageable =
       PageRequest.of(
           0, 500, Sort.by(SORT_RELEASE).descending().and(Sort.by(SORT_OFFICIAL_ID).ascending()));
@@ -146,6 +147,11 @@ public class SearchBuilder {
     return this;
   }
 
+  public SearchBuilder setOwnedOnly() {
+    this.ownedOnly = true;
+    return this;
+  }
+
   public SearchFilter build() {
     return new SearchFilter(
         setId,
@@ -164,7 +170,7 @@ public class SearchBuilder {
         speciesSearch,
         nameSearch,
         effectSearch,
-        new SearchFilter.CollectionFilter(userId, false),
+        new SearchFilter.CollectionFilter(userId, ownedOnly),
         pageable);
   }
 }
