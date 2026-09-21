@@ -128,7 +128,7 @@ class CardQueryServiceTwoIntegrationTest extends CardQueryServiceIntegrationTest
                                 null,
                                 imageFileNames,
                                 p.amount(),
-                                0);
+                                p.amount());
                         oldFormat.add(stub);
                       });
             });
