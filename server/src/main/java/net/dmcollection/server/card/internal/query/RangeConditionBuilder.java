@@ -2,13 +2,14 @@ package net.dmcollection.server.card.internal.query;
 
 import static net.dmcollection.server.jooq.generated.tables.Card.CARD;
 import static net.dmcollection.server.jooq.generated.tables.CardSide.CARD_SIDE;
+import static org.jooq.impl.DSL.exists;
 import static org.jooq.impl.DSL.noCondition;
-import static org.jooq.impl.DSL.selectDistinct;
+import static org.jooq.impl.DSL.selectOne;
 
 import org.jooq.Condition;
 import org.jooq.Field;
 
-public class RangeConditionBuilder {
+public final class RangeConditionBuilder {
 
   private RangeConditionBuilder() {}
 
@@ -24,7 +25,7 @@ public class RangeConditionBuilder {
     if (max != null) {
       sideCondition = sideCondition.and(field.lessOrEqual(max));
     }
-
-    return CARD.ID.in(selectDistinct(CARD_SIDE.CARD_ID).from(CARD_SIDE).where(sideCondition));
+    return exists(
+        selectOne().from(CARD_SIDE).where(CARD_SIDE.CARD_ID.eq(CARD.ID).and(sideCondition)));
   }
 }

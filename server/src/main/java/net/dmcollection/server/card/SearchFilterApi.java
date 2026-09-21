@@ -3,6 +3,7 @@ package net.dmcollection.server.card;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import net.dmcollection.server.card.internal.SearchFilter;
 import net.dmcollection.server.card.internal.SearchFilter.CardType;
 import net.dmcollection.server.card.internal.SearchFilter.FilterState;
@@ -34,15 +35,8 @@ public record SearchFilterApi(
     Integer pageSize,
     String sort) {
 
-  public SearchFilter toSearchFilter() {
-    return toSearchFilter(Pageable.unpaged(parseSort()));
-  }
-
-  public SearchFilter toSearchFilter(int pageNumber, int pageSize) {
-    return toSearchFilter(PageRequest.of(pageNumber, pageSize, parseSort()));
-  }
-
-  private SearchFilter toSearchFilter(Pageable pageable) {
+  public SearchFilter toSearchFilter(UUID userId, boolean ownedOnly, int pageNumber, int pageSize) {
+    Pageable pageable = PageRequest.of(pageNumber, pageSize, parseSort());
     var rarityFilter =
         rarity != null ? new RarityFilter(rarity, rRange != null ? rRange : Range.EQ) : null;
 
@@ -63,7 +57,7 @@ public record SearchFilterApi(
         species,
         name,
         effect,
-        null,
+        new SearchFilter.CollectionFilter(userId, ownedOnly),
         pageable);
   }
 

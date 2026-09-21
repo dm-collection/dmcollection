@@ -41,10 +41,7 @@ public class CardController {
       pageSize =
           Math.min(appProperties.cardPage().defaultSize(), appProperties.cardPage().maxSize());
     }
-    var searchFilter =
-        searchParams
-            .toSearchFilter(pageNumber, pageSize)
-            .withCollectionFilter(currentUserId, false);
+    var searchFilter = searchParams.toSearchFilter(currentUserId, false, pageNumber, pageSize);
     try {
       return ResponseEntity.ok(
           new PagedModel<>(cardQueryService.search(searchFilter).pageOfCards()));

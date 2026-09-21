@@ -32,9 +32,9 @@ class DeckServiceIntegrationTest extends IntegrationTestBase {
 
   @BeforeEach
   void setup() {
-    var fixtures = new TestFixtureBuilder(dsl, cardTypeResolver);
-
-    userId = createUser("testuser").getId();
+    var user = createUser("testuser");
+    userId = user.getId();
+    var fixtures = new TestFixtureBuilder(dsl, cardTypeResolver, user);
 
     lightCard = fixtures.testCard("dm01-001").light().cost(6).build();
     rainbowCard =
