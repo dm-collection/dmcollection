@@ -12,6 +12,7 @@ import static net.dmcollection.server.card.RarityCode.R;
 import static net.dmcollection.server.card.RarityCode.SR;
 import static net.dmcollection.server.card.RarityCode.VIC;
 import static net.dmcollection.server.card.RarityCode.VR;
+import static net.dmcollection.server.card.SearchFilterApi.SORT_AMOUNT;
 import static net.dmcollection.server.card.SearchFilterApi.SORT_COST;
 import static net.dmcollection.server.card.SearchFilterApi.SORT_OFFICIAL_ID;
 import static net.dmcollection.server.card.SearchFilterApi.SORT_POWER;
@@ -90,9 +91,25 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
             .withPrinting("dm26-01", "dm26", "2026-01-01")
             .withPrinting("dm26-02", "dm26", "2026-01-01", 5)
             .buildAll();
+    var separate = utils.testCard("dm2-02").withCollectionAmount(3).build();
     var filter = search().setOwnedOnly();
 
-    assertQueryFinds(filter, printings.getFirst(), printings.getLast());
+    assertQueryFinds(filter, printings.getFirst(), printings.getLast(), separate);
+  }
+
+  @Test
+  void sortsByOwned() {
+    var printings =
+        utils
+            .testCard("dm01-05")
+            .withCollectionAmount(5)
+            .withPrinting("dm26-06", "dm26", "2026-01-01", 6)
+            .buildAll();
+    var separate = utils.testCard("dm2-10").withCollectionAmount(10).build();
+    var unowned = utils.testCard("dm01-00").build();
+    var filter = search().setPageable(PageRequest.of(0, 10, Sort.by(SORT_AMOUNT).descending()));
+
+    assertQueryFindsInOrder(filter, separate, printings.getLast(), printings.getFirst(), unowned);
   }
 
   @Test
