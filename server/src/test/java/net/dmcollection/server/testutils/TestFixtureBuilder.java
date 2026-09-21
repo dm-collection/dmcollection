@@ -343,6 +343,12 @@ public class TestFixtureBuilder {
       return this;
     }
 
+    public TestCardBuilder withPrinting(Consumer<TestPrintingBuilder> printing) {
+      this.printings.add(new TestPrintingBuilder());
+      printing.accept(this.printings.getLast());
+      return this;
+    }
+
     public TestCardBuilder firstSide(Consumer<SideBuilder> sideProps) {
       return buildSide(sideProps, 0);
     }
@@ -641,7 +647,7 @@ public class TestFixtureBuilder {
       }
     }
 
-    private static class TestPrintingBuilder {
+    public static class TestPrintingBuilder {
 
       private int id;
 

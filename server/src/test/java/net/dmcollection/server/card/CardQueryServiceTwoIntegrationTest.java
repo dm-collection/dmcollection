@@ -2,6 +2,7 @@ package net.dmcollection.server.card;
 
 import static net.dmcollection.server.card.RarityCode.R;
 import static net.dmcollection.server.card.RarityCode.VIC;
+import static net.dmcollection.server.card.SearchFilterApi.SORT_AMOUNT;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
@@ -41,6 +42,24 @@ class CardQueryServiceTwoIntegrationTest extends CardQueryServiceIntegrationTest
     assertThat(result.cardCount()).isEqualTo(1);
     assertThat(result.cards()).hasSize(1);
     assertThat(result.cards().getFirst().printings()).hasSize(2);
+  }
+
+  @Override
+  @Test
+  void sortsByOwned() {
+    var printings =
+        utils
+            .testCard("dm01-05")
+            .withCollectionAmount(5)
+            .withPrinting("dm26-06", "dm26", "2026-01-01", 6)
+            .buildAll();
+    var separate = utils.testCard("dm2-10").withCollectionAmount(10).build();
+    var unowned = utils.testCard("dm01-00").build();
+    var filter = search().setPageable(PageRequest.of(0, 10, Sort.by(SORT_AMOUNT).descending()));
+
+    // since there are together 11 copies of the first card,
+    // it comes first with its printings sorted by amount
+    assertQueryFindsInOrder(filter, printings.getLast(), printings.getFirst(), separate, unowned);
   }
 
   @Override

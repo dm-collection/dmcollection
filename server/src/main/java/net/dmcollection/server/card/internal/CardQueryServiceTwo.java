@@ -140,7 +140,7 @@ public class CardQueryServiceTwo {
                             .CARD_ID
                             .eq(CARD.ID)
                             .and(printingCondition(filter, raritySortOrder)))
-                    .orderBy(CARD_SET.RELEASE_DATE.desc(), PRINTING.OFFICIAL_SITE_ID.desc()))
+                    .orderBy(printingOrderFields(filter)))
             .as("printings")
             .convertFrom(
                 r ->
@@ -196,14 +196,14 @@ public class CardQueryServiceTwo {
                     .where(
                         cardConditions(filter, cardTypeIds)
                             .and(printingExistsCondition(filter, raritySortOrder)))
-                    .orderBy(orderFields(filter, CARD, cardAggregates))
+                    .orderBy(cardOrderFields(filter, CARD, cardAggregates))
                     .limit(filter.pageable().getPageSize())
                     .offset(filter.pageable().getOffset()));
     var rows =
         dsl.with(filteredCards)
             .select(filteredCards.asterisk(), count().over().as("card_count"))
             .from(filteredCards)
-            .orderBy(orderFields(filter, filteredCards, filteredCards))
+            .orderBy(cardOrderFields(filter, filteredCards, filteredCards))
             .fetch();
 
     int totalCount = rows.isEmpty() ? 0 : rows.getFirst().get("card_count", Integer.class);
@@ -212,7 +212,41 @@ public class CardQueryServiceTwo {
     return new CardPage(cards, totalCount);
   }
 
-  private static List<OrderField<?>> orderFields(
+  private static List<OrderField<?>> printingOrderFields(SearchFilter filter) {
+    var sort = filter.pageable().getSort();
+    List<OrderField<?>> fields = new ArrayList<>();
+    sort.forEach(
+        order -> {
+          SortOrder sortOrder = order.isAscending() ? SortOrder.ASC : SortOrder.DESC;
+          switch (order.getProperty()) {
+            case SORT_AMOUNT:
+              {
+                var field = COLLECTION_ENTRY.QUANTITY.sort(sortOrder);
+                field = sortOrder == SortOrder.ASC ? field.nullsFirst() : field.nullsLast();
+                fields.add(field);
+                break;
+              }
+            case SORT_RELEASE:
+              {
+                fields.add(CARD_SET.RELEASE_DATE.sort(sortOrder));
+                break;
+              }
+            case SORT_RARITY:
+              {
+                fields.add(RARITY.SORT_ORDER.sort(sortOrder).nullsLast());
+                break;
+              }
+            default:
+          }
+        });
+    if (sort.stream().noneMatch(order -> SORT_RELEASE.equals(order.getProperty()))) {
+      fields.add(CARD_SET.RELEASE_DATE.desc());
+    }
+    fields.add(PRINTING.COLLECTOR_NUMBER.asc());
+    return fields;
+  }
+
+  private static List<OrderField<?>> cardOrderFields(
       SearchFilter filter, Table<?> cards, Table<?> aggregates) {
     var sort = filter.pageable().getSort();
     List<OrderField<?>> fields = new ArrayList<>();
