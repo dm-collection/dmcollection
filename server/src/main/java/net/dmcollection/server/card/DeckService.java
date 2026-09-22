@@ -23,7 +23,6 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import net.dmcollection.server.card.CardService.OldPrintingStub;
 import net.dmcollection.server.card.serialization.deck.format.v1.DeckCardExport;
 import net.dmcollection.server.card.serialization.deck.format.v1.DeckExport;
 import org.jooq.DSLContext;
@@ -53,6 +52,15 @@ public class DeckService {
     this.dsl = dsl;
     this.collectionService = collectionService;
   }
+
+  public record OldPrintingStub(
+      int id,
+      String dmId,
+      String idText,
+      Set<Civilization> civilizations,
+      List<String> imageFiles,
+      int amount,
+      int collectionAmount) {}
 
   public record DeckInfo(
       UUID id,
