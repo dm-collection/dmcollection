@@ -17,12 +17,9 @@ import static org.springframework.web.util.HtmlUtils.htmlEscape;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.jooq.DSLContext;
@@ -36,15 +33,6 @@ public class CardService {
   public CardService(DSLContext dsl) {
     this.dsl = dsl;
   }
-
-  public record OldPrintingStub(
-      int id,
-      String dmId,
-      String idText,
-      Set<Civilization> civilizations,
-      List<String> imageFiles,
-      int amount,
-      int collectionAmount) {}
 
   public record PrintingDto(
       Long id,
@@ -74,53 +62,7 @@ public class CardService {
 
   public record ChildEffectDto(String text, int position) {}
 
-  private record SideData(List<Short> civilizationIds, String imageFilename) {}
-
   private record AbilityRow(String text, short position, short indentLevel) {}
-
-  public List<OldPrintingStub> getByIds(List<Long> printingIds) {
-    List<Integer> ids = printingIds.stream().map(Long::intValue).toList();
-
-    record PrintingRow(int printingId, String officialSiteId, String collectorNumber) {}
-
-    Map<Integer, PrintingRow> printings = new LinkedHashMap<>();
-    dsl.select(PRINTING.ID, PRINTING.OFFICIAL_SITE_ID, PRINTING.COLLECTOR_NUMBER)
-        .from(PRINTING)
-        .where(PRINTING.ID.in(ids))
-        .forEach(
-            r ->
-                printings.put(
-                    r.get(PRINTING.ID),
-                    new PrintingRow(
-                        r.get(PRINTING.ID),
-                        r.get(PRINTING.OFFICIAL_SITE_ID),
-                        r.get(PRINTING.COLLECTOR_NUMBER))));
-
-    if (printings.isEmpty()) {
-      return List.of();
-    }
-
-    Map<Integer, List<SideData>> sidesByPrinting = fetchSideData(printings.keySet());
-
-    List<OldPrintingStub> result = new ArrayList<>(printings.size());
-    for (PrintingRow row : printings.values()) {
-      List<SideData> sides = sidesByPrinting.getOrDefault(row.printingId(), List.of());
-      result.add(
-          new OldPrintingStub(
-              row.printingId(),
-              row.officialSiteId(),
-              row.collectorNumber(),
-              collectCivilizations(sides),
-              collectImageFiles(sides),
-              0,
-              0));
-    }
-    return result;
-  }
-
-  public boolean cardExists(Long id) {
-    return dsl.fetchExists(dsl.selectOne().from(PRINTING).where(PRINTING.ID.eq(id.intValue())));
-  }
 
   public Optional<PrintingDto> getCardDto(String dmId) {
     // Phase 1: Main printing data
@@ -325,45 +267,6 @@ public class CardService {
             deckZone,
             allCivilizations,
             facets));
-  }
-
-  private Map<Integer, List<SideData>> fetchSideData(Collection<Integer> printingIds) {
-    Map<Integer, List<SideData>> result = new LinkedHashMap<>();
-    dsl.select(PRINTING.ID, CARD_SIDE.CIVILIZATION_IDS, PRINTING_SIDE.IMAGE_FILENAME)
-        .from(PRINTING_SIDE)
-        .join(PRINTING)
-        .on(PRINTING.ID.eq(PRINTING_SIDE.PRINTING_ID))
-        .join(CARD_SIDE)
-        .on(CARD_SIDE.ID.eq(PRINTING_SIDE.CARD_SIDE_ID))
-        .where(PRINTING.ID.in(printingIds))
-        .orderBy(PRINTING.ID, CARD_SIDE.SIDE_ORDER)
-        .forEach(
-            r ->
-                result
-                    .computeIfAbsent(r.get(PRINTING.ID), k -> new ArrayList<>())
-                    .add(
-                        new SideData(
-                            Arrays.stream(r.get(CARD_SIDE.CIVILIZATION_IDS)).toList(),
-                            r.get(PRINTING_SIDE.IMAGE_FILENAME))));
-    return result;
-  }
-
-  private static Set<Civilization> collectCivilizations(List<SideData> sides) {
-    Set<Civilization> civilizations = EnumSet.noneOf(Civilization.class);
-    for (SideData side : sides) {
-      if (side.civilizationIds() == null || side.civilizationIds().isEmpty()) {
-        civilizations.add(Civilization.ZERO);
-      } else {
-        for (short civId : side.civilizationIds()) {
-          civilizations.add(Civilization.values()[civId]);
-        }
-      }
-    }
-    return civilizations;
-  }
-
-  private static List<String> collectImageFiles(List<SideData> sides) {
-    return sides.stream().map(SideData::imageFilename).filter(Objects::nonNull).toList();
   }
 
   private static List<String> civilizationNames(List<Short> civilizationIds) {

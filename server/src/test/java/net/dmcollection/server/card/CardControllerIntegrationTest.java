@@ -116,31 +116,4 @@ class CardControllerIntegrationTest extends IntegrationTestBase {
   void getCardRequiresAuthentication() throws Exception {
     mockMvc.perform(get("/api/card/anything")).andExpect(status().isUnauthorized());
   }
-
-  @Test
-  void getCardsByIdReturnsMatchingCards() throws Exception {
-    PrintingStub card1 = fixtures.testCard("ctrl-byid-1").light().build();
-    PrintingStub card2 = fixtures.testCard("ctrl-byid-2").water().build();
-
-    mockMvc
-        .perform(
-            get("/api/cards")
-                .param("cardIds", String.valueOf(card1.id()), String.valueOf(card2.id()))
-                .with(user(testUser)))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$").isArray())
-        .andExpect(jsonPath("$.length()").value(2));
-  }
-
-  @Test
-  void getCardsByIdReturns404WhenNoneFound() throws Exception {
-    mockMvc
-        .perform(get("/api/cards").param("cardIds", "99999").with(user(testUser)))
-        .andExpect(status().isNotFound());
-  }
-
-  @Test
-  void getCardsByIdRequiresAuthentication() throws Exception {
-    mockMvc.perform(get("/api/cards").param("cardIds", "1")).andExpect(status().isUnauthorized());
-  }
 }
