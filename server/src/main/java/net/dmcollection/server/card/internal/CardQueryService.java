@@ -70,6 +70,7 @@ public class CardQueryService {
   private static final String CARD_RELEASE_AGG = "earliest_release";
   private static final String CARD_COPIES_AGG = "card_copies";
   private static final String CARD_RARITY_AGG = "card_rarity";
+  private static final String CARD_ID_AGG = "print_id";
 
   public CardQueryService(
       DSLContext dsl, RarityService rarityService, CardTypeResolver cardTypeResolver) {
@@ -150,6 +151,7 @@ public class CardQueryService {
     var cardAggregates =
         lateral(
                 select(
+                        min(PRINTING.OFFICIAL_SITE_ID).collate("C").as(CARD_ID_AGG),
                         min(CARD_SET.RELEASE_DATE).as(CARD_RELEASE_AGG),
                         coalesce(sum(COLLECTION_ENTRY.QUANTITY), 0).as(CARD_COPIES_AGG),
                         coalesce(min(nullif(RARITY.SORT_ORDER, 0)), 0).as(CARD_RARITY_AGG))
@@ -180,6 +182,7 @@ public class CardQueryService {
                         CARD.SORT_COST,
                         CARD.SORT_POWER,
                         CARD.SORT_POWER_MODIFIER,
+                        cardAggregates.field(CARD_ID_AGG, String.class),
                         cardAggregates.field(CARD_RELEASE_AGG, LocalDate.class),
                         cardAggregates.field(CARD_COPIES_AGG, Long.class),
                         cardAggregates.field(CARD_RARITY_AGG, Short.class),
@@ -236,7 +239,7 @@ public class CardQueryService {
     if (sort.stream().noneMatch(order -> SORT_RELEASE.equals(order.getProperty()))) {
       fields.add(CARD_SET.RELEASE_DATE.desc());
     }
-    fields.add(PRINTING.COLLECTOR_NUMBER.asc());
+    fields.add(PRINTING.OFFICIAL_SITE_ID.asc());
     return fields;
   }
 
@@ -267,6 +270,7 @@ public class CardQueryService {
     if (sort.stream().noneMatch(order -> SORT_RELEASE.equals(order.getProperty()))) {
       fields.add(aggregates.field(CARD_RELEASE_AGG, LocalDate.class).desc());
     }
+    fields.add(aggregates.field(CARD_ID_AGG, String.class).asc());
     fields.add(cards.field(CARD.ID).desc());
     return fields;
   }

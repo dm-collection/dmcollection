@@ -357,13 +357,13 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void defaultFilterFindsAllPaged() {
-    var card1 = utils.testCard("CARD-1").light().dark().build();
+    var card1 = utils.testCard("dm01-001").light().dark().build();
 
-    var card2 = utils.testCard("CARD-2").light().dark().secondSide().water().build();
+    var card2 = utils.testCard("dm01-002").light().dark().secondSide().water().build();
 
     var card3 =
         utils
-            .testCard("card-3")
+            .testCard("dm02-001")
             .withSetCode("dm02")
             .fire()
             .psychicCreature()
@@ -379,7 +379,7 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
     var card4 =
         utils
-            .testCard("card-4")
+            .testCard("dm02-002")
             .withSetCode("dm02")
             .creature()
             .cost(4)
@@ -389,9 +389,9 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
 
     var filter = search().setPageable(PageRequest.of(0, 2, Sort.unsorted()));
 
-    assertQueryFinds(filter, card4, card3);
+    assertQueryFinds(filter, card1, card2);
     filter = search().setPageable(PageRequest.of(1, 2, Sort.unsorted()));
-    assertQueryFinds(filter, card2, card1);
+    assertQueryFinds(filter, card3, card4);
   }
 
   @Test
