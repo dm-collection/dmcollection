@@ -104,15 +104,16 @@ class DeckServiceIntegrationTest extends IntegrationTestBase {
     var result = deckService.getDeck(userId, deckInfo.id());
     assertThat(result).isNotEmpty();
     var deck = result.get();
-    assertThat(deck.cardPage().getContent()).hasSize(4);
+    assertThat(deck.cards()).hasSize(4);
     assertThat(
-            deck.cardPage().getContent().stream()
-                .map(card -> new CardIdAndAmount(card.dmId(), card.amount())))
+            deck.cards().stream()
+                .flatMap(c -> c.printings().stream())
+                .map(printing -> new PrintingIdAndAmount(printing.officialId(), printing.amount())))
         .containsExactlyInAnyOrder(
-            new CardIdAndAmount("dm24ex2-040", 2),
-            new CardIdAndAmount("dm01-001", 5),
-            new CardIdAndAmount("dmc36-003", 28),
-            new CardIdAndAmount("dmr08-021", 5000));
+            new PrintingIdAndAmount("dm24ex2-040", 2),
+            new PrintingIdAndAmount("dm01-001", 5),
+            new PrintingIdAndAmount("dmc36-003", 28),
+            new PrintingIdAndAmount("dmr08-021", 5000));
   }
 
   @Test
@@ -130,26 +131,26 @@ class DeckServiceIntegrationTest extends IntegrationTestBase {
     assertThat(result).isNotEmpty();
     var deck = result.get();
 
-    assertThat(deck.cardPage().getContent()).hasSize(3);
-    deck.cardPage()
-        .getContent()
+    assertThat(deck.cards()).hasSize(3);
+    deck.cards().stream()
+        .flatMap(c -> c.printings().stream())
         .forEach(
-            cardStub -> {
-              switch (cardStub.dmId()) {
+            printing -> {
+              switch (printing.officialId()) {
                 case "dm01-001":
-                  assertThat(cardStub.amount()).isEqualTo(4);
-                  assertThat(cardStub.collectionAmount()).isEqualTo(10);
+                  assertThat(printing.amount()).isEqualTo(4);
+                  assertThat(printing.collectionAmount()).isEqualTo(10);
                   break;
                 case "dm24ex2-040":
-                  assertThat(cardStub.amount()).isEqualTo(2);
-                  assertThat(cardStub.collectionAmount()).isEqualTo(3);
+                  assertThat(printing.amount()).isEqualTo(2);
+                  assertThat(printing.collectionAmount()).isEqualTo(3);
                   break;
                 case "dmr08-021":
-                  assertThat(cardStub.amount()).isEqualTo(1);
-                  assertThat(cardStub.collectionAmount()).isZero();
+                  assertThat(printing.amount()).isEqualTo(1);
+                  assertThat(printing.collectionAmount()).isZero();
                   break;
                 default:
-                  throw new AssertionError("Unexpected card: " + cardStub.dmId());
+                  throw new AssertionError("Unexpected card: " + printing.officialId());
               }
             });
   }
@@ -219,5 +220,5 @@ class DeckServiceIntegrationTest extends IntegrationTestBase {
     assertThat(result.get().name()).isEqualTo("New Name");
   }
 
-  private record CardIdAndAmount(String cardId, int amount) {}
+  private record PrintingIdAndAmount(String cardId, int amount) {}
 }
