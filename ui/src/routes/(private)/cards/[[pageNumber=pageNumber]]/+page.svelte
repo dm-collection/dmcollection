@@ -1,33 +1,37 @@
 <script lang="ts">
 	import Pagination from '$lib/components/Pagination.svelte';
-	import type { PageData } from './$types';
-	import { goto, invalidate } from '$app/navigation';
-	import { type CardStub } from '$lib/types/card';
-	import CountedCardStub from '$lib/components/CountedCardStub.svelte';
+	import { goto } from '$app/navigation';
 	import CardFilters from '$lib/components/CardFilters.svelte';
 	import { getSets } from '$lib/sets.svelte';
 	import { getSpecies } from '$lib/species.svelte';
 	import { getRarities } from '$lib/rarity.svelte';
 	import { api } from '$lib/api';
+	import CountedPrintingStub from '$lib/components/CountedPrintingStub.svelte';
+	import type { PrintingStub } from '$lib/types/card';
+	import type { PageProps } from './$types';
 
-	let { data }: { data: PageData } = $props();
+	let { data = $bindable() }: PageProps = $props();
 
 	async function runSearch(newParams: URLSearchParams) {
 		await goto(`/cards?${newParams.toString()}`, { replaceState: true });
 	}
 
-	async function amountChange(card: CardStub, i: number, newAmount: number) {
+	async function amountChange(
+		printing: PrintingStub,
+		cardIdx: number,
+		printingIdx: number,
+		newAmount: number
+	) {
 		try {
 			const response = await api('/api/collectionStub', {
 				method: 'PUT',
-				json: { cardId: card.id, amount: newAmount }
+				json: { cardId: printing.id, amount: newAmount }
 			});
 			if (response.ok) {
-				card.amount = newAmount;
+				printing.amount = newAmount;
 				if (data.cardPage) {
-					data.cardPage.content[i] = card;
+					data.cardPage.content[cardIdx].printings[printingIdx] = printing;
 					data = data;
-					invalidate((url) => url.pathname.startsWith('/api/cards'));
 				}
 			}
 		} catch (error) {
@@ -53,14 +57,16 @@
 		<Pagination pageInfo={data.cardPage.page} path="/cards" />
 		<div class="grid gap-8 lg:grid-cols-5 xl:grid-cols-8">
 			{#each data.cardPage.content as card, i (card.id)}
-				<CountedCardStub
-					{card}
-					amount={card.amount}
-					sizes="(width >= 80rem) calc((100vw - 7 * 2rem) / 8), (width >= 64rem) calc((100vw - 7 * 2rem) / 5), 100vw"
-					onChange={(newAmount: number) => {
-						amountChange(card, i, newAmount);
-					}}
-				/>
+				{#each card.printings as printing, j (printing.id)}
+					<CountedPrintingStub
+						{printing}
+						amount={printing.amount}
+						sizes="(width >= 80rem) calc((100vw - 7 * 2rem) / 8), (width >= 64rem) calc((100vw - 7 * 2rem) / 5), 100vw"
+						onChange={(newAmount: number) => {
+							amountChange(printing, i, j, newAmount);
+						}}
+					/>
+				{/each}
 			{/each}
 		</div>
 		<Pagination pageInfo={data.cardPage.page} path="/cards" />

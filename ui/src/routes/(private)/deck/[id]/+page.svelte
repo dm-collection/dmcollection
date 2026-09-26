@@ -2,17 +2,17 @@
 	import { goto, invalidate, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import CardFilters from '$lib/components/CardFilters.svelte';
-	import CountedCardStub from '$lib/components/CountedCardStub.svelte';
+	import CountedPrintingStub from '$lib/components/CountedPrintingStub.svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
 	import { getRarities } from '$lib/rarity.svelte';
 	import { getSets } from '$lib/sets.svelte';
 	import { getSpecies } from '$lib/species.svelte';
-	import type { CardStub } from '$lib/types/card';
 	import type { PagedResult } from '$lib/types/page';
 	import { SvelteURL, SvelteURLSearchParams } from 'svelte/reactivity';
 	import type { PageProps } from './$types';
 	import PencilSimpleIcon from 'phosphor-svelte/lib/PencilSimpleIcon';
 	import { api } from '$lib/api';
+	import type { CardStub } from '$lib/types/card';
 
 	let { data }: PageProps = $props();
 
@@ -93,7 +93,7 @@
 
 	async function amountChange(cardId: number, newAmount: number) {
 		try {
-			await data.deck?.setCardAmount(cardId, newAmount);
+			await data.deck?.setPrintingAmount(cardId, newAmount);
 		} catch (err) {
 			if (err instanceof Error && err.message === 'unauthorized') {
 				goto('/login');
@@ -150,23 +150,25 @@
 						landscape:min-w-full landscape:grid-cols-2 landscape:lg:grid-cols-3 landscape:2xl:grid-cols-5"
 					>
 						{#each data.deck.getCards() as card (card.id)}
-							<CountedCardStub
-								{card}
-								amount={card.amount}
-								max={card.collectionAmount}
-								showMax={true}
-								enforceMax={false}
-								sizes="
+							{#each card.printings as printing (printing.id)}
+								<CountedPrintingStub
+									{printing}
+									amount={printing.amount}
+									max={printing.collectionAmount}
+									showMax={true}
+									enforceMax={false}
+									sizes="
 									(orientation: landscape) and (min-width: 96rem) calc(40vw / 5),
 									(orientation: landscape) and (min-width: 64rem) calc(40vw / 3),
 									(orientation: landscape) calc(40vw / 2),
 									(min-width: 80rem) calc(100vw / 7),
 									(min-width: 48rem) calc(100vw / 6),
 									calc(100vw / 2)"
-								onChange={(newAmount: number) => {
-									amountChange(card.id, newAmount);
-								}}
-							/>
+									onChange={(newAmount: number) => {
+										amountChange(printing.id, newAmount);
+									}}
+								/>
+							{/each}
 						{/each}
 					</div>
 				{:else}
@@ -204,25 +206,27 @@
 					    landscape:grid-cols-2 landscape:lg:grid-cols-5 landscape:2xl:grid-cols-8"
 					>
 						{#each cardPage.content as card (card.id)}
-							{#await data.deck.getAmount(card.id) then inDeck}
-								<CountedCardStub
-									{card}
-									amount={inDeck}
-									max={card.amount}
-									showMax={true}
-									enforceMax={false}
-									sizes="
+							{#each card.printings as printing (printing.id)}
+								{#await data.deck.getAmount(printing.id) then inDeck}
+									<CountedPrintingStub
+										{printing}
+										amount={inDeck}
+										max={printing.amount}
+										showMax={true}
+										enforceMax={false}
+										sizes="
 										(orientation: landscape) and (min-width: 96rem) calc(59vw / 8),
 										(orientation: landscape) and (min-width: 64rem) calc(59vw / 5),
 										(orientation: landscape) calc(59vw / 2),
 										(min-width: 80rem) calc(100vw / 6),
 										(min-width: 48rem) calc(100vw / 5),
 										calc(100vw / 2)"
-									onChange={(newAmount: number) => {
-										amountChange(card.id, newAmount);
-									}}
-								/>
-							{/await}
+										onChange={(newAmount: number) => {
+											amountChange(printing.id, newAmount);
+										}}
+									/>
+								{/await}
+							{/each}
 						{/each}
 					</div>
 					{#if cardPage.page.totalPages > 1}

@@ -1,11 +1,11 @@
 import type { PageLoad } from './$types';
-import type { Card } from '$lib/types/card';
+import type { Printing } from '$lib/types/card';
 import { error } from '@sveltejs/kit';
 
 export const load: PageLoad = async ({ fetch, params }) => {
 	const response = await fetch(`/api/card/${params.id}`);
 	if (response.ok) {
-		const card = (await response.json()) as Card;
+		const card = (await response.json()) as Printing;
 		const collectionCardResponse = await fetch(`/api/collectionStub/cards/${card.id}`);
 		if (collectionCardResponse.ok) {
 			const collectionEntry = (await collectionCardResponse.json()) as {
