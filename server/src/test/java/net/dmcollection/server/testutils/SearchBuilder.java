@@ -1,6 +1,5 @@
 package net.dmcollection.server.testutils;
 
-import static net.dmcollection.server.card.SearchFilterApi.SORT_OFFICIAL_ID;
 import static net.dmcollection.server.card.SearchFilterApi.SORT_RELEASE;
 
 import java.util.HashSet;
@@ -42,9 +41,7 @@ public class SearchBuilder {
   private SearchFilter.RarityFilter rarity = null;
   private String nameSearch = null;
   private boolean ownedOnly = false;
-  private Pageable pageable =
-      PageRequest.of(
-          0, 500, Sort.by(SORT_RELEASE).descending().and(Sort.by(SORT_OFFICIAL_ID).ascending()));
+  private Pageable pageable = PageRequest.of(0, 500, Sort.by(SORT_RELEASE).descending());
 
   private void makeCivSet() {
     if (includedCivs == null) {

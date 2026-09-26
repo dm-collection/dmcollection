@@ -62,7 +62,6 @@ public record SearchFilterApi(
   }
 
   public static final String SORT_RELEASE = "RELEASE";
-  public static final String SORT_OFFICIAL_ID = "OFFICIAL_ID";
   public static final String SORT_AMOUNT = "AMOUNT";
   public static final String SORT_COST = "COST";
   public static final String SORT_POWER = "POWER";
@@ -70,7 +69,7 @@ public record SearchFilterApi(
 
   private Sort parseSort() {
     if (sort == null || sort.trim().isBlank()) {
-      return Sort.by(SORT_RELEASE).descending().and(Sort.by(SORT_OFFICIAL_ID).ascending());
+      return Sort.by(SORT_RELEASE).descending();
     }
     String[] sortParts = sort.split(",");
     List<Order> orders = new ArrayList<>(sortParts.length);
@@ -97,17 +96,12 @@ public record SearchFilterApi(
       orders.add(Order.desc(SORT_RELEASE));
     }
 
-    if (orders.stream().noneMatch(order -> SORT_OFFICIAL_ID.equals(order.getProperty()))) {
-      orders.add(Order.asc(SORT_OFFICIAL_ID));
-    }
-
     return Sort.by(orders);
   }
 
   private String mapColumn(String parameter) {
     return switch (parameter.toLowerCase()) {
       case "rel" -> SORT_RELEASE;
-      case "id" -> SORT_OFFICIAL_ID;
       case "amt" -> SORT_AMOUNT;
       case "cost" -> SORT_COST;
       case "pwr" -> SORT_POWER;

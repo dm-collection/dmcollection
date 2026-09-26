@@ -66,12 +66,3 @@ export type CardFacet = {
 	mana: string | null;
 	illustrator: string | null;
 };
-
-export type OldPrintingStub = {
-	id: number;
-	dmId: string;
-	idText: string;
-	imageFiles: Array<string>;
-	amount: number;
-	collectionAmount: number;
-};

@@ -9,7 +9,6 @@
 		AMOUNT_ASC,
 		AMOUNT_DESC,
 		CARD_ID_ASC,
-		CARD_ID_DESC,
 		COST_ASC,
 		COST_DESC,
 		POWER_ASC,
@@ -18,6 +17,7 @@
 		RARITY_DESC,
 		RELEASE_ASC,
 		RELEASE_DESC,
+		SortingCriterion,
 		type Order
 	} from '$lib/types/sort';
 	import Civilization from './card/Civilization.svelte';
@@ -69,12 +69,11 @@
 		{ order: POWER_ASC, label: 'Power (Ascending)' },
 		{ order: AMOUNT_DESC, label: '# Owned (Descending)' },
 		{ order: AMOUNT_ASC, label: '# Owned (Ascending' },
-		{ order: CARD_ID_DESC, label: 'ID (Descending)' },
 		{ order: CARD_ID_ASC, label: 'ID (Ascending)' }
 	];
 
 	let selectedSort1: OrderOption = $state(getOptionForOrderIndex(0, ORDER_OPTIONS[0]));
-	let selectedSort2: OrderOption = $state(getOptionForOrderIndex(1, ORDER_OPTIONS[11]));
+	let selectedSort2: OrderOption = $state(getOptionForOrderIndex(1, ORDER_OPTIONS[10]));
 
 	let costSelectLabel: string | undefined = $state();
 	let powerSelectLabel: string | undefined = $state();
@@ -427,7 +426,7 @@
 		<div>
 			<label for="sort1" class="block text-sm font-medium">Sort by</label>
 			<select class="select" name="sort1" onchange={changeSort} bind:value={selectedSort1}>
-				{#each ORDER_OPTIONS as sortOption (sortOption.order)}
+				{#each ORDER_OPTIONS.slice(0, -1) as sortOption (sortOption.order)}
 					<option
 						value={sortOption}
 						disabled={selectedSort2.order.property == sortOption.order.property}
@@ -436,7 +435,11 @@
 				{/each}
 			</select>
 		</div>
-		<button class="btn-secondary self-end" aria-label="Switch sorting order" onclick={switchSort}
+		<button
+			class="btn-secondary self-end"
+			aria-label="Switch sorting order"
+			disabled={selectedSort2.order.property == SortingCriterion.CardId}
+			onclick={switchSort}
 			><ArrowsLeftRightIcon weight="bold" size="1em"></ArrowsLeftRightIcon></button
 		>
 		<div>
