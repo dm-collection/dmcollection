@@ -1,5 +1,19 @@
 package net.dmcollection.server.card;
 
+import static net.dmcollection.server.jooq.generated.Tables.CARD;
+import static net.dmcollection.server.jooq.generated.tables.CardSide.CARD_SIDE;
+import static net.dmcollection.server.jooq.generated.tables.Deck.DECK;
+import static net.dmcollection.server.jooq.generated.tables.DeckVersion.DECK_VERSION;
+import static net.dmcollection.server.jooq.generated.tables.DeckVersionEntry.DECK_VERSION_ENTRY;
+import static net.dmcollection.server.jooq.generated.tables.Printing.PRINTING;
+import static net.dmcollection.server.jooq.generated.tables.PrintingSide.PRINTING_SIDE;
+import static org.jooq.impl.DSL.coalesce;
+import static org.jooq.impl.DSL.countDistinct;
+import static org.jooq.impl.DSL.currentOffsetDateTime;
+import static org.jooq.impl.DSL.multiset;
+import static org.jooq.impl.DSL.select;
+import static org.jooq.impl.DSL.sum;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,20 +35,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import static net.dmcollection.server.jooq.generated.Tables.CARD;
-import static net.dmcollection.server.jooq.generated.tables.CardSide.CARD_SIDE;
-import static net.dmcollection.server.jooq.generated.tables.Deck.DECK;
-import static net.dmcollection.server.jooq.generated.tables.DeckVersion.DECK_VERSION;
-import static net.dmcollection.server.jooq.generated.tables.DeckVersionEntry.DECK_VERSION_ENTRY;
-import static net.dmcollection.server.jooq.generated.tables.Printing.PRINTING;
-import static net.dmcollection.server.jooq.generated.tables.PrintingSide.PRINTING_SIDE;
-import static org.jooq.impl.DSL.coalesce;
-import static org.jooq.impl.DSL.countDistinct;
-import static org.jooq.impl.DSL.currentOffsetDateTime;
-import static org.jooq.impl.DSL.multiset;
-import static org.jooq.impl.DSL.select;
-import static org.jooq.impl.DSL.sum;
 
 @Service
 public class DeckService {
@@ -83,7 +83,7 @@ public class DeckService {
         .on(DECK_VERSION_ENTRY.DECK_VERSION_ID.eq(DECK_VERSION.ID))
         .where(DECK.USER_ID.eq(userId))
         .groupBy(DECK.ID)
-        .orderBy(DECK.UPDATED_AT.desc())
+        .orderBy(DECK.UPDATED_AT.desc(), DECK.NAME.asc())
         .fetch(
             r ->
                 new DeckInfo(
