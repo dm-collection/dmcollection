@@ -1,18 +1,18 @@
 <script lang="ts">
 	import { goto, invalidate } from '$app/navigation';
 	import CardFilters from '$lib/components/CardFilters.svelte';
-	import CountedCardStub from '$lib/components/CountedCardStub.svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
 	import { getRarities } from '$lib/rarity.svelte';
 	import { getSets } from '$lib/sets.svelte';
 	import { getSpecies } from '$lib/species.svelte';
-	import type { CardStub } from '$lib/types/card';
 	import type { PageProps } from './$types';
 	import DownloadSimpleIcon from 'phosphor-svelte/lib/DownloadSimpleIcon';
 	import UploadSimpleIcon from 'phosphor-svelte/lib/UploadSimpleIcon';
 	import WarningIcon from 'phosphor-svelte/lib/WarningIcon';
 	import CircleNotchIcon from 'phosphor-svelte/lib/CircleNotchIcon';
 	import { api } from '$lib/api';
+	import type { PrintingStub } from '$lib/types/card';
+	import CountedPrintingStub from '$lib/components/CountedPrintingStub.svelte';
 
 	let { data = $bindable() }: PageProps = $props();
 
@@ -73,17 +73,21 @@
 		}
 	}
 
-	async function amountChange(card: CardStub, i: number, newAmount: number) {
+	async function amountChange(
+		printing: PrintingStub,
+		cardIndex: number,
+		printingIndex: number,
+		newAmount: number
+	) {
 		const response = await api(`/api/collectionStub`, {
 			method: 'PUT',
-			json: { cardId: card.id, amount: newAmount }
+			json: { cardId: printing.id, amount: newAmount }
 		});
 		if (response.ok) {
-			card.amount = newAmount;
+			printing.amount = newAmount;
 			if (data.collection) {
-				data.collection.cardPage.content[i] = card;
+				data.collection.cardPage.content[cardIndex].printings[printingIndex] = printing;
 				data = data;
-				invalidate((url) => url.pathname.startsWith('/api/cards'));
 			}
 		}
 	}
@@ -165,7 +169,6 @@
 	</div>
 	<div class="flex flex-row gap-4">
 		<p>Cards: {data.collection.info.numberOfCards}</p>
-		<p>Printings: {data.collection.info.numberOfPrintings}</p>
 		<p>Copies: {data.collection.info.numberOfCopies}</p>
 		<label>
 			<input type="checkbox" bind:checked={editingEnabled} />
@@ -184,15 +187,17 @@
 		<Pagination pageInfo={data.collection.cardPage.page} path="/collection" />
 		<div class="grid gap-8 lg:grid-cols-5 xl:grid-cols-8">
 			{#each data.collection.cardPage.content as card, i (card.id)}
-				<CountedCardStub
-					{card}
-					amount={card.amount}
-					enableEdit={editingEnabled}
-					sizes="(width >= 80rem) calc(100vw / 8), (width >= 64rem) calc(100vw / 5), 100vw"
-					onChange={(newAmount: number) => {
-						amountChange(card, i, newAmount);
-					}}
-				/>
+				{#each card.printings as printing, j (printing.id)}
+					<CountedPrintingStub
+						{printing}
+						amount={printing.amount}
+						enableEdit={editingEnabled}
+						sizes="(width >= 80rem) calc(100vw / 8), (width >= 64rem) calc(100vw / 5), 100vw"
+						onChange={(newAmount: number) => {
+							amountChange(printing, i, j, newAmount);
+						}}
+					/>
+				{/each}
 			{/each}
 		</div>
 		<Pagination pageInfo={data.collection.cardPage.page} path="/collection" />

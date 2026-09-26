@@ -8,7 +8,7 @@ import { error } from '@sveltejs/kit';
 
 export const load: PageLoad = async ({ fetch, params }) => {
 	const deck = new Deck(params.id);
-	await deck.loadCollection(fetch);
+	await deck.loadDeck(fetch);
 	const fragment = window.location.hash.slice(1);
 	let search = new SearchFilter();
 	let ownedOnly = false;

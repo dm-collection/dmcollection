@@ -7,7 +7,23 @@ export enum Civ {
 	NATURE = '自然'
 }
 
-export type Card = {
+export type CardStub = {
+	id: number;
+	name: string;
+	printings: Array<PrintingStub>;
+};
+
+export type PrintingStub = {
+	id: number;
+	officialId: string;
+	idText: string;
+	setCode: string;
+	setRelease: string;
+	amount: number;
+	imageFileNames: Array<string>;
+};
+
+export type Printing = {
 	id: number;
 	name: string;
 	dmId: string;
@@ -51,7 +67,7 @@ export type CardFacet = {
 	illustrator: string | null;
 };
 
-export type CardStub = {
+export type OldPrintingStub = {
 	id: number;
 	dmId: string;
 	idText: string;

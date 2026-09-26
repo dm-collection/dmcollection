@@ -1,9 +1,10 @@
 <script lang="ts">
-	import type { CardStub } from '$lib/types/card';
+	import type { PrintingStub } from '$lib/types/card';
+	import type { DeckPrintingStub } from '$lib/types/deck';
 	import AmountButton from './AmountButton.svelte';
 
 	const {
-		card,
+		printing,
 		amount,
 		max = 2 ** 31 - 1,
 		showMax = false,
@@ -12,7 +13,7 @@
 		sizes = '100vw',
 		onChange
 	}: {
-		card: CardStub;
+		printing: PrintingStub | DeckPrintingStub;
 		amount: number;
 		max?: number;
 		enableEdit?: boolean;
@@ -26,17 +27,17 @@
 <div
 	class="group flex flex-col items-center rounded-t-lg rounded-b-md border border-gray-300 bg-white pb-2 hover:drop-shadow-md active:bg-teal-50"
 >
-	<a href={`/card/${card.dmId}`} class="flex flex-col items-center">
-		{#if card.imageFiles && card.imageFiles?.length > 0}
+	<a href={`/card/${printing.officialId}`} class="flex flex-col items-center">
+		{#if printing.imageFileNames && printing.imageFileNames?.length > 0}
 			<img
-				src={`/image/${card.imageFiles[0]}`}
-				srcset={`/image/250x0/${card.imageFiles[0]} 250w, /image/650x0/${card.imageFiles[0]} 650w`}
+				src={`/image/${printing.imageFileNames[0]}`}
+				srcset={`/image/250x0/${printing.imageFileNames[0]} 250w, /image/650x0/${printing.imageFileNames[0]} 650w`}
 				{sizes}
-				alt="Image showing one side of card {card.dmId}"
+				alt="Image showing one side of card {printing.idText}"
 				class="rounded-md object-cover group-hover:opacity-90"
 			/>
 		{/if}
-		<p class="text-base">{card.idText}</p>
+		<p class="text-base">{printing.idText}</p>
 	</a>
 	{#if enableEdit}
 		<AmountButton value={amount} min={0} {max} {showMax} {enforceMax} {onChange} />

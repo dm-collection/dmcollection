@@ -7,8 +7,8 @@
 	import TrashIcon from 'phosphor-svelte/lib/TrashIcon';
 	import UploadSimpleIcon from 'phosphor-svelte/lib/UploadSimpleIcon';
 	import { formatDistanceToNow, formatRFC3339 } from 'date-fns';
-	import type { CollectionInfo } from '$lib/types/collection';
 	import { api } from '$lib/api';
+	import type { DeckInfo } from '$lib/types/deck';
 
 	let { data }: { data: PageData } = $props();
 
@@ -77,7 +77,7 @@
 			json: { name: newDeckName }
 		});
 		if (response.ok) {
-			const newDeckInfo = (await response.json()) as CollectionInfo;
+			const newDeckInfo = (await response.json()) as DeckInfo;
 			goto(`/deck/${newDeckInfo.id}`);
 		}
 	}
