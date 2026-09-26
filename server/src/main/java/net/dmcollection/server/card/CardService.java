@@ -290,11 +290,18 @@ public class CardService {
     if (isInfinity) return "∞";
     if (power == null) return null;
     return switch (modifier) {
-      case "leading_plus" -> "+" + power;
-      case "trailing_plus" -> power + "+";
-      case "trailing_minus" -> power + "－";
+      case "leading_plus" -> "+" + padZero(power);
+      case "trailing_plus" -> padZero(power) + "+";
+      case "trailing_minus" -> power + "-";
       default -> String.valueOf(power);
     };
+  }
+
+  private static String padZero(Integer power) {
+    if (power == 0) {
+      return "0000";
+    }
+    return power.toString();
   }
 
   private static List<EffectDto> buildEffects(List<AbilityRow> abilityRows) {
