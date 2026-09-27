@@ -7,21 +7,37 @@
 	import { getRarities } from '$lib/rarity.svelte';
 	import { api } from '$lib/api';
 	import CountedPrintingStub from '$lib/components/CountedPrintingStub.svelte';
-	import type { PrintingStub } from '$lib/types/card';
+	import type { CardStub, PrintingStub } from '$lib/types/card';
 	import type { PageProps } from './$types';
+	import ExpandingCardStub from '$lib/components/ExpandingCardStub.svelte';
+	import { SvelteSet } from 'svelte/reactivity';
 
-	let { data = $bindable() }: PageProps = $props();
+	let { data }: PageProps = $props();
+
+	// svelte-ignore state_referenced_locally
+	// eslint-disable-next-line svelte/prefer-writable-derived
+	let cards = $state(data.cardPage?.content);
+
+	let expanded = new SvelteSet<CardStub>();
+
+	$effect(() => {
+		cards = data.cardPage?.content;
+	});
 
 	async function runSearch(newParams: URLSearchParams) {
 		await goto(`/cards?${newParams.toString()}`, { replaceState: true });
 	}
 
-	async function amountChange(
-		printing: PrintingStub,
-		cardIdx: number,
-		printingIdx: number,
-		newAmount: number
-	) {
+	async function expand(card: CardStub) {
+		console.log(`expanding ${card.name}`);
+		expanded.add(card);
+	}
+
+	async function collapse(card: CardStub) {
+		expanded.delete(card);
+	}
+
+	async function amountChange(printing: PrintingStub, newAmount: number) {
 		try {
 			const response = await api('/api/collectionStub', {
 				method: 'PUT',
@@ -29,10 +45,6 @@
 			});
 			if (response.ok) {
 				printing.amount = newAmount;
-				if (data.cardPage) {
-					data.cardPage.content[cardIdx].printings[printingIdx] = printing;
-					data = data;
-				}
 			}
 		} catch (error) {
 			console.error(error);
@@ -52,27 +64,52 @@
 		{/await}
 	{/await}
 {/await}
-{#if data.cardPage != undefined}
-	{#if data.cardPage.content.length > 0}
-		<Pagination pageInfo={data.cardPage.page} path="/cards" />
-		<div class="grid gap-8 lg:grid-cols-5 xl:grid-cols-8">
-			{#each data.cardPage.content as card, i (card.id)}
-				{#each card.printings as printing, j (printing.id)}
+{#if cards && cards.length > 0 && data.cardPage}
+	<Pagination pageInfo={data.cardPage.page} path="/cards" />
+	<div class="grid gap-8 lg:grid-cols-5 xl:grid-cols-8">
+		{#each cards as card (card.id)}
+			{#if card.printings.length > 1}
+				{#if expanded.has(card)}
+					<div
+						class="border-teal-1 col-span-full grid gap-8 rounded border bg-teal-50 p-2 lg:grid-cols-5 xl:grid-cols-8"
+					>
+						{#each card.printings as printing (printing.id)}
+							<CountedPrintingStub
+								{printing}
+								amount={printing.amount}
+								sizes="(width >= 80rem) calc((100vw - 7 * 2rem) / 8), (width >= 64rem) calc((100vw - 7 * 2rem) / 5), 100vw"
+								onChange={(newAmount: number) => {
+									amountChange(printing, newAmount);
+								}}
+							/>
+						{/each}
+						<button onclick={() => collapse(card)}>Collapse</button>
+					</div>
+				{:else}
+					<ExpandingCardStub
+						{card}
+						amount={card.printings.reduce((s, p) => s + p.amount, 0)}
+						sizes="(width >= 80rem) calc((100vw - 7 * 2rem) / 8), (width >= 64rem) calc((100vw - 7 * 2rem) / 5), 100vw"
+						onClick={() => {
+							expand(card);
+						}}
+					/>
+				{/if}
+			{:else}
+				{#each card.printings as printing (printing.id)}
 					<CountedPrintingStub
 						{printing}
 						amount={printing.amount}
 						sizes="(width >= 80rem) calc((100vw - 7 * 2rem) / 8), (width >= 64rem) calc((100vw - 7 * 2rem) / 5), 100vw"
 						onChange={(newAmount: number) => {
-							amountChange(printing, i, j, newAmount);
+							amountChange(printing, newAmount);
 						}}
 					/>
 				{/each}
-			{/each}
-		</div>
-		<Pagination pageInfo={data.cardPage.page} path="/cards" />
-	{:else}
-		<p class="text-center">No results. Try adjusting the filters.</p>
-	{/if}
+			{/if}
+		{/each}
+	</div>
+	<Pagination pageInfo={data.cardPage.page} path="/cards" />
 {:else}
-	<h1>NOT FOUND</h1>
+	<p class="text-center">No results. Try adjusting the filters.</p>
 {/if}
