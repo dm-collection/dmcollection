@@ -31,7 +31,9 @@
 		}
 		// URL mode - navigate using path
 		else if (path) {
-			await goto(`${path}/${newPage}${page.url.search ? `${page.url.search.toString()}` : ''}`);
+			await goto(
+				`${path}${newPage != 1 ? `/${newPage}` : ''}${page.url.search ? `${page.url.search.toString()}` : ''}`
+			);
 		}
 	}
 </script>
