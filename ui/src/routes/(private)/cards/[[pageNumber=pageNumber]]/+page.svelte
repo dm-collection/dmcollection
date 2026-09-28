@@ -11,6 +11,7 @@
 	import type { PageProps } from './$types';
 	import ExpandingCardStub from '$lib/components/ExpandingCardStub.svelte';
 	import { SvelteSet } from 'svelte/reactivity';
+	import CaretUpIcon from 'phosphor-svelte/lib/CaretUpIcon';
 
 	let { data }: PageProps = $props();
 
@@ -66,12 +67,12 @@
 {/await}
 {#if cards && cards.length > 0 && data.cardPage}
 	<Pagination pageInfo={data.cardPage.page} path="/cards" />
-	<div class="grid gap-8 lg:grid-cols-5 xl:grid-cols-8">
+	<div class="grid gap-6 lg:grid-cols-5 xl:grid-cols-8">
 		{#each cards as card (card.id)}
 			{#if card.printings.length > 1}
 				{#if expanded.has(card)}
 					<div
-						class="border-teal-1 col-span-full grid gap-8 rounded border bg-teal-50 p-2 lg:grid-cols-5 xl:grid-cols-8"
+						class="col-span-full -m-1 grid gap-6 rounded-lg border border-teal-700 p-1 inset-shadow-sm lg:grid-cols-5 xl:grid-cols-8"
 					>
 						{#each card.printings as printing (printing.id)}
 							<CountedPrintingStub
@@ -83,7 +84,13 @@
 								}}
 							/>
 						{/each}
-						<button onclick={() => collapse(card)}>Collapse</button>
+						<button
+							class="col-span-full -mt-6 flex flex-row items-center justify-center text-sm"
+							onclick={() => collapse(card)}
+						>
+							<CaretUpIcon size="1em"></CaretUpIcon>
+							Collapse</button
+						>
 					</div>
 				{:else}
 					<ExpandingCardStub
