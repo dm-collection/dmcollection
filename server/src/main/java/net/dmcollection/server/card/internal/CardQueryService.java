@@ -22,6 +22,7 @@ import static org.jooq.impl.DSL.coalesce;
 import static org.jooq.impl.DSL.count;
 import static org.jooq.impl.DSL.exists;
 import static org.jooq.impl.DSL.lateral;
+import static org.jooq.impl.DSL.max;
 import static org.jooq.impl.DSL.min;
 import static org.jooq.impl.DSL.multiset;
 import static org.jooq.impl.DSL.name;
@@ -68,6 +69,7 @@ public class CardQueryService {
   private static final Field<Integer> cardCount = count().over().as("card_count");
 
   private static final String CARD_RELEASE_AGG = "earliest_release";
+  private static final String CARD_UPDATED_AGG = "latest_release";
   private static final String CARD_COPIES_AGG = "card_copies";
   private static final String CARD_RARITY_AGG = "card_rarity";
   private static final String CARD_ID_AGG = "print_id";
@@ -153,6 +155,7 @@ public class CardQueryService {
                 select(
                         min(PRINTING.OFFICIAL_SITE_ID).collate("C").as(CARD_ID_AGG),
                         min(CARD_SET.RELEASE_DATE).as(CARD_RELEASE_AGG),
+                        max(CARD_SET.RELEASE_DATE).as(CARD_UPDATED_AGG),
                         coalesce(sum(COLLECTION_ENTRY.QUANTITY), 0).as(CARD_COPIES_AGG),
                         coalesce(min(nullif(RARITY.SORT_ORDER, 0)), 0).as(CARD_RARITY_AGG))
                     .from(PRINTING)
@@ -184,6 +187,7 @@ public class CardQueryService {
                         CARD.SORT_POWER_MODIFIER,
                         cardAggregates.field(CARD_ID_AGG, String.class),
                         cardAggregates.field(CARD_RELEASE_AGG, LocalDate.class),
+                        cardAggregates.field(CARD_UPDATED_AGG, LocalDate.class),
                         cardAggregates.field(CARD_COPIES_AGG, Long.class),
                         cardAggregates.field(CARD_RARITY_AGG, Short.class),
                         printings)
@@ -254,7 +258,10 @@ public class CardQueryService {
                 case SORT_COST -> cards.field(CARD.SORT_COST);
                 case SORT_POWER -> cards.field(CARD.SORT_POWER);
                 case SORT_RARITY -> aggregates.field(CARD_RARITY_AGG);
-                case SORT_RELEASE -> aggregates.field(CARD_RELEASE_AGG, LocalDate.class);
+                case SORT_RELEASE ->
+                    order.isAscending()
+                        ? aggregates.field(CARD_RELEASE_AGG, LocalDate.class)
+                        : aggregates.field(CARD_UPDATED_AGG);
                 case SORT_AMOUNT -> aggregates.field(CARD_COPIES_AGG);
                 default -> null;
               };
@@ -268,7 +275,7 @@ public class CardQueryService {
           }
         });
     if (sort.stream().noneMatch(order -> SORT_RELEASE.equals(order.getProperty()))) {
-      fields.add(aggregates.field(CARD_RELEASE_AGG, LocalDate.class).desc());
+      fields.add(aggregates.field(CARD_UPDATED_AGG, LocalDate.class).desc());
     }
     fields.add(aggregates.field(CARD_ID_AGG, String.class).asc());
     fields.add(cards.field(CARD.ID).desc());
