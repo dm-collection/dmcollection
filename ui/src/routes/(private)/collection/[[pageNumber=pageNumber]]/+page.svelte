@@ -16,8 +16,6 @@
 
 	let { data = $bindable() }: PageProps = $props();
 
-	let editingEnabled: boolean = $state(false);
-
 	let importDialog: HTMLDialogElement;
 	let importFiles: FileList | null = $state(null);
 	let uploading = $state(false);
@@ -170,10 +168,6 @@
 	<div class="flex flex-row gap-4">
 		<p>Cards: {data.collection.info.numberOfCards}</p>
 		<p>Copies: {data.collection.info.numberOfCopies}</p>
-		<label>
-			<input type="checkbox" bind:checked={editingEnabled} />
-			Allow editing
-		</label>
 	</div>
 
 	{#await getSets() then sets}
@@ -191,7 +185,6 @@
 					<CountedPrintingStub
 						{printing}
 						amount={printing.amount}
-						enableEdit={editingEnabled}
 						sizes="(width >= 80rem) calc(100vw / 8), (width >= 64rem) calc(100vw / 5), 100vw"
 						onChange={(newAmount: number) => {
 							amountChange(printing, i, j, newAmount);
