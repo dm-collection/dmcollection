@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { CardStub } from '$lib/types/card';
 	import type { DeckCardStub } from '$lib/types/deck';
+	import CaretDownIcon from 'phosphor-svelte/lib/CaretDownIcon';
 
 	const {
 		card,
@@ -46,8 +47,10 @@
 					/>
 				{/each}
 			</button>
+			<button class="flex flex-row items-center" onclick={onClick}
+				>{card.printings.length} printings <CaretDownIcon></CaretDownIcon></button
+			>
 		{/if}
-		<p class="inline-flex items-center">{card.printings.length} printings</p>
 	</div>
 	<div class="flex grow flex-col items-center justify-center">
 		<p

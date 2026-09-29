@@ -39,12 +39,14 @@
 		{/if}
 		<p class="text-base">{printing.idText}</p>
 	</a>
-	{#if enableEdit}
-		<AmountButton value={amount} min={0} {max} {showMax} {enforceMax} {onChange} />
-	{:else}
-		<span
-			class="inline-flex h-7.5 w-7.5 items-center justify-center rounded-md bg-slate-50 text-lg font-medium ring-1 ring-slate-300 ring-inset md:h-8.5 md:w-8.5"
-			>{amount}</span
-		>
-	{/if}
+	<div class="flex grow flex-col items-center justify-center">
+		{#if enableEdit}
+			<AmountButton value={amount} min={0} {max} {showMax} {enforceMax} {onChange} />
+		{:else}
+			<span
+				class="inline-flex h-7.5 w-7.5 items-center justify-center rounded-md bg-slate-50 text-lg font-medium ring-1 ring-slate-300 ring-inset md:h-8.5 md:w-8.5"
+				>{amount}</span
+			>
+		{/if}
+	</div>
 </div>
