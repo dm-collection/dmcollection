@@ -19,11 +19,11 @@
 	// eslint-disable-next-line svelte/prefer-writable-derived
 	let cards = $state(data.cardPage?.content);
 
-	let expanded = new SvelteSet<CardStub>();
-
 	$effect(() => {
 		cards = data.cardPage?.content;
 	});
+
+	let expanded = new SvelteSet<CardStub>();
 
 	async function runSearch(newParams: URLSearchParams) {
 		await goto(`/cards?${newParams.toString()}`, { replaceState: true });
