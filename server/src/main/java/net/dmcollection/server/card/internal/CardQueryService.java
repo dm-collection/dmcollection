@@ -72,7 +72,8 @@ public class CardQueryService {
   private static final String CARD_UPDATED_AGG = "latest_release";
   private static final String CARD_COPIES_AGG = "card_copies";
   private static final String CARD_RARITY_AGG = "card_rarity";
-  private static final String CARD_ID_AGG = "print_id";
+  private static final String OLDEST_PRINT_ID_AGG = "print_id_min";
+  private static final String NEWEST_PRINT_ID_AGG = "print_id_max";
 
   public CardQueryService(
       DSLContext dsl, RarityService rarityService, CardTypeResolver cardTypeResolver) {
@@ -153,7 +154,8 @@ public class CardQueryService {
     var cardAggregates =
         lateral(
                 select(
-                        min(PRINTING.OFFICIAL_SITE_ID).collate("C").as(CARD_ID_AGG),
+                        min(PRINTING.OFFICIAL_SITE_ID).collate("C").as(OLDEST_PRINT_ID_AGG),
+                        max(PRINTING.OFFICIAL_SITE_ID).collate("C").as(NEWEST_PRINT_ID_AGG),
                         min(CARD_SET.RELEASE_DATE).as(CARD_RELEASE_AGG),
                         max(CARD_SET.RELEASE_DATE).as(CARD_UPDATED_AGG),
                         coalesce(sum(COLLECTION_ENTRY.QUANTITY), 0).as(CARD_COPIES_AGG),
@@ -185,7 +187,8 @@ public class CardQueryService {
                         CARD.SORT_COST,
                         CARD.SORT_POWER,
                         CARD.SORT_POWER_MODIFIER,
-                        cardAggregates.field(CARD_ID_AGG, String.class),
+                        cardAggregates.field(OLDEST_PRINT_ID_AGG, String.class),
+                        cardAggregates.field(NEWEST_PRINT_ID_AGG, String.class),
                         cardAggregates.field(CARD_RELEASE_AGG, LocalDate.class),
                         cardAggregates.field(CARD_UPDATED_AGG, LocalDate.class),
                         cardAggregates.field(CARD_COPIES_AGG, Long.class),
@@ -274,11 +277,17 @@ public class CardQueryService {
             }
           }
         });
-    if (sort.stream().noneMatch(order -> SORT_RELEASE.equals(order.getProperty()))) {
+    var sortByRelease =
+        sort.stream().filter(order -> SORT_RELEASE.equals(order.getProperty())).findFirst();
+    if (sortByRelease.isEmpty()) {
       fields.add(aggregates.field(CARD_UPDATED_AGG, LocalDate.class).desc());
+      fields.add(aggregates.field(NEWEST_PRINT_ID_AGG, LocalDate.class).asc());
+    } else {
+      fields.add(
+          aggregates
+              .field(sortByRelease.get().isDescending() ? NEWEST_PRINT_ID_AGG : OLDEST_PRINT_ID_AGG)
+              .asc());
     }
-    fields.add(aggregates.field(CARD_ID_AGG, String.class).asc());
-    fields.add(cards.field(CARD.ID).desc());
     return fields;
   }
 

@@ -69,7 +69,7 @@
 		{ order: POWER_ASC, label: 'Power (Ascending)' },
 		{ order: AMOUNT_DESC, label: '# Owned (Descending)' },
 		{ order: AMOUNT_ASC, label: '# Owned (Ascending' },
-		{ order: CARD_ID_ASC, label: 'ID (Ascending)' }
+		{ order: CARD_ID_ASC, label: 'ID' }
 	];
 
 	let selectedSort1: OrderOption = $state(getOptionForOrderIndex(0, ORDER_OPTIONS[0]));
