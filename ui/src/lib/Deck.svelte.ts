@@ -37,6 +37,14 @@ export class Deck {
 		);
 	}
 
+	async getCardAmount(cardId: number): Promise<number> {
+		return (
+			this.deck?.cards
+				.find((c) => c.id === cardId)
+				?.printings.reduce((sum, p) => sum + p.amount, 0) ?? 0
+		);
+	}
+
 	async setPrintingAmount(printingId: number, amount: number) {
 		if (this.deck) {
 			const response = await fetch(`/api/deck/${this.deck.info.id}/cards/${printingId}`, {

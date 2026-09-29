@@ -7,12 +7,14 @@
 		card,
 		amount,
 		max,
+		enforcemax = false,
 		sizes = '100vw',
 		onClick
 	}: {
 		card: CardStub | DeckCardStub;
 		amount: number;
 		max?: number;
+		enforcemax?: boolean;
 		sizes?: string;
 		onClick: () => void;
 	} = $props();
@@ -54,7 +56,10 @@
 	</div>
 	<div class="flex grow flex-col items-center justify-center">
 		<p
-			class="inline-flex h-7.5 w-7.5 items-center justify-center rounded-md bg-slate-50 text-lg font-medium ring-1 ring-slate-300 ring-inset md:h-8.5 md:w-8.5"
+			class={[
+				'inline-flex h-7.5 w-7.5 items-center justify-center rounded-md bg-slate-50 text-lg font-medium ring-1 ring-slate-300 ring-inset md:h-8.5 md:w-8.5',
+				max != undefined && amount > max && enforcemax && 'text-red-500'
+			]}
 		>
 			{amount}{max != undefined ? `/${max}` : ''}
 		</p>
