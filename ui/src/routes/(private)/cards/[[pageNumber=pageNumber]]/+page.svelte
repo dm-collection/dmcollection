@@ -73,6 +73,9 @@
 					<div
 						class="col-span-full -m-1 grid gap-6 rounded-lg border border-teal-700 p-1 inset-shadow-sm lg:grid-cols-5 xl:grid-cols-8"
 					>
+						<p class="col-span-full -mb-6 flex flex-row items-center justify-center text-sm">
+							{card.name}
+						</p>
 						{#each card.printings as printing (printing.id)}
 							<CountedPrintingStub
 								{printing}
@@ -88,8 +91,8 @@
 							onclick={() => collapse(card)}
 						>
 							<CaretUpIcon size="1em"></CaretUpIcon>
-							Collapse</button
-						>
+							Collapse
+						</button>
 					</div>
 				{:else}
 					<ExpandingCardStub
