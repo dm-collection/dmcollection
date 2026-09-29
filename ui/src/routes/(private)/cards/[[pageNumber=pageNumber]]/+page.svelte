@@ -30,7 +30,6 @@
 	}
 
 	async function expand(card: CardStub) {
-		console.log(`expanding ${card.name}`);
 		expanded.add(card);
 	}
 
@@ -69,7 +68,7 @@
 	<Pagination pageInfo={data.cardPage.page} path="/cards" />
 	<div class="grid gap-6 lg:grid-cols-5 xl:grid-cols-8">
 		{#each cards as card (card.id)}
-			{#if card.printings.length > 1}
+			{#if card.printings.length > 1 && cards.length > 1}
 				{#if expanded.has(card)}
 					<div
 						class="col-span-full -m-1 grid gap-6 rounded-lg border border-teal-700 p-1 inset-shadow-sm lg:grid-cols-5 xl:grid-cols-8"
