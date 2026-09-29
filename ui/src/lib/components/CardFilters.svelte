@@ -114,7 +114,7 @@
 
 	async function switchSort() {
 		[selectedSort1, selectedSort2] = [selectedSort2, selectedSort1];
-		onChange();
+		changeSort();
 	}
 
 	async function changeMinCost() {
