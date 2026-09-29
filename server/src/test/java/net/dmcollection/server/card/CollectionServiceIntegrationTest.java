@@ -113,6 +113,8 @@ class CollectionServiceIntegrationTest extends IntegrationTestBase {
               assertThat(cardStub.printings().getFirst().officialId()).isEqualTo("dmr08-021");
               assertThat(cardStub.printings().getFirst().amount()).isEqualTo(5000);
             });
+    assertThat(result.info().numberOfCards()).isEqualTo(1);
+    assertThat(result.info().numberOfCopies()).isEqualTo(5000);
   }
 
   @Test

@@ -87,10 +87,12 @@ public class CardQueryService {
   private static final Field<Integer> AMOUNT_FIELD =
       coalesce(COLLECTION_ENTRY.QUANTITY, 0).as("amount");
 
-  public Page<CardStub> search(@NonNull SearchFilter filter) {
+  public record SearchResult(Page<CardStub> pageOfCards, long numberOfCopies) {}
+
+  public SearchResult search(@NonNull SearchFilter filter) {
     if (filter.isInvalid()) {
       log.warn("Invalid search filter: {}", filter);
-      return Page.empty();
+      return new SearchResult(Page.empty(), 0);
     }
     log.debug("Searching with filter: {}", filter);
     Short raritySortOrder = null;
@@ -200,9 +202,11 @@ public class CardQueryService {
                         cardConditions(filter, cardTypeIds)
                             .and(printingExistsCondition(filter, raritySortOrder)))
                     .orderBy(cardOrderFields(filter, CARD, cardAggregates)));
+    var cardCopies = filteredCards.field(CARD_COPIES_AGG, Long.class);
+    var totalCopies = sum(cardCopies).over().as("total_copies");
     var rows =
         dsl.with(filteredCards)
-            .select(filteredCards.asterisk(), cardCount)
+            .select(filteredCards.asterisk(), cardCount, totalCopies)
             .from(filteredCards)
             .orderBy(cardOrderFields(filter, filteredCards, filteredCards))
             .limit(filter.pageable().getPageSize())
@@ -210,10 +214,11 @@ public class CardQueryService {
             .fetch();
 
     int totalCount = rows.isEmpty() ? 0 : rows.getFirst().get(cardCount);
+    long copiesCount = totalCount == 0 ? 0 : rows.getFirst().get(totalCopies).longValue();
     List<CardStub> cards =
         rows.map(r -> new CardStub(r.get(CARD.ID), r.get(CARD.NAME), r.get(printings)));
 
-    return new PageImpl<>(cards, filter.pageable(), totalCount);
+    return new SearchResult(new PageImpl<>(cards, filter.pageable(), totalCount), copiesCount);
   }
 
   private static List<OrderField<?>> printingOrderFields(SearchFilter filter) {

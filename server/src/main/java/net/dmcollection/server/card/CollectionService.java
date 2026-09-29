@@ -96,8 +96,10 @@ public class CollectionService {
 
   public CollectionDto getPrimaryCollection(UUID userId, SearchFilter searchFilter) {
     var result = cardQueryService.search(searchFilter);
-    CollectionInfo ci = getCollectionInfo(userId);
-    return new CollectionDto(ci, new PagedModel<>(result));
+    CollectionInfo ci =
+        new CollectionInfo(
+            result.numberOfCopies(), result.pageOfCards().getTotalElements(), userId);
+    return new CollectionDto(ci, new PagedModel<>(result.pageOfCards()));
   }
 
   public Map<Integer, Integer> getPrimaryStub(UUID userId) {

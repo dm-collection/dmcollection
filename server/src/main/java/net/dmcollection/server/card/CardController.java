@@ -40,7 +40,8 @@ public class CardController {
     }
     var searchFilter = searchParams.toSearchFilter(currentUserId, false, pageNumber, pageSize);
     try {
-      return ResponseEntity.ok(new PagedModel<>(cardQueryService.search(searchFilter)));
+      return ResponseEntity.ok(
+          new PagedModel<>(cardQueryService.search(searchFilter).pageOfCards()));
     } catch (RuntimeException e) {
       log.error("Error searching for {}", searchFilter, e);
       return ResponseEntity.internalServerError().build();

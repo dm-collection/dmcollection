@@ -1285,7 +1285,7 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
   }
 
   protected void assertQueryFindsInOrder(SearchBuilder builder, List<PrintingStub> expectedCards) {
-    var result = mapResult(cardQueryService.search(builder.build()));
+    var result = mapResult(cardQueryService.search(builder.build()).pageOfCards());
     assertThat(result)
         .usingRecursiveComparison()
         .ignoringFields("civilizations")
@@ -1293,7 +1293,7 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
   }
 
   protected void assertQueryFinds(SearchBuilder builder, List<PrintingStub> expectedCards) {
-    var result = mapResult(cardQueryService.search(builder.build()));
+    var result = mapResult(cardQueryService.search(builder.build()).pageOfCards());
     assertThat(result)
         .usingRecursiveComparison()
         .ignoringCollectionOrder()
