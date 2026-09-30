@@ -21,7 +21,6 @@ import static net.dmcollection.server.jooq.generated.tables.Rarity.RARITY;
 import static org.jooq.impl.DSL.coalesce;
 import static org.jooq.impl.DSL.count;
 import static org.jooq.impl.DSL.exists;
-import static org.jooq.impl.DSL.lateral;
 import static org.jooq.impl.DSL.max;
 import static org.jooq.impl.DSL.min;
 import static org.jooq.impl.DSL.multiset;
@@ -154,31 +153,28 @@ public class CardQueryService {
                                 p.get(AMOUNT_FIELD),
                                 p.get(printingSides).stream().filter(Objects::nonNull).toList())));
     var cardAggregates =
-        lateral(
-                select(
-                        min(PRINTING.OFFICIAL_SITE_ID).collate("C").as(OLDEST_PRINT_ID_AGG),
-                        max(PRINTING.OFFICIAL_SITE_ID).collate("C").as(NEWEST_PRINT_ID_AGG),
-                        min(CARD_SET.RELEASE_DATE).as(CARD_RELEASE_AGG),
-                        max(CARD_SET.RELEASE_DATE).as(CARD_UPDATED_AGG),
-                        coalesce(sum(COLLECTION_ENTRY.QUANTITY), 0).as(CARD_COPIES_AGG),
-                        coalesce(min(nullif(RARITY.SORT_ORDER, 0)), 0).as(CARD_RARITY_AGG))
-                    .from(PRINTING)
-                    .join(CARD_SET)
-                    .on(PRINTING.SET_ID.eq(CARD_SET.ID))
-                    .leftJoin(RARITY)
-                    .on(RARITY.ID.eq(PRINTING.RARITY_ID))
-                    .leftJoin(COLLECTION_ENTRY)
-                    .on(
-                        COLLECTION_ENTRY
-                            .PRINTING_ID
-                            .eq(PRINTING.ID)
-                            .and(COLLECTION_ENTRY.USER_ID.eq(filter.collectionFilter().userId())))
-                    .where(
-                        PRINTING
-                            .CARD_ID
-                            .eq(CARD.ID)
-                            .and(printingCondition(filter, raritySortOrder))))
-            .as("card_aggregates");
+        select(
+                PRINTING.CARD_ID,
+                min(PRINTING.OFFICIAL_SITE_ID).collate("C").as(OLDEST_PRINT_ID_AGG),
+                max(PRINTING.OFFICIAL_SITE_ID).collate("C").as(NEWEST_PRINT_ID_AGG),
+                min(CARD_SET.RELEASE_DATE).as(CARD_RELEASE_AGG),
+                max(CARD_SET.RELEASE_DATE).as(CARD_UPDATED_AGG),
+                coalesce(sum(COLLECTION_ENTRY.QUANTITY), 0).as(CARD_COPIES_AGG),
+                coalesce(min(nullif(RARITY.SORT_ORDER, 0)), 0).as(CARD_RARITY_AGG))
+            .from(PRINTING)
+            .join(CARD_SET)
+            .on(PRINTING.SET_ID.eq(CARD_SET.ID))
+            .leftJoin(RARITY)
+            .on(RARITY.ID.eq(PRINTING.RARITY_ID))
+            .leftJoin(COLLECTION_ENTRY)
+            .on(
+                COLLECTION_ENTRY
+                    .PRINTING_ID
+                    .eq(PRINTING.ID)
+                    .and(COLLECTION_ENTRY.USER_ID.eq(filter.collectionFilter().userId())))
+            .where(printingCondition(filter, raritySortOrder))
+            .groupBy(PRINTING.CARD_ID)
+            .asTable("card_aggregates");
     var filteredCards =
         name("filtered_cards")
             .as(
@@ -196,16 +192,15 @@ public class CardQueryService {
                         cardAggregates.field(CARD_COPIES_AGG, Long.class),
                         cardAggregates.field(CARD_RARITY_AGG, Short.class))
                     .from(CARD)
-                    .crossJoin(cardAggregates)
-                    .where(
-                        cardConditions(filter, cardTypeIds)
-                            .and(printingExistsCondition(filter, raritySortOrder))));
+                    .join(cardAggregates)
+                    .on(cardAggregates.field(PRINTING.CARD_ID).eq(CARD.ID))
+                    .where(cardConditions(filter, cardTypeIds)));
     var cardCopies = filteredCards.field(CARD_COPIES_AGG, Long.class);
     var totalCopies = sum(cardCopies).over().as("total_copies");
     List<Field<?>> cardPageFields = new ArrayList<>(List.of(filteredCards.fields()));
     cardPageFields.add(cardCount);
     cardPageFields.add(totalCopies);
-    // Paginate before building the printings, so they are only aggregated for the cards on the page
+
     var cardPage =
         name("card_page")
             .as(
@@ -305,25 +300,6 @@ public class CardQueryService {
               .asc());
     }
     return fields;
-  }
-
-  private static Condition printingExistsCondition(SearchFilter filter, Short raritySortOrder) {
-    var printingCondition = printingCondition(filter, raritySortOrder);
-    if (printingCondition.equals(noCondition())) {
-      return printingCondition;
-    }
-    return exists(
-        selectOne()
-            .from(PRINTING)
-            .leftJoin(RARITY)
-            .on(RARITY.ID.eq(PRINTING.RARITY_ID))
-            .leftJoin(COLLECTION_ENTRY)
-            .on(
-                COLLECTION_ENTRY
-                    .PRINTING_ID
-                    .eq(PRINTING.ID)
-                    .and(COLLECTION_ENTRY.USER_ID.eq(filter.collectionFilter().userId())))
-            .where(PRINTING.CARD_ID.eq(CARD.ID).and(printingCondition)));
   }
 
   private static Condition printingCondition(SearchFilter filter, Short raritySortOrder) {
