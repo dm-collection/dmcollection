@@ -273,11 +273,7 @@ public class CardService {
     if (civilizationIds == null || civilizationIds.isEmpty()) {
       return List.of(Civilization.ZERO.toString());
     }
-    List<String> names = new ArrayList<>(civilizationIds.size());
-    for (short civId : civilizationIds) {
-      names.add(Civilization.values()[civId].toString());
-    }
-    return names;
+    return civilizationIds.stream().map(id -> Civilization.values()[id].toString()).toList();
   }
 
   private static String formatCost(Integer cost, boolean isInfinity) {
