@@ -5,7 +5,6 @@ import static net.dmcollection.server.card.Civilization.FIRE;
 import static net.dmcollection.server.card.Civilization.LIGHT;
 import static net.dmcollection.server.card.Civilization.NATURE;
 import static net.dmcollection.server.card.Civilization.WATER;
-import static net.dmcollection.server.jooq.generated.Tables.CARD_SET;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -16,12 +15,11 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import net.dmcollection.server.card.CardService.PrintingStub;
 import net.dmcollection.server.card.Civilization;
+import net.dmcollection.server.card.PrintingStub;
 import net.dmcollection.server.card.RarityCode;
 import net.dmcollection.server.card.internal.query.CardTypeResolver;
+import net.dmcollection.server.user.User;
 import org.jooq.DSLContext;
 
 public class TestFixtureBuilder {
@@ -36,14 +34,16 @@ public class TestFixtureBuilder {
   public static final String D2_FIELD = "D2フィールド";
   public static final String TWINPACT_SEPARATOR = "／";
 
-  private final DbWriter dbWriter;
-  private final DSLContext db;
-  private final CardTypeResolver cardTypeResolver;
+  public static LocalDate DEFAULT_SET_RELEASE = LocalDate.of(2002, 5, 30);
 
-  public TestFixtureBuilder(DSLContext db, CardTypeResolver cardTypeResolver) {
-    this.db = db;
+  private final DbWriter dbWriter;
+  private final CardTypeResolver cardTypeResolver;
+  private final User user;
+
+  public TestFixtureBuilder(DSLContext db, CardTypeResolver cardTypeResolver, User user) {
     this.dbWriter = new DbWriter(db);
     this.cardTypeResolver = cardTypeResolver;
+    this.user = user;
   }
 
   public TestCardBuilder testCard(String printingId) {
@@ -51,15 +51,9 @@ public class TestFixtureBuilder {
   }
 
   public int getSetId(String setCode) {
-    Integer id =
-        db.select(CARD_SET.ID)
-            .from(CARD_SET)
-            .where(CARD_SET.CODE.eq(setCode))
-            .fetchOne(CARD_SET.ID);
-    if (id == null) {
-      throw new IllegalArgumentException("No set with code " + setCode);
-    }
-    return id;
+    int defaultGroupId = dbWriter.upsertSetGroup(DEFAULT_SET_GROUP, 1);
+    return dbWriter.upsertSet(
+        setCode, "", DEFAULT_SET_RELEASE, DEFAULT_PRODUCT_TYPE, defaultGroupId);
   }
 
   public PrintingStub createFourSides() {
@@ -316,6 +310,40 @@ public class TestFixtureBuilder {
       return this;
     }
 
+    public TestCardBuilder withSet(String setCode, String releaseDate) {
+      LocalDate release = LocalDate.parse(releaseDate);
+      this.printings.getFirst().setCode = setCode;
+      this.printings.getFirst().setRelease = release;
+      return this;
+    }
+
+    public TestCardBuilder withCollectionAmount(int collectionAmount) {
+      this.printings.getFirst().collectionQuantity = collectionAmount;
+      return this;
+    }
+
+    public TestCardBuilder withPrinting(String officialId, String setCode, String releaseDate) {
+      return this.withPrinting(officialId, setCode, releaseDate, 0);
+    }
+
+    public TestCardBuilder withPrinting(
+        String officialId, String setCode, String releaseDate, int collectionQuantity) {
+      LocalDate release = LocalDate.parse(releaseDate);
+      var printing = new TestPrintingBuilder();
+      printing.officialId = officialId;
+      printing.setCode = setCode;
+      printing.setRelease = release;
+      printing.collectionQuantity = collectionQuantity;
+      this.printings.add(printing);
+      return this;
+    }
+
+    public TestCardBuilder withPrinting(Consumer<TestPrintingBuilder> printing) {
+      this.printings.add(new TestPrintingBuilder());
+      printing.accept(this.printings.getLast());
+      return this;
+    }
+
     public TestCardBuilder firstSide(Consumer<SideBuilder> sideProps) {
       return buildSide(sideProps, 0);
     }
@@ -454,21 +482,29 @@ public class TestFixtureBuilder {
       }
 
       for (var printing : this.printings) {
-        String setCode = printing.setCode == null ? DEFAULT_SET_CODE : printing.setCode;
+        if (printing.setCode == null) {
+          printing.setCode = DEFAULT_SET_CODE;
+        }
+        if (printing.setRelease == null) {
+          printing.setRelease = DEFAULT_SET_RELEASE;
+        }
         int setId =
             dbWriter.upsertSet(
-                setCode,
-                "Set \"" + setCode + "\"",
-                LocalDate.now(),
+                printing.setCode,
+                "Set \"" + printing.setCode + "\"",
+                printing.setRelease,
                 DEFAULT_PRODUCT_TYPE,
                 defaultGroupId);
         if (printing.officialId == null) {
-          printing.officialId = setCode + "-" + this.cardName;
+          printing.officialId = printing.setCode + "-" + this.cardName;
         }
         printing.idText = printing.officialId.replace("-", " ").toUpperCase(Locale.ROOT);
         printing.id =
             dbWriter.upsertPrinting(
                 id, setId, printing.officialId, printing.idText, printing.rarity);
+        if (printing.collectionQuantity > 0) {
+          dbWriter.upsertCollectionEntry(user.getId(), printing.id, printing.collectionQuantity);
+        }
         for (int i = 0; i < this.cardSides.size(); i++) {
           String sideLetter = this.cardSides.size() > 1 ? String.valueOf((char) (i + 'a')) : "";
           String imageFileName = printing.officialId + sideLetter + ".jpg";
@@ -488,15 +524,6 @@ public class TestFixtureBuilder {
         }
       }
 
-      Set<Civilization> allCivilizations =
-          this.cardSides.stream()
-              .flatMap(
-                  side ->
-                      side.civilizations.isEmpty()
-                          ? Stream.of(Civilization.ZERO)
-                          : side.civilizations.stream())
-              .collect(Collectors.toSet());
-
       return this.printings.stream()
           .map(
               printing ->
@@ -504,10 +531,10 @@ public class TestFixtureBuilder {
                       printing.id,
                       printing.officialId,
                       printing.idText,
-                      allCivilizations,
-                      printing.imageFileNames,
-                      0,
-                      0))
+                      printing.setCode,
+                      printing.setRelease,
+                      printing.collectionQuantity,
+                      printing.imageFileNames))
           .toList();
     }
 
@@ -531,6 +558,10 @@ public class TestFixtureBuilder {
 
       public PrintingStub build() {
         return this.parent.build();
+      }
+
+      public List<PrintingStub> buildAll() {
+        return this.parent.buildAll();
       }
 
       public SideBuilder withName(String name) {
@@ -607,11 +638,12 @@ public class TestFixtureBuilder {
       }
     }
 
-    private static class TestPrintingBuilder {
+    public static class TestPrintingBuilder {
 
       private int id;
 
       private String setCode;
+      private LocalDate setRelease;
 
       private String officialId;
 
@@ -623,6 +655,7 @@ public class TestFixtureBuilder {
       private final List<String> imageFileNames = new ArrayList<>();
 
       private RarityCode rarity;
+      private int collectionQuantity = 0;
 
       private TestPrintingBuilder() {}
 

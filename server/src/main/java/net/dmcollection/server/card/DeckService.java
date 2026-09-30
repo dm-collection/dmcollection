@@ -1,5 +1,6 @@
 package net.dmcollection.server.card;
 
+import static net.dmcollection.server.jooq.generated.Tables.CARD;
 import static net.dmcollection.server.jooq.generated.tables.CardSide.CARD_SIDE;
 import static net.dmcollection.server.jooq.generated.tables.Deck.DECK;
 import static net.dmcollection.server.jooq.generated.tables.DeckVersion.DECK_VERSION;
@@ -9,30 +10,28 @@ import static net.dmcollection.server.jooq.generated.tables.PrintingSide.PRINTIN
 import static org.jooq.impl.DSL.coalesce;
 import static org.jooq.impl.DSL.countDistinct;
 import static org.jooq.impl.DSL.currentOffsetDateTime;
+import static org.jooq.impl.DSL.multiset;
+import static org.jooq.impl.DSL.select;
 import static org.jooq.impl.DSL.sum;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.EnumSet;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-import net.dmcollection.server.card.CardService.PrintingStub;
 import net.dmcollection.server.card.serialization.deck.format.v1.DeckCardExport;
 import net.dmcollection.server.card.serialization.deck.format.v1.DeckExport;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.web.PagedModel;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -54,6 +53,16 @@ public class DeckService {
     this.collectionService = collectionService;
   }
 
+  public record DeckPrintingStub(
+      int id,
+      String officialId,
+      String idText,
+      int amount,
+      int collectionAmount,
+      List<String> imageFileNames) {}
+
+  public record DeckCardStub(int id, String name, String zone, List<DeckPrintingStub> printings) {}
+
   public record DeckInfo(
       UUID id,
       String name,
@@ -62,7 +71,7 @@ public class DeckService {
       LocalDateTime lastModified,
       UUID ownerId) {}
 
-  public record DeckDto(DeckInfo info, PagedModel<PrintingStub> cardPage) {}
+  public record DeckDto(DeckInfo info, List<DeckCardStub> cards) {}
 
   public List<DeckInfo> getDecks(UUID userId) {
     return dsl.select(DECK.ID, DECK.NAME, DECK.UPDATED_AT, DECK.USER_ID, CARD_COUNT, COPIES_COUNT)
@@ -73,7 +82,7 @@ public class DeckService {
         .on(DECK_VERSION_ENTRY.DECK_VERSION_ID.eq(DECK_VERSION.ID))
         .where(DECK.USER_ID.eq(userId))
         .groupBy(DECK.ID)
-        .orderBy(DECK.UPDATED_AT.desc())
+        .orderBy(DECK.UPDATED_AT.desc(), DECK.NAME.asc())
         .fetch(
             r ->
                 new DeckInfo(
@@ -349,15 +358,27 @@ public class DeckService {
   }
 
   private DeckDto toDeckDto(UUID deckId, UUID userId) {
+    var imageFileNames =
+        multiset(
+                select(PRINTING_SIDE.IMAGE_FILENAME, CARD_SIDE.SIDE_ORDER)
+                    .from(PRINTING_SIDE)
+                    .join(CARD_SIDE)
+                    .on(PRINTING_SIDE.CARD_SIDE_ID.eq(CARD_SIDE.ID))
+                    .where(PRINTING_SIDE.PRINTING_ID.eq(DECK_VERSION_ENTRY.PRINTING_ID))
+                    .orderBy(CARD_SIDE.SIDE_ORDER))
+            .as("imageFileNames")
+            .convertFrom(r -> r.map(s -> s.get(PRINTING_SIDE.IMAGE_FILENAME)));
     var rows =
         dsl.select(
+                DECK_VERSION_ENTRY.CARD_ID,
+                CARD.NAME,
+                CARD.SORT_CIVILIZATION,
+                CARD.DECK_ZONE,
                 DECK_VERSION_ENTRY.PRINTING_ID,
                 PRINTING.OFFICIAL_SITE_ID,
                 PRINTING.COLLECTOR_NUMBER,
                 DECK_VERSION_ENTRY.QUANTITY,
-                CARD_SIDE.SIDE_ORDER,
-                CARD_SIDE.CIVILIZATION_IDS,
-                PRINTING_SIDE.IMAGE_FILENAME)
+                imageFileNames)
             .from(DECK_VERSION_ENTRY)
             .join(DECK_VERSION)
             .on(
@@ -367,87 +388,73 @@ public class DeckService {
                     .and(DECK_VERSION.IS_DRAFT.isTrue())
                     .and(DECK_VERSION.DECK_ID.eq(deckId)))
             .join(PRINTING)
-            .on(PRINTING.ID.eq(DECK_VERSION_ENTRY.PRINTING_ID))
-            .join(PRINTING_SIDE)
-            .on(PRINTING_SIDE.PRINTING_ID.eq(PRINTING.ID))
-            .join(CARD_SIDE)
-            .on(CARD_SIDE.ID.eq(PRINTING_SIDE.CARD_SIDE_ID))
-            .orderBy(DECK_VERSION_ENTRY.PRINTING_ID, CARD_SIDE.SIDE_ORDER)
+            .on(DECK_VERSION_ENTRY.PRINTING_ID.eq(PRINTING.ID))
+            .join(CARD)
+            .on(DECK_VERSION_ENTRY.CARD_ID.eq(CARD.ID))
+            .orderBy(PRINTING.OFFICIAL_SITE_ID)
             .fetch(
                 r ->
                     new EntryRow(
+                        r.get(DECK_VERSION_ENTRY.CARD_ID),
+                        r.get(CARD.NAME),
+                        r.get(CARD.DECK_ZONE),
+                        r.get(CARD.SORT_CIVILIZATION),
                         r.get(DECK_VERSION_ENTRY.PRINTING_ID),
                         r.get(PRINTING.OFFICIAL_SITE_ID),
                         r.get(PRINTING.COLLECTOR_NUMBER),
                         r.get(DECK_VERSION_ENTRY.QUANTITY),
-                        r.get(CARD_SIDE.SIDE_ORDER),
-                        Arrays.stream(r.get(CARD_SIDE.CIVILIZATION_IDS)).toList(),
-                        r.get(PRINTING_SIDE.IMAGE_FILENAME)));
+                        r.get(imageFileNames).stream().filter(Objects::nonNull).toList()));
 
-    Map<Integer, List<EntryRow>> byPrinting = new LinkedHashMap<>();
+    Map<Integer, List<EntryRow>> byCard = new HashMap<>();
     for (EntryRow row : rows) {
-      byPrinting.computeIfAbsent(row.printingId(), k -> new ArrayList<>()).add(row);
+      byCard.computeIfAbsent(row.cardId(), k -> new ArrayList<>()).add(row);
     }
 
     Map<Integer, Integer> collectionAmounts = collectionService.getPrimaryStub(userId);
 
-    List<PrintingStub> stubs =
-        byPrinting.entrySet().stream()
-            .map(entry -> toCardStub(entry.getKey(), entry.getValue(), collectionAmounts))
+    List<DeckCardStub> result =
+        byCard.values().stream()
             .sorted(
-                (c1, c2) -> {
-                  int civComparison = compareCivs(c1.civilizations(), c2.civilizations());
-                  if (civComparison != 0) {
-                    return civComparison;
-                  }
-                  return c1.dmId().compareTo(c2.dmId());
-                })
+                Comparator.comparing((List<EntryRow> l) -> l.getFirst().deckZone())
+                    .thenComparing(l -> l.getFirst().cardCivSort.length)
+                    .thenComparing(l -> l.getFirst().cardCivSort, Arrays::compare)
+                    .thenComparing(l -> l.getFirst().officialSiteId()))
+            .map(l -> this.toCardStub(l, collectionAmounts))
             .toList();
 
     DeckInfo info = getDeckInfo(deckId);
-    return new DeckDto(
-        info, new PagedModel<>(new PageImpl<>(stubs, Pageable.unpaged(), stubs.size())));
+    return new DeckDto(info, result);
   }
 
   private record EntryRow(
+      int cardId,
+      String cardName,
+      String deckZone,
+      Short[] cardCivSort,
       int printingId,
       String officialSiteId,
       String collectorNumber,
       int quantity,
-      short sideOrder,
-      List<Short> civilizationIds,
-      String imageFilename) {}
+      List<String> imageFilenames) {}
 
-  private PrintingStub toCardStub(
-      int printingId, List<EntryRow> sideRows, Map<Integer, Integer> collectionAmounts) {
-    EntryRow first = sideRows.getFirst();
-
-    Set<Civilization> civs = EnumSet.noneOf(Civilization.class);
-    List<String> imageFiles = new ArrayList<>();
-    for (EntryRow row : sideRows) {
-      if (row.civilizationIds() != null) {
-        for (Short civId : row.civilizationIds()) {
-          civs.add(Civilization.values()[civId]);
-        }
-      }
-      if (row.imageFilename() != null) {
-        imageFiles.add(row.imageFilename());
-      }
-    }
-    if (civs.isEmpty()) {
-      civs.add(Civilization.ZERO);
-    }
-
-    int collectionAmount = collectionAmounts.getOrDefault(printingId, 0);
-
-    return new PrintingStub(
-        printingId,
-        first.officialSiteId(),
-        first.collectorNumber(),
-        civs,
-        imageFiles,
-        first.quantity(),
-        collectionAmount);
+  private DeckCardStub toCardStub(List<EntryRow> entries, Map<Integer, Integer> collectionAmounts) {
+    List<DeckPrintingStub> deckPrintings =
+        entries.stream()
+            .map(
+                e ->
+                    new DeckPrintingStub(
+                        e.printingId(),
+                        e.officialSiteId(),
+                        e.collectorNumber(),
+                        e.quantity(),
+                        collectionAmounts.getOrDefault(e.printingId(), 0),
+                        e.imageFilenames()))
+            .toList();
+    return new DeckCardStub(
+        entries.getFirst().cardId,
+        entries.getFirst().cardName(),
+        entries.getFirst().deckZone,
+        deckPrintings);
   }
 
   private DeckInfo getDeckInfo(UUID deckId) {
@@ -469,17 +476,5 @@ public class DeckService {
         result.get(COPIES_COUNT),
         result.get(DECK.UPDATED_AT).toLocalDateTime(),
         result.get(DECK.USER_ID));
-  }
-
-  private int compareCivs(Set<Civilization> c1, Set<Civilization> c2) {
-    if ((c1.size() == 1 || c2.size() == 1) && c1.size() != c2.size()) {
-      return Integer.compare(c1.size(), c2.size());
-    }
-
-    String civString1 =
-        Civilization.toInts(c1).stream().map(Objects::toString).collect(Collectors.joining());
-    String civString2 =
-        Civilization.toInts(c2).stream().map(Objects::toString).collect(Collectors.joining());
-    return civString1.compareTo(civString2);
   }
 }

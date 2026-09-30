@@ -4,16 +4,13 @@ import static net.dmcollection.server.jooq.generated.tables.CollectionEntry.COLL
 import static net.dmcollection.server.jooq.generated.tables.CollectionHistoryEntry.COLLECTION_HISTORY_ENTRY;
 import static net.dmcollection.server.jooq.generated.tables.Printing.PRINTING;
 import static org.jooq.impl.DSL.coalesce;
-import static org.jooq.impl.DSL.count;
 import static org.jooq.impl.DSL.countDistinct;
 import static org.jooq.impl.DSL.sum;
 
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import net.dmcollection.server.card.CardService.PrintingStub;
 import net.dmcollection.server.card.internal.CardQueryService;
-import net.dmcollection.server.card.internal.CardQueryService.SearchResult;
 import net.dmcollection.server.card.internal.SearchFilter;
 import net.dmcollection.server.card.serialization.collection.V1Importer;
 import net.dmcollection.server.card.serialization.collection.V2Exporter;
@@ -32,7 +29,6 @@ import tools.jackson.databind.json.JsonMapper;
 @Service
 public class CollectionService {
 
-  private static final Field<Long> PRINTING_COUNT = count().cast(Long.class).as("printing_count");
   private static final Field<Long> COPIES_COUNT =
       coalesce(sum(COLLECTION_ENTRY.QUANTITY), 0).cast(Long.class).as("copies_count");
 
@@ -61,10 +57,9 @@ public class CollectionService {
     this.objectMapper = objectMapper;
   }
 
-  public record CollectionInfo(
-      long numberOfCopies, long numberOfPrintings, long numberOfCards, UUID ownerId) {}
+  public record CollectionInfo(long numberOfCopies, long numberOfCards, UUID ownerId) {}
 
-  public record CollectionDto(CollectionInfo info, PagedModel<PrintingStub> cardPage) {}
+  public record CollectionDto(CollectionInfo info, PagedModel<CardStub> cardPage) {}
 
   public record CollectionCardStub(long cardId, int amount) {}
 
@@ -100,15 +95,11 @@ public class CollectionService {
   }
 
   public CollectionDto getPrimaryCollection(UUID userId, SearchFilter searchFilter) {
-    searchFilter = searchFilter.withCollectionFilter(userId, true);
-    SearchResult searchResult = cardQueryService.search(searchFilter);
+    var result = cardQueryService.search(searchFilter);
     CollectionInfo ci =
         new CollectionInfo(
-            searchResult.numberOfCopies(),
-            searchResult.pageOfCards().getTotalElements(),
-            searchResult.numberOfCards(),
-            userId);
-    return new CollectionDto(ci, new PagedModel<>(searchResult.pageOfCards()));
+            result.numberOfCopies(), result.pageOfCards().getTotalElements(), userId);
+    return new CollectionDto(ci, new PagedModel<>(result.pageOfCards()));
   }
 
   public Map<Integer, Integer> getPrimaryStub(UUID userId) {
@@ -200,13 +191,12 @@ public class CollectionService {
 
   private CollectionInfo getCollectionInfo(UUID userId) {
     var result =
-        dsl.select(PRINTING_COUNT, COPIES_COUNT, CARD_COUNT)
+        dsl.select(COPIES_COUNT, CARD_COUNT)
             .from(COLLECTION_ENTRY)
             .join(PRINTING)
             .on(COLLECTION_ENTRY.PRINTING_ID.eq(PRINTING.ID))
             .where(COLLECTION_ENTRY.USER_ID.eq(userId))
             .fetchOne();
-    return new CollectionInfo(
-        result.get(COPIES_COUNT), result.get(PRINTING_COUNT), result.get(CARD_COUNT), userId);
+    return new CollectionInfo(result.get(COPIES_COUNT), result.get(CARD_COUNT), userId);
   }
 }

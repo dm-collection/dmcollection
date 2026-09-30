@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import net.dmcollection.server.AppProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -143,14 +144,15 @@ public class AuthenticationController {
     }
 
     User newUser;
-    try {
-      newUser =
-          userService.createUser(registrationRequest.username(), registrationRequest.password());
-      log.info("User '{}' registered successfully.", newUser.getUsername());
-    } catch (Exception e) {
-      log.error("Error saving registered user '{}'", registrationRequest.username(), e);
-      throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error saving user", e);
+    Optional<User> created =
+        userService.createUser(registrationRequest.username(), registrationRequest.password());
+    if (created.isEmpty()) {
+      log.warn(
+          "Registration failed: Username '{}' already exists.", registrationRequest.username());
+      throw new ResponseStatusException(HttpStatus.CONFLICT, "Username already exists");
     }
+    newUser = created.get();
+    log.info("User '{}' registered successfully.", newUser.getUsername());
 
     session.invalidate();
     // Use the authentication flow

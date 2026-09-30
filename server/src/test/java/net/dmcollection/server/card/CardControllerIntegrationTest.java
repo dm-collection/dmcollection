@@ -6,7 +6,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import net.dmcollection.server.IntegrationTestBase;
-import net.dmcollection.server.card.CardService.PrintingStub;
 import net.dmcollection.server.testutils.TestFixtureBuilder;
 import net.dmcollection.server.user.User;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,7 +26,7 @@ class CardControllerIntegrationTest extends IntegrationTestBase {
 
   @BeforeEach
   void setup() {
-    fixtures = new TestFixtureBuilder(dsl, cardTypeResolver);
+    fixtures = new TestFixtureBuilder(dsl, cardTypeResolver, testUser);
     testUser = createUser("cardtest");
   }
 
@@ -75,7 +74,7 @@ class CardControllerIntegrationTest extends IntegrationTestBase {
         .perform(get("/api/cards/0").param("name", "alpha").with(user(testUser)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.content.length()").value(1))
-        .andExpect(jsonPath("$.content[0].dmId").value("ctrl-alpha"));
+        .andExpect(jsonPath("$.content[0].printings[0].officialId").value("ctrl-alpha"));
   }
 
   @Test
@@ -101,7 +100,7 @@ class CardControllerIntegrationTest extends IntegrationTestBase {
     var expected = fixtures.createFourSides();
 
     mockMvc
-        .perform(get("/api/card/" + expected.dmId()).with(user(testUser)))
+        .perform(get("/api/card/" + expected.officialId()).with(user(testUser)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.zone").value("hyperspatial"));
   }
@@ -116,32 +115,5 @@ class CardControllerIntegrationTest extends IntegrationTestBase {
   @Test
   void getCardRequiresAuthentication() throws Exception {
     mockMvc.perform(get("/api/card/anything")).andExpect(status().isUnauthorized());
-  }
-
-  @Test
-  void getCardsByIdReturnsMatchingCards() throws Exception {
-    PrintingStub card1 = fixtures.testCard("ctrl-byid-1").light().build();
-    PrintingStub card2 = fixtures.testCard("ctrl-byid-2").water().build();
-
-    mockMvc
-        .perform(
-            get("/api/cards")
-                .param("cardIds", String.valueOf(card1.id()), String.valueOf(card2.id()))
-                .with(user(testUser)))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$").isArray())
-        .andExpect(jsonPath("$.length()").value(2));
-  }
-
-  @Test
-  void getCardsByIdReturns404WhenNoneFound() throws Exception {
-    mockMvc
-        .perform(get("/api/cards").param("cardIds", "99999").with(user(testUser)))
-        .andExpect(status().isNotFound());
-  }
-
-  @Test
-  void getCardsByIdRequiresAuthentication() throws Exception {
-    mockMvc.perform(get("/api/cards").param("cardIds", "1")).andExpect(status().isUnauthorized());
   }
 }

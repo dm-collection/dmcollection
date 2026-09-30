@@ -38,7 +38,7 @@ import org.springframework.data.domain.Pageable;
  *     be included. Default is {@code IN}.
  * @param cardType Include only cards of this type.
  * @param rarityFilter Include only cards matching the rarity filter.
- * @param speciesSearch A string contained in one or more species. Only cards of those will be
+ * @param raceSearch A string contained in one or more species. Only cards of those will be
  *     included.
  * @param nameSearch A string contained in the card name. Only cards with matching names will be
  *     included.
@@ -60,20 +60,19 @@ public record SearchFilter(
     FilterState twinpact,
     CardType cardType,
     RarityFilter rarityFilter,
-    String speciesSearch,
+    String raceSearch,
     String nameSearch,
     String effectSearch,
-    CollectionFilter collectionFilter,
+    @NonNull CollectionFilter collectionFilter,
     Pageable pageable) {
 
   public SearchFilter {
-    if (minCost != null && maxCost != null) {
-      if (minCost > maxCost) {
-        int tmp = maxCost;
-        maxCost = minCost;
-        minCost = tmp;
-      }
+    if (minCost != null && maxCost != null && minCost > maxCost) {
+      int tmp = maxCost;
+      maxCost = minCost;
+      minCost = tmp;
     }
+
     if (maxCost != null && maxCost == Integer.MAX_VALUE) {
       maxCost -= 1; // wouldn't want to find anything with "infinite" cost here
     }
@@ -81,13 +80,12 @@ public record SearchFilter(
       minCost -= 1; // wouldn't want to exclude anything with "infinite" cost here
     }
 
-    if (minPower != null && maxPower != null) {
-      if (minPower > maxPower) {
-        int tmp = maxPower;
-        maxPower = minPower;
-        minPower = tmp;
-      }
+    if (minPower != null && maxPower != null && minPower > maxPower) {
+      int tmp = maxPower;
+      maxPower = minPower;
+      minPower = tmp;
     }
+
     if (maxPower != null && maxPower == Integer.MAX_VALUE) {
       maxPower -= 1; // wouldn't want to find anything with "infinite" power here
     }
@@ -134,7 +132,7 @@ public record SearchFilter(
 
   public boolean isInvalid() {
     long rainbowCivsCount = includedCivs().stream().filter(c -> c != Civilization.ZERO).count();
-    if (!includeMono) {
+    if (Boolean.FALSE.equals(includeMono)) {
       if (rainbowCivsCount == 0) {
         // invalid search for rainbows matching only zero
         return true;
@@ -170,29 +168,7 @@ public record SearchFilter(
     return !isDefault;
   }
 
-  public record CollectionFilter(UUID userId, boolean searchCollection) {}
-
-  public SearchFilter withCollectionFilter(UUID userId, boolean searchCollection) {
-    return new SearchFilter(
-        this.setId,
-        this.includedCivs,
-        this.excludedCivs,
-        this.includeMono,
-        this.includeRainbow,
-        this.matchExactRainbowCivs,
-        this.minCost,
-        this.maxCost,
-        this.minPower,
-        this.maxPower,
-        this.twinpact,
-        this.cardType,
-        this.rarityFilter,
-        this.speciesSearch,
-        this.nameSearch,
-        this.effectSearch,
-        new CollectionFilter(userId, searchCollection),
-        this.pageable);
-  }
+  public record CollectionFilter(UUID userId, boolean ownedOnly) {}
 
   public enum FilterState {
     IN, // include

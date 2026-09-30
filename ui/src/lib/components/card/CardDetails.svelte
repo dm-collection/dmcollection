@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Card, CardFacet } from '$lib/types/card';
+	import type { Printing, CardFacet } from '$lib/types/card';
 	import AmountButton from '../AmountButton.svelte';
 	import SideDetails from './SideDetails.svelte';
 	import { api } from '$lib/api';
@@ -7,7 +7,7 @@
 	let {
 		card,
 		collectionEntry
-	}: { card: Card; collectionEntry: { cardId: number; amount: number } | undefined } = $props();
+	}: { card: Printing; collectionEntry: { cardId: number; amount: number } | undefined } = $props();
 	let cards: Array<Array<CardFacet>> = $state([]);
 	if (card.facets) {
 		for (const [i, facet] of card.facets.entries()) {

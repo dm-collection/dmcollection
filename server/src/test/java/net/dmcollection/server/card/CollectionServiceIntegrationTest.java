@@ -13,11 +13,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import net.dmcollection.server.IntegrationTestBase;
-import net.dmcollection.server.card.CardService.PrintingStub;
 import net.dmcollection.server.card.serialization.collection.format.v1.V1CollectionCardExport;
 import net.dmcollection.server.card.serialization.collection.format.v1.V1CollectionExport;
 import net.dmcollection.server.card.serialization.collection.format.v2.V2CollectionExport;
 import net.dmcollection.server.testutils.TestFixtureBuilder;
+import net.dmcollection.server.user.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,18 +31,17 @@ class CollectionServiceIntegrationTest extends IntegrationTestBase {
   @Autowired JsonMapper objectMapper;
 
   private TestFixtureBuilder fixtures;
-  private UUID userId;
+  private User user;
 
   @BeforeEach
   void setup() {
-    fixtures = new TestFixtureBuilder(dsl, cardTypeResolver);
-
-    userId = createUser("testuser").getId();
+    user = createUser("testuser");
+    fixtures = new TestFixtureBuilder(dsl, cardTypeResolver, user);
   }
 
   @Test
   void stubReturnsEmptyMapForNewUser() {
-    Map<Integer, Integer> stub = collectionService.getPrimaryStub(userId);
+    Map<Integer, Integer> stub = collectionService.getPrimaryStub(user.getId());
     assertThat(stub).isEmpty();
   }
 
@@ -50,9 +49,9 @@ class CollectionServiceIntegrationTest extends IntegrationTestBase {
   void setAndGetSingleCardAmount() {
     PrintingStub card = fixtures.testCard("dm01-001").light().build();
 
-    collectionService.setCardAmount(userId, card.id(), 3);
+    collectionService.setCardAmount(user.getId(), card.id(), 3);
 
-    var result = collectionService.getSingleCardAmount(userId, card.id());
+    var result = collectionService.getSingleCardAmount(user.getId(), card.id());
     assertThat(result)
         .hasValueSatisfying(
             stub -> {
@@ -65,10 +64,10 @@ class CollectionServiceIntegrationTest extends IntegrationTestBase {
   void upsertUpdatesExistingEntry() {
     PrintingStub card = fixtures.testCard("dm01-001").light().build();
 
-    collectionService.setCardAmount(userId, card.id(), 2);
-    collectionService.setCardAmount(userId, card.id(), 5);
+    collectionService.setCardAmount(user.getId(), card.id(), 2);
+    collectionService.setCardAmount(user.getId(), card.id(), 5);
 
-    var result = collectionService.getSingleCardAmount(userId, card.id());
+    var result = collectionService.getSingleCardAmount(user.getId(), card.id());
     assertThat(result).hasValueSatisfying(stub -> assertThat(stub.amount()).isEqualTo(5));
   }
 
@@ -76,16 +75,19 @@ class CollectionServiceIntegrationTest extends IntegrationTestBase {
   void deleteEntryWhenAmountIsZero() {
     PrintingStub card = fixtures.testCard("dm01-001").light().build();
 
-    collectionService.setCardAmount(userId, card.id(), 3);
-    collectionService.setCardAmount(userId, card.id(), 0);
+    collectionService.setCardAmount(user.getId(), card.id(), 3);
+    collectionService.setCardAmount(user.getId(), card.id(), 0);
 
-    var result = collectionService.getSingleCardAmount(userId, card.id());
+    var result = collectionService.getSingleCardAmount(user.getId(), card.id());
     assertThat(result).hasValueSatisfying(stub -> assertThat(stub.amount()).isZero());
 
     int rowCount =
         dsl.fetchCount(
             COLLECTION_ENTRY,
-            COLLECTION_ENTRY.USER_ID.eq(userId).and(COLLECTION_ENTRY.PRINTING_ID.eq(card.id())));
+            COLLECTION_ENTRY
+                .USER_ID
+                .eq(user.getId())
+                .and(COLLECTION_ENTRY.PRINTING_ID.eq(card.id())));
     assertThat(rowCount).isZero();
   }
 
@@ -96,21 +98,23 @@ class CollectionServiceIntegrationTest extends IntegrationTestBase {
         fixtures.testCard("dmc36-003").fire().cost(7).power(7000).creature().build();
     PrintingStub zeroCard = fixtures.testCard("dmr08-021").cost(5).power(2000).creature().build();
 
-    collectionService.setCardAmount(userId, lightCard.id(), 5);
-    collectionService.setCardAmount(userId, fireCard.id(), 28);
-    collectionService.setCardAmount(userId, zeroCard.id(), 5000);
+    collectionService.setCardAmount(user.getId(), lightCard.id(), 5);
+    collectionService.setCardAmount(user.getId(), fireCard.id(), 28);
+    collectionService.setCardAmount(user.getId(), zeroCard.id(), 5000);
 
     var result =
-        collectionService.getPrimaryCollection(userId, search().addIncludedCivs(ZERO).build());
+        collectionService.getPrimaryCollection(
+            user.getId(), search(user).addIncludedCivs(ZERO).build());
 
-    assertThat(result.info().numberOfPrintings()).isEqualTo(1);
     assertThat(result.cardPage().getContent())
         .hasSize(1)
         .allSatisfy(
             cardStub -> {
-              assertThat(cardStub.dmId()).isEqualTo("dmr08-021");
-              assertThat(cardStub.amount()).isEqualTo(5000);
+              assertThat(cardStub.printings().getFirst().officialId()).isEqualTo("dmr08-021");
+              assertThat(cardStub.printings().getFirst().amount()).isEqualTo(5000);
             });
+    assertThat(result.info().numberOfCards()).isEqualTo(1);
+    assertThat(result.info().numberOfCopies()).isEqualTo(5000);
   }
 
   @Test
@@ -118,10 +122,10 @@ class CollectionServiceIntegrationTest extends IntegrationTestBase {
     PrintingStub card1 = fixtures.testCard("dm01-001").light().build();
     PrintingStub card2 = fixtures.testCard("dm02-002").water().build();
 
-    collectionService.setCardAmount(userId, card1.id(), 3);
-    collectionService.setCardAmount(userId, card2.id(), 7);
+    collectionService.setCardAmount(user.getId(), card1.id(), 3);
+    collectionService.setCardAmount(user.getId(), card2.id(), 7);
 
-    V2CollectionExport export = collectionService.exportCollection(userId);
+    V2CollectionExport export = collectionService.exportCollection(user.getId());
 
     assertThat(export.version().version()).isEqualTo(2);
     assertThat(export.meta().countWithoutDuplicates()).isEqualTo(2);
@@ -143,18 +147,18 @@ class CollectionServiceIntegrationTest extends IntegrationTestBase {
     PrintingStub card2 = fixtures.testCard("dm02-002").water().build();
     PrintingStub card3 = fixtures.testCard("dm03-005").fire().build();
 
-    collectionService.setCardAmount(userId, card1.id(), 3);
-    collectionService.setCardAmount(userId, card2.id(), 7);
+    collectionService.setCardAmount(user.getId(), card1.id(), 3);
+    collectionService.setCardAmount(user.getId(), card2.id(), 7);
     List<V1CollectionCardExport> importCards =
         Arrays.asList(
-            new V1CollectionCardExport("first card", card1.dmId(), 6),
-            new V1CollectionCardExport("third card", card3.dmId(), 4));
+            new V1CollectionCardExport("first card", card1.officialId(), 6),
+            new V1CollectionCardExport("third card", card3.officialId(), 4));
     V1CollectionExport toImport =
         new V1CollectionExport(
             1, LocalDateTime.now().minusDays(1), "collection", 10, 2, importCards);
-    collectionService.importCollection(userId, toImport);
+    collectionService.importCollection(user.getId(), toImport);
 
-    Map<Integer, Integer> result = collectionService.getPrimaryStub(userId);
+    Map<Integer, Integer> result = collectionService.getPrimaryStub(user.getId());
     assertThat(result)
         .containsEntry(card1.id(), 6)
         .containsEntry(card3.id(), 4)
@@ -168,12 +172,12 @@ class CollectionServiceIntegrationTest extends IntegrationTestBase {
     PrintingStub removed = fixtures.testCard("dm03-003").fire().build();
     PrintingStub added = fixtures.testCard("dm04-004").light().build();
 
-    collectionService.setCardAmount(userId, unchanged.id(), 2);
-    collectionService.setCardAmount(userId, updated.id(), 3);
-    collectionService.setCardAmount(userId, removed.id(), 4);
+    collectionService.setCardAmount(user.getId(), unchanged.id(), 2);
+    collectionService.setCardAmount(user.getId(), updated.id(), 3);
+    collectionService.setCardAmount(user.getId(), removed.id(), 4);
 
     dsl.deleteFrom(COLLECTION_HISTORY_ENTRY)
-        .where(COLLECTION_HISTORY_ENTRY.USER_ID.eq(userId))
+        .where(COLLECTION_HISTORY_ENTRY.USER_ID.eq(user.getId()))
         .execute();
 
     V1CollectionExport importData =
@@ -184,15 +188,15 @@ class CollectionServiceIntegrationTest extends IntegrationTestBase {
             0,
             0,
             List.of(
-                new V1CollectionCardExport("Unchanged", unchanged.dmId(), 2),
-                new V1CollectionCardExport("Updated", updated.dmId(), 9),
-                new V1CollectionCardExport("Added", added.dmId(), 5)));
+                new V1CollectionCardExport("Unchanged", unchanged.officialId(), 2),
+                new V1CollectionCardExport("Updated", updated.officialId(), 9),
+                new V1CollectionCardExport("Added", added.officialId(), 5)));
 
-    collectionService.importCollection(userId, importData);
+    collectionService.importCollection(user.getId(), importData);
 
     var history =
         dsl.selectFrom(COLLECTION_HISTORY_ENTRY)
-            .where(COLLECTION_HISTORY_ENTRY.USER_ID.eq(userId))
+            .where(COLLECTION_HISTORY_ENTRY.USER_ID.eq(user.getId()))
             .fetch();
 
     assertThat(history)
@@ -224,7 +228,7 @@ class CollectionServiceIntegrationTest extends IntegrationTestBase {
     PrintingStub card1 = fixtures.testCard("dm01-001").light().build();
     PrintingStub card2 = fixtures.testCard("dm02-002").water().build();
 
-    collectionService.setCardAmount(userId, card1.id(), 10);
+    collectionService.setCardAmount(user.getId(), card1.id(), 10);
 
     V1CollectionExport importData =
         new V1CollectionExport(
@@ -235,9 +239,9 @@ class CollectionServiceIntegrationTest extends IntegrationTestBase {
             1,
             List.of(new V1CollectionCardExport("Card 2", "dm02-002", 5)));
 
-    collectionService.importCollection(userId, importData);
+    collectionService.importCollection(user.getId(), importData);
 
-    Map<Integer, Integer> stub = collectionService.getPrimaryStub(userId);
+    Map<Integer, Integer> stub = collectionService.getPrimaryStub(user.getId());
     assertThat(stub).hasSize(1).doesNotContainKey(card1.id()).containsEntry(card2.id(), 5);
   }
 
@@ -245,12 +249,12 @@ class CollectionServiceIntegrationTest extends IntegrationTestBase {
   void historyEntryCreatedOnQuantityChange() {
     PrintingStub card = fixtures.testCard("dm01-001").light().build();
 
-    collectionService.setCardAmount(userId, card.id(), 3);
-    collectionService.setCardAmount(userId, card.id(), 5);
+    collectionService.setCardAmount(user.getId(), card.id(), 3);
+    collectionService.setCardAmount(user.getId(), card.id(), 5);
 
     var history =
         dsl.selectFrom(COLLECTION_HISTORY_ENTRY)
-            .where(COLLECTION_HISTORY_ENTRY.USER_ID.eq(userId))
+            .where(COLLECTION_HISTORY_ENTRY.USER_ID.eq(user.getId()))
             .and(COLLECTION_HISTORY_ENTRY.PRINTING_ID.eq(card.id()))
             .orderBy(COLLECTION_HISTORY_ENTRY.CHANGED_AT.asc())
             .fetch();

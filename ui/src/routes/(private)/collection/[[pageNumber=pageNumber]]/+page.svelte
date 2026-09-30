@@ -1,27 +1,41 @@
 <script lang="ts">
 	import { goto, invalidate } from '$app/navigation';
 	import CardFilters from '$lib/components/CardFilters.svelte';
-	import CountedCardStub from '$lib/components/CountedCardStub.svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
 	import { getRarities } from '$lib/rarity.svelte';
 	import { getSets } from '$lib/sets.svelte';
 	import { getSpecies } from '$lib/species.svelte';
-	import type { CardStub } from '$lib/types/card';
 	import type { PageProps } from './$types';
 	import DownloadSimpleIcon from 'phosphor-svelte/lib/DownloadSimpleIcon';
 	import UploadSimpleIcon from 'phosphor-svelte/lib/UploadSimpleIcon';
 	import WarningIcon from 'phosphor-svelte/lib/WarningIcon';
 	import CircleNotchIcon from 'phosphor-svelte/lib/CircleNotchIcon';
 	import { api } from '$lib/api';
+	import type { CardStub, PrintingStub } from '$lib/types/card';
+	import CountedPrintingStub from '$lib/components/CountedPrintingStub.svelte';
+	import { SvelteSet } from 'svelte/reactivity';
+	import ExpandingCardStub from '$lib/components/ExpandingCardStub.svelte';
+	import CaretUpIcon from 'phosphor-svelte/lib/CaretUpIcon';
 
-	let { data = $bindable() }: PageProps = $props();
-
-	let editingEnabled: boolean = $state(false);
+	let { data }: PageProps = $props();
 
 	let importDialog: HTMLDialogElement;
 	let importFiles: FileList | null = $state(null);
 	let uploading = $state(false);
 	let uploadError = $state(false);
+
+	// svelte-ignore state_referenced_locally
+	let cards = $state(data.collection?.cardPage?.content);
+
+	// svelte-ignore state_referenced_locally
+	let info = $state(data.collection?.info);
+
+	$effect(() => {
+		cards = data.collection?.cardPage?.content;
+		info = data.collection?.info;
+	});
+
+	let expanded = new SvelteSet<CardStub>();
 
 	async function showDialog() {
 		importDialog?.showModal();
@@ -73,18 +87,32 @@
 		}
 	}
 
-	async function amountChange(card: CardStub, i: number, newAmount: number) {
-		const response = await api(`/api/collectionStub`, {
-			method: 'PUT',
-			json: { cardId: card.id, amount: newAmount }
-		});
-		if (response.ok) {
-			card.amount = newAmount;
-			if (data.collection) {
-				data.collection.cardPage.content[i] = card;
-				data = data;
-				invalidate((url) => url.pathname.startsWith('/api/cards'));
+	async function expand(card: CardStub) {
+		expanded.add(card);
+	}
+
+	async function collapse(card: CardStub) {
+		expanded.delete(card);
+	}
+
+	async function amountChange(card: CardStub, printing: PrintingStub, newAmount: number) {
+		try {
+			const response = await api(`/api/collectionStub`, {
+				method: 'PUT',
+				json: { cardId: printing.id, amount: newAmount }
+			});
+			if (response.ok) {
+				const cardWasOwned = card.printings.some((p) => p.amount > 0);
+				const copiesDelta = newAmount - printing.amount;
+				printing.amount = newAmount;
+				const cardIsOwned = card.printings.some((p) => p.amount > 0);
+				if (info) {
+					info.numberOfCopies += copiesDelta;
+					info.numberOfCards += Number(cardIsOwned) - Number(cardWasOwned);
+				}
 			}
+		} catch (error) {
+			console.error(error);
 		}
 	}
 </script>
@@ -142,65 +170,98 @@
 	</div>
 </dialog>
 
-{#if data.collection}
-	<div class="flex flex-row justify-between">
-		<h1 class="txt-h1">Collection</h1>
-		<form method="get" action="/api/collection/export" class="flex flex-row items-center gap-2">
-			<button
-				type="submit"
-				class="inline-flex items-center rounded-md border bg-white py-2 pr-3 pl-2 enabled:border-teal-700 enabled:text-teal-700 enabled:hover:bg-teal-700 enabled:hover:text-teal-50 disabled:border-slate-300 disabled:text-slate-300"
-			>
-				<DownloadSimpleIcon size="1.5em" class="mr-2"></DownloadSimpleIcon>
-				Export</button
-			>
-			<button
-				type="button"
-				class="inline-flex items-center rounded-md border bg-white py-2 pr-3 pl-2 enabled:border-teal-700 enabled:text-teal-700 enabled:hover:bg-teal-700 enabled:hover:text-teal-50 disabled:border-slate-300 disabled:text-slate-300"
-				onclick={showDialog}
-			>
-				<UploadSimpleIcon size="1.5em" class="mr-2"></UploadSimpleIcon>
-				Import</button
-			>
-		</form>
-	</div>
-	<div class="flex flex-row gap-4">
-		<p>Cards: {data.collection.info.numberOfCards}</p>
-		<p>Printings: {data.collection.info.numberOfPrintings}</p>
-		<p>Copies: {data.collection.info.numberOfCopies}</p>
-		<label>
-			<input type="checkbox" bind:checked={editingEnabled} />
-			Allow editing
-		</label>
-	</div>
+<div class="flex flex-row justify-between">
+	<h1 class="txt-h1">Collection</h1>
+	<form method="get" action="/api/collection/export" class="flex flex-row items-center gap-2">
+		<button
+			type="submit"
+			class="inline-flex items-center rounded-md border bg-white py-2 pr-3 pl-2 enabled:border-teal-700 enabled:text-teal-700 enabled:hover:bg-teal-700 enabled:hover:text-teal-50 disabled:border-slate-300 disabled:text-slate-300"
+		>
+			<DownloadSimpleIcon size="1.5em" class="mr-2"></DownloadSimpleIcon>
+			Export</button
+		>
+		<button
+			type="button"
+			class="inline-flex items-center rounded-md border bg-white py-2 pr-3 pl-2 enabled:border-teal-700 enabled:text-teal-700 enabled:hover:bg-teal-700 enabled:hover:text-teal-50 disabled:border-slate-300 disabled:text-slate-300"
+			onclick={showDialog}
+		>
+			<UploadSimpleIcon size="1.5em" class="mr-2"></UploadSimpleIcon>
+			Import</button
+		>
+	</form>
+</div>
+<div class="flex flex-row gap-4">
+	<p>Cards: {info?.numberOfCards ?? 0}</p>
+	<p>Copies: {info?.numberOfCopies ?? 0}</p>
+</div>
 
-	{#await getSets() then sets}
-		{#await getSpecies() then species}
-			{#await getRarities() then rarities}
-				<CardFilters search={data.search} {sets} {species} {rarities} changeCallback={runSearch} />
-			{/await}
+{#await getSets() then sets}
+	{#await getSpecies() then species}
+		{#await getRarities() then rarities}
+			<CardFilters search={data.search} {sets} {species} {rarities} changeCallback={runSearch} />
 		{/await}
 	{/await}
-	{#if data.collection && data.collection.cardPage.content.length > 0}
-		<Pagination pageInfo={data.collection.cardPage.page} path="/collection" />
-		<div class="grid gap-8 lg:grid-cols-5 xl:grid-cols-8">
-			{#each data.collection.cardPage.content as card, i (card.id)}
-				<CountedCardStub
-					{card}
-					amount={card.amount}
-					enableEdit={editingEnabled}
-					sizes="(width >= 80rem) calc(100vw / 8), (width >= 64rem) calc(100vw / 5), 100vw"
-					onChange={(newAmount: number) => {
-						amountChange(card, i, newAmount);
-					}}
-				/>
-			{/each}
-		</div>
-		<Pagination pageInfo={data.collection.cardPage.page} path="/collection" />
-	{:else if data.search.isDefault()}
-		<h1>Your collection is empty.</h1>
-	{:else}
-		<h1>No results. Try adjusting the filters or collect matching cards.</h1>
-	{/if}
+{/await}
+{#if cards && cards.length > 0 && data.collection?.cardPage}
+	<Pagination pageInfo={data.collection.cardPage.page} path="/collection" />
+	<div class="grid gap-6 lg:grid-cols-5 xl:grid-cols-8">
+		{#each cards as card (card.id)}
+			{#if card.printings.length > 1 && cards.length > 1}
+				{#if expanded.has(card)}
+					<div
+						class="col-span-full -m-1 grid gap-6 rounded-lg border border-teal-700 p-1 inset-shadow-sm lg:grid-cols-5 xl:grid-cols-8"
+					>
+						<button
+							class="col-span-full -mb-6 flex flex-row items-center justify-center text-sm"
+							onclick={() => collapse(card)}
+						>
+							{card.name}
+						</button>
+						{#each card.printings as printing (printing.id)}
+							<CountedPrintingStub
+								{printing}
+								amount={printing.amount}
+								sizes="(width >= 80rem) calc((100vw - 7 * 2rem) / 8), (width >= 64rem) calc((100vw - 7 * 2rem) / 5), 100vw"
+								onChange={(newAmount: number) => {
+									amountChange(card, printing, newAmount);
+								}}
+							/>
+						{/each}
+						<button
+							class="col-span-full -mt-6 flex flex-row items-center justify-center text-sm"
+							onclick={() => collapse(card)}
+						>
+							<CaretUpIcon size="1em"></CaretUpIcon>
+							Collapse
+						</button>
+					</div>
+				{:else}
+					<ExpandingCardStub
+						{card}
+						amount={card.printings.reduce((s, p) => s + p.amount, 0)}
+						sizes="(width >= 80rem) calc((100vw - 7 * 2rem) / 8), (width >= 64rem) calc((100vw - 7 * 2rem) / 5), 100vw"
+						onClick={() => {
+							expand(card);
+						}}
+					/>
+				{/if}
+			{:else}
+				{#each card.printings as printing (printing.id)}
+					<CountedPrintingStub
+						{printing}
+						amount={printing.amount}
+						sizes="(width >= 80rem) calc((100vw - 7 * 2rem) / 8), (width >= 64rem) calc((100vw - 7 * 2rem) / 5), 100vw"
+						onChange={(newAmount: number) => {
+							amountChange(card, printing, newAmount);
+						}}
+					/>
+				{/each}
+			{/if}
+		{/each}
+	</div>
+	<Pagination pageInfo={data.collection.cardPage.page} path="/collection" />
+{:else if data.search.isDefault()}
+	<h1>Your collection is empty.</h1>
 {:else}
-	<h1>NOT FOUND</h1>
+	<h1>No results. Try adjusting the filters or collect matching cards.</h1>
 {/if}

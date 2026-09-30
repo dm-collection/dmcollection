@@ -17,12 +17,9 @@ import static org.springframework.web.util.HtmlUtils.htmlEscape;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
-import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import org.jooq.DSLContext;
@@ -37,16 +34,7 @@ public class CardService {
     this.dsl = dsl;
   }
 
-  public record PrintingStub(
-      int id,
-      String dmId,
-      String idText,
-      Set<Civilization> civilizations,
-      List<String> imageFiles,
-      int amount,
-      int collectionAmount) {}
-
-  public record CardDto(
+  public record PrintingDto(
       Long id,
       String name,
       String dmId,
@@ -74,55 +62,9 @@ public class CardService {
 
   public record ChildEffectDto(String text, int position) {}
 
-  private record SideData(List<Short> civilizationIds, String imageFilename) {}
-
   private record AbilityRow(String text, short position, short indentLevel) {}
 
-  public List<PrintingStub> getByIds(List<Long> printingIds) {
-    List<Integer> ids = printingIds.stream().map(Long::intValue).toList();
-
-    record PrintingRow(int printingId, String officialSiteId, String collectorNumber) {}
-
-    Map<Integer, PrintingRow> printings = new LinkedHashMap<>();
-    dsl.select(PRINTING.ID, PRINTING.OFFICIAL_SITE_ID, PRINTING.COLLECTOR_NUMBER)
-        .from(PRINTING)
-        .where(PRINTING.ID.in(ids))
-        .forEach(
-            r ->
-                printings.put(
-                    r.get(PRINTING.ID),
-                    new PrintingRow(
-                        r.get(PRINTING.ID),
-                        r.get(PRINTING.OFFICIAL_SITE_ID),
-                        r.get(PRINTING.COLLECTOR_NUMBER))));
-
-    if (printings.isEmpty()) {
-      return List.of();
-    }
-
-    Map<Integer, List<SideData>> sidesByPrinting = fetchSideData(printings.keySet());
-
-    List<PrintingStub> result = new ArrayList<>(printings.size());
-    for (PrintingRow row : printings.values()) {
-      List<SideData> sides = sidesByPrinting.getOrDefault(row.printingId(), List.of());
-      result.add(
-          new PrintingStub(
-              row.printingId(),
-              row.officialSiteId(),
-              row.collectorNumber(),
-              collectCivilizations(sides),
-              collectImageFiles(sides),
-              0,
-              0));
-    }
-    return result;
-  }
-
-  public boolean cardExists(Long id) {
-    return dsl.fetchExists(dsl.selectOne().from(PRINTING).where(PRINTING.ID.eq(id.intValue())));
-  }
-
-  public Optional<CardDto> getCardDto(String dmId) {
+  public Optional<PrintingDto> getCardDto(String dmId) {
     // Phase 1: Main printing data
     var printingRecord =
         dsl.select(
@@ -210,7 +152,7 @@ public class CardService {
 
     if (sideRows.isEmpty()) {
       return Optional.of(
-          new CardDto(
+          new PrintingDto(
               (long) printingId,
               cardName,
               htmlEscape(officialSiteId, StandardCharsets.UTF_8.name()),
@@ -313,7 +255,7 @@ public class CardService {
     }
 
     return Optional.of(
-        new CardDto(
+        new PrintingDto(
             (long) printingId,
             cardName,
             htmlEscape(officialSiteId, StandardCharsets.UTF_8.name()),
@@ -327,54 +269,11 @@ public class CardService {
             facets));
   }
 
-  private Map<Integer, List<SideData>> fetchSideData(Collection<Integer> printingIds) {
-    Map<Integer, List<SideData>> result = new LinkedHashMap<>();
-    dsl.select(PRINTING.ID, CARD_SIDE.CIVILIZATION_IDS, PRINTING_SIDE.IMAGE_FILENAME)
-        .from(PRINTING_SIDE)
-        .join(PRINTING)
-        .on(PRINTING.ID.eq(PRINTING_SIDE.PRINTING_ID))
-        .join(CARD_SIDE)
-        .on(CARD_SIDE.ID.eq(PRINTING_SIDE.CARD_SIDE_ID))
-        .where(PRINTING.ID.in(printingIds))
-        .orderBy(PRINTING.ID, CARD_SIDE.SIDE_ORDER)
-        .forEach(
-            r ->
-                result
-                    .computeIfAbsent(r.get(PRINTING.ID), k -> new ArrayList<>())
-                    .add(
-                        new SideData(
-                            Arrays.stream(r.get(CARD_SIDE.CIVILIZATION_IDS)).toList(),
-                            r.get(PRINTING_SIDE.IMAGE_FILENAME))));
-    return result;
-  }
-
-  private static Set<Civilization> collectCivilizations(List<SideData> sides) {
-    Set<Civilization> civilizations = EnumSet.noneOf(Civilization.class);
-    for (SideData side : sides) {
-      if (side.civilizationIds() == null || side.civilizationIds().isEmpty()) {
-        civilizations.add(Civilization.ZERO);
-      } else {
-        for (short civId : side.civilizationIds()) {
-          civilizations.add(Civilization.values()[civId]);
-        }
-      }
-    }
-    return civilizations;
-  }
-
-  private static List<String> collectImageFiles(List<SideData> sides) {
-    return sides.stream().map(SideData::imageFilename).filter(Objects::nonNull).toList();
-  }
-
   private static List<String> civilizationNames(List<Short> civilizationIds) {
     if (civilizationIds == null || civilizationIds.isEmpty()) {
       return List.of(Civilization.ZERO.toString());
     }
-    List<String> names = new ArrayList<>(civilizationIds.size());
-    for (short civId : civilizationIds) {
-      names.add(Civilization.values()[civId].toString());
-    }
-    return names;
+    return civilizationIds.stream().map(id -> Civilization.values()[id].toString()).toList();
   }
 
   private static String formatCost(Integer cost, boolean isInfinity) {
@@ -387,11 +286,18 @@ public class CardService {
     if (isInfinity) return "∞";
     if (power == null) return null;
     return switch (modifier) {
-      case "leading_plus" -> "+" + power;
-      case "trailing_plus" -> power + "+";
-      case "trailing_minus" -> power + "－";
+      case "leading_plus" -> "+" + padZero(power);
+      case "trailing_plus" -> padZero(power) + "+";
+      case "trailing_minus" -> power + "-";
       default -> String.valueOf(power);
     };
+  }
+
+  private static String padZero(Integer power) {
+    if (power == 0) {
+      return "0000";
+    }
+    return power.toString();
   }
 
   private static List<EffectDto> buildEffects(List<AbilityRow> abilityRows) {

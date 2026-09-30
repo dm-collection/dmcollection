@@ -32,11 +32,6 @@ export const CARD_ID_ASC: Order = {
 	direction: Direction.Ascending
 };
 
-export const CARD_ID_DESC: Order = {
-	property: SortingCriterion.CardId,
-	direction: Direction.Descending
-};
-
 export const AMOUNT_ASC: Order = {
 	property: SortingCriterion.Amount,
 	direction: Direction.Ascending

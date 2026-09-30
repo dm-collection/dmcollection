@@ -2,22 +2,32 @@
 	import { goto, invalidate, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import CardFilters from '$lib/components/CardFilters.svelte';
-	import CountedCardStub from '$lib/components/CountedCardStub.svelte';
+	import CountedPrintingStub from '$lib/components/CountedPrintingStub.svelte';
 	import Pagination from '$lib/components/Pagination.svelte';
 	import { getRarities } from '$lib/rarity.svelte';
 	import { getSets } from '$lib/sets.svelte';
 	import { getSpecies } from '$lib/species.svelte';
-	import type { CardStub } from '$lib/types/card';
 	import type { PagedResult } from '$lib/types/page';
-	import { SvelteURL, SvelteURLSearchParams } from 'svelte/reactivity';
+	import { SvelteSet, SvelteURL, SvelteURLSearchParams } from 'svelte/reactivity';
 	import type { PageProps } from './$types';
 	import PencilSimpleIcon from 'phosphor-svelte/lib/PencilSimpleIcon';
 	import { api } from '$lib/api';
+	import type { CardStub } from '$lib/types/card';
+	import CaretUpIcon from 'phosphor-svelte/lib/CaretUpIcon';
+	import ExpandingCardStub from '$lib/components/ExpandingCardStub.svelte';
+	import type { DeckCardStub } from '$lib/types/deck';
 
 	let { data }: PageProps = $props();
 
 	let cardPage = $state(data.cardPage);
 	let ownedOnly = $state(data.ownedOnly ?? false);
+	// svelte-ignore state_referenced_locally
+	// eslint-disable-next-line svelte/prefer-writable-derived
+	let cards = $state(data.cardPage?.content);
+	$effect(() => {
+		cards = data.cardPage?.content;
+	});
+	let expanded = new SvelteSet<CardStub | DeckCardStub>();
 
 	let editDialog: HTMLDialogElement;
 
@@ -47,6 +57,14 @@
 				input.reportValidity();
 			}
 		}
+	}
+
+	async function expand(card: CardStub | DeckCardStub) {
+		expanded.add(card);
+	}
+
+	async function collapse(card: CardStub | DeckCardStub) {
+		expanded.delete(card);
 	}
 
 	async function runSearch(
@@ -81,6 +99,7 @@
 
 				newCardPage.page.number += 1;
 				cardPage = newCardPage;
+				cards = newCardPage.content;
 			}
 		} catch (error) {
 			console.error(error);
@@ -93,7 +112,7 @@
 
 	async function amountChange(cardId: number, newAmount: number) {
 		try {
-			await data.deck?.setCardAmount(cardId, newAmount);
+			await data.deck?.setPrintingAmount(cardId, newAmount);
 		} catch (err) {
 			if (err instanceof Error && err.message === 'unauthorized') {
 				goto('/login');
@@ -150,23 +169,85 @@
 						landscape:min-w-full landscape:grid-cols-2 landscape:lg:grid-cols-3 landscape:2xl:grid-cols-5"
 					>
 						{#each data.deck.getCards() as card (card.id)}
-							<CountedCardStub
-								{card}
-								amount={card.amount}
-								max={card.collectionAmount}
-								showMax={true}
-								enforceMax={false}
-								sizes="
+							{#if card.printings.length > 1 && data.deck.getCards().length > 1}
+								{#if expanded.has(card)}
+									<div
+										class="col-span-full grid gap-4 rounded-lg border border-teal-700 p-1 inset-shadow-sm
+						portrait:min-w-full portrait:grid-cols-2 portrait:md:grid-cols-6 portrait:xl:grid-cols-7
+						landscape:min-w-full landscape:grid-cols-2 landscape:lg:grid-cols-3 landscape:2xl:grid-cols-5"
+									>
+										<button
+											class="col-span-full -mb-4 flex flex-row items-center justify-center text-sm"
+											onclick={() => collapse(card)}
+										>
+											{card.name}
+										</button>
+										{#each card.printings as printing (printing.id)}
+											<CountedPrintingStub
+												{printing}
+												amount={printing.amount}
+												max={printing.collectionAmount}
+												showMax={true}
+												enforceMax={false}
+												sizes="
 									(orientation: landscape) and (min-width: 96rem) calc(40vw / 5),
 									(orientation: landscape) and (min-width: 64rem) calc(40vw / 3),
 									(orientation: landscape) calc(40vw / 2),
 									(min-width: 80rem) calc(100vw / 7),
 									(min-width: 48rem) calc(100vw / 6),
 									calc(100vw / 2)"
-								onChange={(newAmount: number) => {
-									amountChange(card.id, newAmount);
-								}}
-							/>
+												onChange={(newAmount: number) => {
+													amountChange(printing.id, newAmount);
+												}}
+											/>
+										{/each}
+										<button
+											class="col-span-full -mt-4 flex flex-row items-center justify-center text-sm"
+											onclick={() => collapse(card)}
+										>
+											<CaretUpIcon size="1em"></CaretUpIcon>
+											Collapse
+										</button>
+									</div>
+								{:else}
+									{#await data.deck.getCardAmount(card.id) then inDeck}
+										<ExpandingCardStub
+											{card}
+											amount={inDeck}
+											max={card.printings.reduce((s, p) => s + p.collectionAmount, 0)}
+											enforcemax={true}
+											sizes="
+										(orientation: landscape) and (min-width: 96rem) calc(59vw / 8),
+										(orientation: landscape) and (min-width: 64rem) calc(59vw / 5),
+										(orientation: landscape) calc(59vw / 2),
+										(min-width: 80rem) calc(100vw / 6),
+										(min-width: 48rem) calc(100vw / 5),
+										calc(100vw / 2)"
+											onClick={() => expand(card)}
+										/>
+									{/await}
+								{/if}
+							{:else}
+								{#each card.printings as printing (printing.id)}
+									<CountedPrintingStub
+										{printing}
+										amount={printing.amount}
+										max={printing.collectionAmount}
+										showMax={true}
+										enforceMax={false}
+										sizes="
+									(orientation: landscape) and (min-width: 96rem) calc(40vw / 5),
+									(orientation: landscape) and (min-width: 64rem) calc(40vw / 3),
+									(orientation: landscape) calc(40vw / 2),
+									(min-width: 80rem) calc(100vw / 7),
+									(min-width: 48rem) calc(100vw / 6),
+									calc(100vw / 2)"
+										onChange={(newAmount: number) => {
+											amountChange(printing.id, newAmount);
+										}}
+									/>
+								{/each}
+							{/if}
 						{/each}
 					</div>
 				{:else}
@@ -197,32 +278,98 @@
 				<Pagination pageInfo={cardPage.page} onForward={changePage} onBack={changePage} />
 			{/if}
 			<div class="overflow-y-auto landscape:max-h-full">
-				{#if cardPage.content.length > 0}
+				{#if cards && cards.length > 0}
 					<div
 						class="grid gap-4 shadow-inner
 						portrait:grid-cols-2 portrait:md:grid-cols-5 portrait:xl:grid-cols-6
 					    landscape:grid-cols-2 landscape:lg:grid-cols-5 landscape:2xl:grid-cols-8"
 					>
-						{#each cardPage.content as card (card.id)}
-							{#await data.deck.getAmount(card.id) then inDeck}
-								<CountedCardStub
-									{card}
-									amount={inDeck}
-									max={card.amount}
-									showMax={true}
-									enforceMax={false}
-									sizes="
+						{#each cards as card (card.id)}
+							{#if card.printings.length > 1 && cards.length > 1}
+								{#if expanded.has(card)}
+									<div
+										class="col-span-full grid gap-4 rounded-lg border border-teal-700
+										  p-1 inset-shadow-sm
+						portrait:grid-cols-2 portrait:md:grid-cols-5 portrait:xl:grid-cols-6
+					    landscape:grid-cols-2 landscape:lg:grid-cols-5 landscape:2xl:grid-cols-8"
+									>
+										<button
+											class="col-span-full -mb-4 flex flex-row items-center justify-center text-sm"
+											onclick={() => collapse(card)}
+										>
+											{card.name}
+										</button>
+										{#each card.printings as printing (printing.id)}
+											{#await data.deck.getAmount(printing.id) then inDeck}
+												<CountedPrintingStub
+													{printing}
+													amount={inDeck}
+													max={printing.amount}
+													showMax={true}
+													enforceMax={false}
+													sizes="
 										(orientation: landscape) and (min-width: 96rem) calc(59vw / 8),
 										(orientation: landscape) and (min-width: 64rem) calc(59vw / 5),
 										(orientation: landscape) calc(59vw / 2),
 										(min-width: 80rem) calc(100vw / 6),
 										(min-width: 48rem) calc(100vw / 5),
 										calc(100vw / 2)"
-									onChange={(newAmount: number) => {
-										amountChange(card.id, newAmount);
-									}}
-								/>
-							{/await}
+													onChange={(newAmount: number) => {
+														amountChange(printing.id, newAmount);
+													}}
+												/>
+											{/await}
+										{/each}
+										<button
+											class="col-span-full -mt-4 flex flex-row items-center justify-center text-sm"
+											onclick={() => collapse(card)}
+										>
+											<CaretUpIcon size="1em"></CaretUpIcon>
+											Collapse
+										</button>
+									</div>
+								{:else}
+									{#await data.deck.getCardAmount(card.id) then inDeck}
+										<ExpandingCardStub
+											{card}
+											amount={inDeck}
+											max={card.printings.reduce((s, p) => s + p.amount, 0)}
+											sizes="
+										(orientation: landscape) and (min-width: 96rem) calc(59vw / 8),
+										(orientation: landscape) and (min-width: 64rem) calc(59vw / 5),
+										(orientation: landscape) calc(59vw / 2),
+										(min-width: 80rem) calc(100vw / 6),
+										(min-width: 48rem) calc(100vw / 5),
+										calc(100vw / 2)"
+											onClick={() => {
+												expand(card);
+											}}
+										/>
+									{/await}
+								{/if}
+							{:else}
+								{#each card.printings as printing (printing.id)}
+									{#await data.deck.getAmount(printing.id) then inDeck}
+										<CountedPrintingStub
+											{printing}
+											amount={inDeck}
+											max={printing.amount}
+											showMax={true}
+											enforceMax={false}
+											sizes="
+										(orientation: landscape) and (min-width: 96rem) calc(59vw / 8),
+										(orientation: landscape) and (min-width: 64rem) calc(59vw / 5),
+										(orientation: landscape) calc(59vw / 2),
+										(min-width: 80rem) calc(100vw / 6),
+										(min-width: 48rem) calc(100vw / 5),
+										calc(100vw / 2)"
+											onChange={(newAmount: number) => {
+												amountChange(printing.id, newAmount);
+											}}
+										/>
+									{/await}
+								{/each}
+							{/if}
 						{/each}
 					</div>
 					{#if cardPage.page.totalPages > 1}
