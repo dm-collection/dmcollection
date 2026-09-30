@@ -24,7 +24,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import net.dmcollection.server.card.serialization.deck.format.v1.DeckCardExport;
@@ -477,17 +476,5 @@ public class DeckService {
         result.get(COPIES_COUNT),
         result.get(DECK.UPDATED_AT).toLocalDateTime(),
         result.get(DECK.USER_ID));
-  }
-
-  private int compareCivs(Set<Civilization> c1, Set<Civilization> c2) {
-    if ((c1.size() == 1 || c2.size() == 1) && c1.size() != c2.size()) {
-      return Integer.compare(c1.size(), c2.size());
-    }
-
-    String civString1 =
-        Civilization.toInts(c1).stream().map(Objects::toString).collect(Collectors.joining());
-    String civString2 =
-        Civilization.toInts(c2).stream().map(Objects::toString).collect(Collectors.joining());
-    return civString1.compareTo(civString2);
   }
 }
