@@ -51,9 +51,7 @@ public class TestFixtureBuilder {
   }
 
   public int getSetId(String setCode) {
-    int defaultGroupId = dbWriter.upsertSetGroup(DEFAULT_SET_GROUP, 1);
-    return dbWriter.upsertSet(
-        setCode, "", DEFAULT_SET_RELEASE, DEFAULT_PRODUCT_TYPE, defaultGroupId);
+    return dbWriter.getSetId(setCode);
   }
 
   public PrintingStub createFourSides() {
