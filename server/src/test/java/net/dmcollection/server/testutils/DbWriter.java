@@ -67,6 +67,18 @@ public class DbWriter {
     return existing;
   }
 
+  public int getSetId(String setCode) {
+    Integer id =
+        db.select(CARD_SET.ID)
+            .from(CARD_SET)
+            .where(CARD_SET.CODE.eq(setCode))
+            .fetchOne(CARD_SET.ID);
+    if (id == null) {
+      throw new IllegalArgumentException("No set with code " + setCode);
+    }
+    return id;
+  }
+
   public int upsertSet(
       String setCode, String name, LocalDate release, String productType, Integer groupId) {
     var table = CARD_SET;

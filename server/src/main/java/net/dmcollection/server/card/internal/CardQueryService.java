@@ -194,23 +194,34 @@ public class CardQueryService {
                         cardAggregates.field(CARD_RELEASE_AGG, LocalDate.class),
                         cardAggregates.field(CARD_UPDATED_AGG, LocalDate.class),
                         cardAggregates.field(CARD_COPIES_AGG, Long.class),
-                        cardAggregates.field(CARD_RARITY_AGG, Short.class),
-                        printings)
+                        cardAggregates.field(CARD_RARITY_AGG, Short.class))
                     .from(CARD)
                     .crossJoin(cardAggregates)
                     .where(
                         cardConditions(filter, cardTypeIds)
-                            .and(printingExistsCondition(filter, raritySortOrder)))
-                    .orderBy(cardOrderFields(filter, CARD, cardAggregates)));
+                            .and(printingExistsCondition(filter, raritySortOrder))));
     var cardCopies = filteredCards.field(CARD_COPIES_AGG, Long.class);
     var totalCopies = sum(cardCopies).over().as("total_copies");
+    List<Field<?>> cardPageFields = new ArrayList<>(List.of(filteredCards.fields()));
+    cardPageFields.add(cardCount);
+    cardPageFields.add(totalCopies);
+    // Paginate before building the printings, so they are only aggregated for the cards on the page
+    var cardPage =
+        name("card_page")
+            .as(
+                select(cardPageFields)
+                    .from(filteredCards)
+                    .orderBy(cardOrderFields(filter, filteredCards, filteredCards))
+                    .limit(filter.pageable().getPageSize())
+                    .offset(filter.pageable().getOffset()));
     var rows =
         dsl.with(filteredCards)
-            .select(filteredCards.asterisk(), cardCount, totalCopies)
-            .from(filteredCards)
-            .orderBy(cardOrderFields(filter, filteredCards, filteredCards))
-            .limit(filter.pageable().getPageSize())
-            .offset(filter.pageable().getOffset())
+            .with(cardPage)
+            .select(cardPage.asterisk(), printings)
+            .from(cardPage)
+            .join(CARD)
+            .on(CARD.ID.eq(cardPage.field(CARD.ID)))
+            .orderBy(cardOrderFields(filter, cardPage, cardPage))
             .fetch();
 
     int totalCount = rows.isEmpty() ? 0 : rows.getFirst().get(cardCount);

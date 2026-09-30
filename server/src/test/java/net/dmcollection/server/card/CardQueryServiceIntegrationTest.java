@@ -420,6 +420,32 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
   }
 
   @Test
+  void findsOwnedPrintingsInSet() {
+    var ownedInSet =
+        utils
+            .testCard("dm26-001")
+            .withSet("dm26", "2026-01-01")
+            .withCollectionAmount(2)
+            .withPrinting("dm26-050", "dm26", "2026-01-01")
+            .withPrinting("dm01-001", "dm01", "2002-05-30", 3)
+            .buildAll()
+            .getFirst();
+    utils
+        .testCard("dm01-002")
+        .withSet("dm01", "2002-05-30")
+        .withCollectionAmount(4)
+        .withPrinting("dm26-002", "dm26", "2026-01-01")
+        .buildAll();
+
+    var filter = search().setSetId(utils.getSetId("dm26")).setOwnedOnly();
+
+    assertQueryFinds(filter, ownedInSet);
+    var result = cardQueryService.search(filter.build());
+    assertThat(result.pageOfCards().getTotalElements()).isEqualTo(1);
+    assertThat(result.numberOfCopies()).isEqualTo(2);
+  }
+
+  @Test
   void mismatchedMonoFilterFindsNothing() {
     utils.testCard("CARD-1").light().build();
     utils.testCard("CARD-2").fire().build();
