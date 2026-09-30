@@ -47,3 +47,7 @@ server/src/main/resources/static/**
 # docker mounts
 db-data
 dmcollection-images
+
+# query benchmark data and reports
+server/perf-data/
+server/perf-results/
