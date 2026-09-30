@@ -30,7 +30,7 @@
 >
 	<div class="flex flex-col items-center">
 		{#if imageStack.length > 0}
-			<button class="relative" onclick={onClick} aria-label="expand">
+			<button class="grid" onclick={onClick} aria-label="expand">
 				{#each imageStack.toReversed() as imageName, i (imageName)}
 					<img
 						src={`/image/${imageName}`}
@@ -38,10 +38,10 @@
 						{sizes}
 						alt={card.name}
 						class={[
+							'col-start-1 row-start-1 h-full w-full',
 							'rounded-md',
 							'object-cover',
-							i == imageStack.length && 'group-hover:opacity-90',
-							i === 0 ? 'relative' : 'absolute inset-0 h-full w-full'
+							i === imageStack.length - 1 && 'group-hover:opacity-90'
 						]}
 						style={i > 0
 							? `z-index: ${i}; transform: scale(${1 - i * 0.01}); transform-origin: top left;`
