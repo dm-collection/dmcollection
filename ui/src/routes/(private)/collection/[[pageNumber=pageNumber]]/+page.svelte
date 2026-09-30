@@ -25,11 +25,14 @@
 	let uploadError = $state(false);
 
 	// svelte-ignore state_referenced_locally
-	// eslint-disable-next-line svelte/prefer-writable-derived
 	let cards = $state(data.collection?.cardPage?.content);
+
+	// svelte-ignore state_referenced_locally
+	let info = $state(data.collection?.info);
 
 	$effect(() => {
 		cards = data.collection?.cardPage?.content;
+		info = data.collection?.info;
 	});
 
 	let expanded = new SvelteSet<CardStub>();
@@ -92,14 +95,21 @@
 		expanded.delete(card);
 	}
 
-	async function amountChange(printing: PrintingStub, newAmount: number) {
+	async function amountChange(card: CardStub, printing: PrintingStub, newAmount: number) {
 		try {
 			const response = await api(`/api/collectionStub`, {
 				method: 'PUT',
 				json: { cardId: printing.id, amount: newAmount }
 			});
 			if (response.ok) {
+				const cardWasOwned = card.printings.some((p) => p.amount > 0);
+				const copiesDelta = newAmount - printing.amount;
 				printing.amount = newAmount;
+				const cardIsOwned = card.printings.some((p) => p.amount > 0);
+				if (info) {
+					info.numberOfCopies += copiesDelta;
+					info.numberOfCards += Number(cardIsOwned) - Number(cardWasOwned);
+				}
 			}
 		} catch (error) {
 			console.error(error);
@@ -181,8 +191,8 @@
 	</form>
 </div>
 <div class="flex flex-row gap-4">
-	<p>Cards: {data.collection?.info.numberOfCards ?? 0}</p>
-	<p>Copies: {data.collection?.info.numberOfCopies ?? 0}</p>
+	<p>Cards: {info?.numberOfCards ?? 0}</p>
+	<p>Copies: {info?.numberOfCopies ?? 0}</p>
 </div>
 
 {#await getSets() then sets}
@@ -213,7 +223,7 @@
 								amount={printing.amount}
 								sizes="(width >= 80rem) calc((100vw - 7 * 2rem) / 8), (width >= 64rem) calc((100vw - 7 * 2rem) / 5), 100vw"
 								onChange={(newAmount: number) => {
-									amountChange(printing, newAmount);
+									amountChange(card, printing, newAmount);
 								}}
 							/>
 						{/each}
@@ -242,7 +252,7 @@
 						amount={printing.amount}
 						sizes="(width >= 80rem) calc((100vw - 7 * 2rem) / 8), (width >= 64rem) calc((100vw - 7 * 2rem) / 5), 100vw"
 						onChange={(newAmount: number) => {
-							amountChange(printing, newAmount);
+							amountChange(card, printing, newAmount);
 						}}
 					/>
 				{/each}
