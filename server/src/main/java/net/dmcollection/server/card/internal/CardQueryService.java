@@ -18,6 +18,8 @@ import static net.dmcollection.server.jooq.generated.Tables.PRINTING_SIDE_ABILIT
 import static net.dmcollection.server.jooq.generated.Tables.RACE;
 import static net.dmcollection.server.jooq.generated.tables.CollectionEntry.COLLECTION_ENTRY;
 import static net.dmcollection.server.jooq.generated.tables.Rarity.RARITY;
+import static org.jooq.impl.DSL.arrayAgg;
+import static org.jooq.impl.DSL.arrayGet;
 import static org.jooq.impl.DSL.coalesce;
 import static org.jooq.impl.DSL.count;
 import static org.jooq.impl.DSL.exists;
@@ -155,8 +157,8 @@ public class CardQueryService {
     var cardAggregates =
         select(
                 PRINTING.CARD_ID,
-                min(PRINTING.OFFICIAL_SITE_ID).collate("C").as(OLDEST_PRINT_ID_AGG),
-                max(PRINTING.OFFICIAL_SITE_ID).collate("C").as(NEWEST_PRINT_ID_AGG),
+                printIdOfReleaseAgg(SortOrder.ASC).as(OLDEST_PRINT_ID_AGG),
+                printIdOfReleaseAgg(SortOrder.DESC).as(NEWEST_PRINT_ID_AGG),
                 min(CARD_SET.RELEASE_DATE).as(CARD_RELEASE_AGG),
                 max(CARD_SET.RELEASE_DATE).as(CARD_UPDATED_AGG),
                 coalesce(sum(COLLECTION_ENTRY.QUANTITY), 0).as(CARD_COPIES_AGG),
@@ -225,6 +227,16 @@ public class CardQueryService {
         rows.map(r -> new CardStub(r.get(CARD.ID), r.get(CARD.NAME), r.get(printings)));
 
     return new SearchResult(new PageImpl<>(cards, filter.pageable(), totalCount), copiesCount);
+  }
+
+  private static Field<String> printIdOfReleaseAgg(SortOrder order) {
+    return arrayGet(
+            arrayAgg(PRINTING.OFFICIAL_SITE_ID)
+                .orderBy(
+                    CARD_SET.RELEASE_DATE.sort(order),
+                    PRINTING.OFFICIAL_SITE_ID.collate("C").sort(order)),
+            1)
+        .collate("C");
   }
 
   private static List<OrderField<?>> printingOrderFields(SearchFilter filter) {
