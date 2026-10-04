@@ -234,7 +234,7 @@ public class CardQueryService {
             arrayAgg(PRINTING.OFFICIAL_SITE_ID)
                 .orderBy(
                     CARD_SET.RELEASE_DATE.sort(order),
-                    PRINTING.OFFICIAL_SITE_ID.collate("C").sort(order)),
+                    PRINTING.OFFICIAL_SITE_ID.collate("C").asc()),
             1)
         .collate("C");
   }

@@ -1306,11 +1306,13 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
             .testCard("dm26-rp3-001")
             .withSet("dm26-rp3", "2026-03-20")
             .withPrinting("dm26-sd1-005", "dm26-sd1", "2026-01-20")
+            .withPrinting("dm26-rp3-SEC013", "dm26-rp3", "2026-03-20")
             .buildAll();
     var single = utils.testCard("dm26-rp3-002").withSet("dm26-rp3", "2026-03-20").build();
 
     var filter = search().setPageable(PageRequest.of(0, 100, Sort.by(SORT_RELEASE).descending()));
-    assertQueryFindsInOrder(filter, reprinted.getFirst(), reprinted.getLast(), single);
+    assertQueryFindsInOrder(
+        filter, reprinted.getFirst(), reprinted.getLast(), reprinted.get(1), single);
   }
 
   @Test
