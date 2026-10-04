@@ -12,6 +12,8 @@
 	import ExpandingCardStub from '$lib/components/ExpandingCardStub.svelte';
 	import { SvelteSet } from 'svelte/reactivity';
 	import CaretUpIcon from 'phosphor-svelte/lib/CaretUpIcon';
+	import { onDestroy } from 'svelte';
+	import { createDebouncedAmountSync } from '$lib/debouncedAmountSync';
 
 	let { data }: PageProps = $props();
 
@@ -37,20 +39,35 @@
 		expanded.delete(card);
 	}
 
-	async function amountChange(printing: PrintingStub, newAmount: number) {
-		try {
+	// only used to look up printings for reverting, needs no reactivity
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity
+	const changedPrintings = new Map<number, PrintingStub>();
+	const amountSync = createDebouncedAmountSync(
+		async (printingId, amount) => {
 			const response = await api('/api/collectionStub', {
 				method: 'PUT',
-				json: { cardId: printing.id, amount: newAmount }
+				json: { printingId: printingId, amount },
+				keepalive: true
 			});
-			if (response.ok) {
-				printing.amount = newAmount;
+			return response.ok;
+		},
+		(printingId, confirmedAmount) => {
+			const printing = changedPrintings.get(printingId);
+			if (printing) {
+				printing.amount = confirmedAmount;
 			}
-		} catch (error) {
-			console.error(error);
 		}
+	);
+	onDestroy(amountSync.flush);
+
+	function amountChange(printing: PrintingStub, newAmount: number) {
+		changedPrintings.set(printing.id, printing);
+		amountSync.set(printing.id, printing.amount, newAmount);
+		printing.amount = newAmount;
 	}
 </script>
+
+<svelte:window onpagehide={amountSync.flush} />
 
 <svelte:head>
 	<title>Cards</title>

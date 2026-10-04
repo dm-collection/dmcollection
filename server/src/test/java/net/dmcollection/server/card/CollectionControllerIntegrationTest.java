@@ -61,7 +61,7 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
   void putCollectionCardRequiresAuthentication() throws Exception {
     mockMvc
         .perform(
-            put("/api/collection/cards/1")
+            put("/api/collection/printings/1")
                 .with(csrf())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"amount\":1}"))
@@ -82,7 +82,7 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
   void getCollectionReturnsCardsAfterSettingAmount() throws Exception {
     var card = fixtures.testCard("coll-ctrl-1").light().build();
 
-    putRequest("/api/collection/cards/" + card.id(), "{\"amount\":3}");
+    putRequest("/api/collection/printings/" + card.id(), "{\"amount\":3}");
 
     mockMvc
         .perform(get("/api/collection/0").with(user(testUser)))
@@ -96,7 +96,7 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
   void setCardAmountReturnsCollectionInfo() throws Exception {
     var card = fixtures.testCard("coll-ctrl-2").water().build();
 
-    putRequest("/api/collection/cards/" + card.id(), "{\"amount\":5}")
+    putRequest("/api/collection/printings/" + card.id(), "{\"amount\":5}")
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.numberOfCards").value(1))
         .andExpect(jsonPath("$.numberOfCopies").value(5));
@@ -104,33 +104,34 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
 
   @Test
   void setCardAmountReturns404ForUnknownCard() throws Exception {
-    putRequest("/api/collection/cards/999999", "{\"amount\":1}").andExpect(status().isNotFound());
+    putRequest("/api/collection/printings/999999", "{\"amount\":1}")
+        .andExpect(status().isNotFound());
   }
 
   @Test
   void setSingleCardAmountReturnsStub() throws Exception {
-    PrintingStub card = fixtures.testCard("coll-ctrl-3").fire().build();
+    PrintingStub printing = fixtures.testCard("coll-ctrl-3").fire().build();
 
-    putRequest("/api/collectionStub/cards/" + card.id(), "{\"amount\":4}")
+    putRequest("/api/collectionStub/printings/" + printing.id(), "{\"amount\":4}")
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.cardId").value(card.id()))
+        .andExpect(jsonPath("$.printingId").value(printing.id()))
         .andExpect(jsonPath("$.amount").value(4));
   }
 
   @Test
   void setCardAmountOnStubReturnsMap() throws Exception {
-    PrintingStub card = fixtures.testCard("coll-ctrl-4").dark().build();
+    PrintingStub printing = fixtures.testCard("coll-ctrl-4").dark().build();
 
-    putRequest("/api/collectionStub", "{\"cardId\":" + card.id() + ",\"amount\":2}")
+    putRequest("/api/collectionStub", "{\"printingId\":" + printing.id() + ",\"amount\":2}")
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$." + card.id()).value(2));
+        .andExpect(jsonPath("$." + printing.id()).value(2));
   }
 
   @Test
   void exportReturnsJsonFile() throws Exception {
     PrintingStub card = fixtures.testCard("coll-ctrl-5").nature().build();
 
-    putRequest("/api/collection/cards/" + card.id(), "{\"amount\":3}");
+    putRequest("/api/collection/printings/" + card.id(), "{\"amount\":3}");
 
     byte[] responseBytes =
         mockMvc
@@ -159,8 +160,8 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
     PrintingStub card1 = fixtures.testCard("coll-ctrl-6a").light().build();
     PrintingStub card2 = fixtures.testCard("coll-ctrl-6b").water().build();
 
-    putRequest("/api/collection/cards/" + card1.id(), "{\"amount\":3}");
-    putRequest("/api/collection/cards/" + card2.id(), "{\"amount\":7}");
+    putRequest("/api/collection/printings/" + card1.id(), "{\"amount\":3}");
+    putRequest("/api/collection/printings/" + card2.id(), "{\"amount\":7}");
 
     byte[] exportBytes =
         mockMvc
@@ -191,9 +192,9 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
   void historyCreatedWhenSettingCardAmount() throws Exception {
     PrintingStub card = fixtures.testCard("coll-hist-1").light().build();
 
-    putRequest("/api/collection/cards/" + card.id(), "{\"amount\":3}");
+    putRequest("/api/collection/printings/" + card.id(), "{\"amount\":3}");
 
-    putRequest("/api/collection/cards/" + card.id(), "{\"amount\":7}");
+    putRequest("/api/collection/printings/" + card.id(), "{\"amount\":7}");
 
     var history = fetchHistory(testUser.getId(), card.id());
     assertThat(history).hasSize(2);
@@ -207,9 +208,9 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
   void historyCreatedViaStubEndpoints() throws Exception {
     PrintingStub card = fixtures.testCard("coll-hist-2").water().build();
 
-    putRequest("/api/collectionStub/cards/" + card.id(), "{\"amount\":2}");
+    putRequest("/api/collectionStub/printings/" + card.id(), "{\"amount\":2}");
 
-    putRequest("/api/collectionStub", "{\"cardId\":" + card.id() + ",\"amount\":5}");
+    putRequest("/api/collectionStub", "{\"printingId\":" + card.id() + ",\"amount\":5}");
 
     var history = fetchHistory(testUser.getId(), card.id());
     assertThat(history).hasSize(2);
@@ -235,7 +236,7 @@ class CollectionControllerIntegrationTest extends IntegrationTestBase {
   void importDoesNotCreateHistoryEntries() throws Exception {
     var card = fixtures.testCard("coll-hist-3").fire().build();
 
-    putRequest("/api/collection/cards/" + card.id(), "{\"amount\":3}");
+    putRequest("/api/collection/printings/" + card.id(), "{\"amount\":3}");
 
     byte[] exportBytes =
         mockMvc

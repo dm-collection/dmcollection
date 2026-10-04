@@ -85,14 +85,14 @@ public class DeckController {
     }
   }
 
-  @PutMapping("/api/deck/{collectionId}/cards/{cardId}")
+  @PutMapping("/api/deck/{deckId}/printings/{printingId}")
   ResponseEntity<DeckInfo> setCardAmount(
       @CurrentUserId UUID currentUserId,
-      @PathVariable UUID collectionId,
-      @PathVariable int cardId,
+      @PathVariable UUID deckId,
+      @PathVariable int printingId,
       @Valid @RequestBody AmountRequest request) {
     return deckService
-        .setCardAmount(currentUserId, collectionId, cardId, request.amount())
+        .setCardAmount(currentUserId, deckId, printingId, request.amount())
         .map(ResponseEntity::ok)
         .orElse(ResponseEntity.notFound().build());
   }

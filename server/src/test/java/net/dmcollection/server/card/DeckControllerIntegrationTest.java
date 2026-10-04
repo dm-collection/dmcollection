@@ -81,7 +81,7 @@ class DeckControllerIntegrationTest extends IntegrationTestBase {
                 .put()
                 .with(user(testUser))
                 .with(csrf())
-                .uri("/api/deck/{id}/cards/{cardId}", deckId, cardId)
+                .uri("/api/deck/{id}/printings/{printingId}", deckId, cardId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(body))
         .hasStatusOk();

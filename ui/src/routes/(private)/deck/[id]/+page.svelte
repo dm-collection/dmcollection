@@ -110,9 +110,9 @@
 		runSearch(data.search?.searchParams ?? new URLSearchParams(), ownedOnly, newPageNum - 1);
 	}
 
-	async function amountChange(cardId: number, newAmount: number) {
+	async function amountChange(printingId: number, newAmount: number) {
 		try {
-			await data.deck?.setPrintingAmount(cardId, newAmount);
+			await data.deck?.setPrintingAmount(printingId, newAmount);
 		} catch (err) {
 			if (err instanceof Error && err.message === 'unauthorized') {
 				goto('/login');

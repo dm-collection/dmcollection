@@ -1,51 +1,51 @@
 <script lang="ts">
-	import type { CardFacet } from '$lib/types/card';
+	import type { PrintingSide } from '$lib/types/card';
 	import AbilityText from './AbilityText.svelte';
 	import SideHeader from './SideHeader.svelte';
 	import TypeTag from './TypeTag.svelte';
 
-	let { facet }: { facet: CardFacet } = $props();
+	let { side }: { side: PrintingSide } = $props();
 </script>
 
 <div class="flex grow flex-col gap-4 rounded-md bg-white p-4 drop-shadow-md">
-	<SideHeader cost={facet.cost} civilizations={facet.civilizations} />
-	{#if facet.name || facet.species}
+	<SideHeader cost={side.cost} civilizations={side.civilizations} />
+	{#if side.name || side.species}
 		<div class="mb-8 flex flex-col gap-1">
-			<h1 class="mx-auto text-xl font-bold">{facet.name}</h1>
+			<h1 class="mx-auto text-xl font-bold">{side.name}</h1>
 			<h2 class="mx-auto text-sm font-light">
 				<span
-					>{#if facet.species}{#each facet.species as specie, i (specie)}{#if i > 0}/{/if}{specie}{/each}{/if}</span
+					>{#if side.species}{#each side.species as specie, i (specie)}{#if i > 0}/{/if}{specie}{/each}{/if}</span
 				>
 			</h2>
 		</div>
 	{/if}
-	{#if facet.type}
-		<TypeTag type={facet.type} civs={facet.civilizations} />
+	{#if side.type}
+		<TypeTag type={side.type} civs={side.civilizations} />
 	{/if}
-	{#if facet.effects}
-		<AbilityText effects={facet.effects} class="ml-4" />
+	{#if side.effects}
+		<AbilityText effects={side.effects} class="ml-4" />
 	{/if}
-	{#if facet.flavor}
-		<p class="text-base font-light">{facet.flavor}</p>
+	{#if side.flavor}
+		<p class="text-base font-light">{side.flavor}</p>
 	{/if}
-	{#if facet.power || facet.mana || facet.illustrator}
+	{#if side.power || side.mana || side.illustrator}
 		<div class="mt-auto flex flex-row gap-1">
-			{#if facet.power}
+			{#if side.power}
 				<span
 					class="p-y-1 inline-flex items-center rounded bg-neutral-100 px-2 text-xl font-bold text-neutral-700 ring-1 ring-neutral-600/10 ring-inset"
-					>{facet.power}</span
+					>{side.power}</span
 				>
 			{/if}
-			{#if facet.mana}
+			{#if side.mana}
 				<span
 					class="p-y-1 inline-flex items-center rounded bg-neutral-100 px-2 text-xs font-medium text-neutral-700 ring-1 ring-neutral-600/10 ring-inset"
-					>{facet.mana}</span
+					>{side.mana}</span
 				>
 			{/if}
-			{#if facet.illustrator}
+			{#if side.illustrator}
 				<span
 					class="p-y-1 inline-flex items-center rounded bg-violet-200 px-2 text-xs font-medium text-violet-700 ring-1 ring-violet-600/10 ring-inset"
-					>{facet.illustrator}
+					>{side.illustrator}
 				</span>
 			{/if}
 		</div>
