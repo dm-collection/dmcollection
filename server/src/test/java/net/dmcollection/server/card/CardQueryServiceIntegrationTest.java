@@ -15,6 +15,7 @@ import static net.dmcollection.server.card.RarityCode.VR;
 import static net.dmcollection.server.card.SearchFilterApi.SORT_AMOUNT;
 import static net.dmcollection.server.card.SearchFilterApi.SORT_COST;
 import static net.dmcollection.server.card.SearchFilterApi.SORT_POWER;
+import static net.dmcollection.server.card.SearchFilterApi.SORT_RELEASE;
 import static net.dmcollection.server.testutils.TestFixtureBuilder.Modifier.LEADING_PLUS;
 import static net.dmcollection.server.testutils.TestFixtureBuilder.Modifier.TRAILING_MINUS;
 import static net.dmcollection.server.testutils.TestFixtureBuilder.Modifier.TRAILING_PLUS;
@@ -1232,7 +1233,8 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
         utils
             .testCard("second")
             .withAbility(
-                "G・ゼロ―このターン、カードを６枚以上引いていて、自分の 《天災超邪 クロスファイア ２nd》がバトルゾーンになければ、このクリーチャーをコストを支払わずに召喚してもよい。")
+                "G・ゼロ―このターン、カードを６枚以上引いていて、自分の 《天災超邪 クロスファイア"
+                    + " ２nd》がバトルゾーンになければ、このクリーチャーをコストを支払わずに召喚してもよい。")
             .build();
     assertQueryFinds(search().setEffectSearch("nd"), second);
   }
@@ -1295,6 +1297,36 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
     filter = search().setPageable(PageRequest.of(0, 100, Sort.by(SORT_POWER).descending()));
     assertQueryFindsInOrder(
         filter, tenkPlus, tenk, tenkMinus, zeroPlus, plusZero, zero, negative, noPower);
+  }
+
+  @Test
+  void sortsByIdOfNewestPrintingWhenReleasedOnSameDay() {
+    var reprinted =
+        utils
+            .testCard("dm26-rp3-001")
+            .withSet("dm26-rp3", "2026-03-20")
+            .withPrinting("dm26-sd1-005", "dm26-sd1", "2026-01-20")
+            .withPrinting("dm26-rp3-SEC013", "dm26-rp3", "2026-03-20")
+            .buildAll();
+    var single = utils.testCard("dm26-rp3-002").withSet("dm26-rp3", "2026-03-20").build();
+
+    var filter = search().setPageable(PageRequest.of(0, 100, Sort.by(SORT_RELEASE).descending()));
+    assertQueryFindsInOrder(
+        filter, reprinted.getFirst(), reprinted.getLast(), reprinted.get(1), single);
+  }
+
+  @Test
+  void sortsByIdOfOldestPrintingWhenReleasedOnSameDay() {
+    var reprinted =
+        utils
+            .testCard("dm26-sd1-002")
+            .withSet("dm26-sd1", "2026-01-20")
+            .withPrinting("dm26-rp3-001", "dm26-rp3", "2026-03-20")
+            .buildAll();
+    var single = utils.testCard("dm26-sd1-001").withSet("dm26-sd1", "2026-01-20").build();
+
+    var filter = search().setPageable(PageRequest.of(0, 100, Sort.by(SORT_RELEASE).ascending()));
+    assertQueryFindsInOrder(filter, single, reprinted.getFirst(), reprinted.getLast());
   }
 
   protected void assertQueryFindsInOrder(SearchBuilder builder, PrintingStub... expectedCards) {
