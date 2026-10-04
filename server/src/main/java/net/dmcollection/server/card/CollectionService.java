@@ -61,7 +61,7 @@ public class CollectionService {
 
   public record CollectionDto(CollectionInfo info, PagedModel<CardStub> cardPage) {}
 
-  public record CollectionCardStub(long cardId, int amount) {}
+  public record CollectionPrintingStub(long printingId, int amount) {}
 
   public V2CollectionExport exportCollection(UUID userId) {
     return exporter.export(userId);
@@ -110,7 +110,7 @@ public class CollectionService {
   }
 
   @Transactional
-  public Optional<Map<Integer, Integer>> setCardAmountOnStub(
+  public Optional<Map<Integer, Integer>> setPrintingAmountOnStub(
       UUID userId, int printingId, int amount) {
     if (!printingExists(printingId)) {
       return Optional.empty();
@@ -120,25 +120,26 @@ public class CollectionService {
   }
 
   @Transactional
-  public Optional<CollectionCardStub> setSingleCardAmount(UUID userId, int printingId, int amount) {
+  public Optional<CollectionPrintingStub> setSinglePrintingAmount(
+      UUID userId, int printingId, int amount) {
     if (!printingExists(printingId)) {
       return Optional.empty();
     }
     upsertCollectionEntry(userId, printingId, amount);
     int actualAmount = getQuantity(userId, printingId);
-    return Optional.of(new CollectionCardStub(printingId, actualAmount));
+    return Optional.of(new CollectionPrintingStub(printingId, actualAmount));
   }
 
-  public Optional<CollectionCardStub> getSingleCardAmount(UUID userId, int printingId) {
+  public Optional<CollectionPrintingStub> getSinglePrintingAmount(UUID userId, int printingId) {
     if (!printingExists(printingId)) {
       return Optional.empty();
     }
     int amount = getQuantity(userId, printingId);
-    return Optional.of(new CollectionCardStub(printingId, amount));
+    return Optional.of(new CollectionPrintingStub(printingId, amount));
   }
 
   @Transactional
-  public Optional<CollectionInfo> setCardAmount(UUID userId, int printingId, int amount) {
+  public Optional<CollectionInfo> setPrintingAmount(UUID userId, int printingId, int amount) {
     if (!printingExists(printingId)) {
       return Optional.empty();
     }

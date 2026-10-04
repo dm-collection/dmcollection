@@ -19,18 +19,18 @@ import org.springframework.data.domain.Pageable;
  *     Civilizations that are both included and excluded are treated as included. If {@code
  *     matchExactRainbowCivs} is {@code true}, this field is ignored.
  * @param includeMono Whether monochrome cards should be included. A card is monochrome if one of
- *     its facets has only one civilization. In the case of twinpacts, both sideds need to have the
+ *     its sides has only one civilization. In the case of twinpacts, both sideds need to have the
  *     same civilization. {@code null} is interpreted as {@code false} unless {@code includeRainbow}
  *     is also {@code null}.
  * @param includeRainbow Whether multicolored cards should be included. A card is multicolored if
- *     one of its facets has multiple civilizations. An exception are twinpacts, where both facets
+ *     one of its sides has multiple civilizations. An exception are twinpacts, where both sides
  *     having different civilizations makes it a multicolored card. {@code null} is interpreted as
  *     {@code false} unless {@code includeMono} is also {@code null}.
  * @param matchExactRainbowCivs Only valid if {@code includeRainbow} is {@code true}. If {@code
  *     true}, a multicolored card is only included if it has exactly the included civilizations and
  *     not more or fewer. If monochrome cards are not included, the included civilizations must be
  *     more than one, not counting the zero civilization. Twinpact cards are included if one of the
- *     facets has the required configuration of civilizations or if both facets together have the
+ *     sides has the required configuration of civilizations or if both sides together have the
  *     required configuration.
  * @param minCost The minimum cost of a card to be included. If null, there is no minimum.
  * @param maxCost The maximum cost of a card to be included. If null, there is no maximum.

@@ -47,7 +47,7 @@ export class Deck {
 
 	async setPrintingAmount(printingId: number, amount: number) {
 		if (this.deck) {
-			const response = await fetch(`/api/deck/${this.deck.info.id}/cards/${printingId}`, {
+			const response = await fetch(`/api/deck/${this.deck.info.id}/printings/${printingId}`, {
 				method: 'PUT',
 				headers: {
 					'Content-Type': 'application/json',

@@ -30,7 +30,7 @@ export type Printing = {
 	idText: string;
 	set: CardSet;
 	civilizations: Array<Civ>;
-	facets: Array<CardFacet>;
+	sides: Array<PrintingSide>;
 	rarity: string | null;
 	amount: number | null;
 };
@@ -52,7 +52,7 @@ export type CardEffect = {
 	children: Array<ChildEffect> | null;
 };
 
-export type CardFacet = {
+export type PrintingSide = {
 	position: number | null;
 	name: string;
 	cost: string | null;

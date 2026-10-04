@@ -43,11 +43,11 @@ public class CardService {
       SetDto set,
       String zone,
       Set<String> civilizations,
-      List<CardFacetDto> facets) {}
+      List<CardSideDto> sides) {}
 
   public record SetDto(Long id, String idText, String name) {}
 
-  public record CardFacetDto(
+  public record CardSideDto(
       Integer position,
       String name,
       String cost,
@@ -219,9 +219,9 @@ public class CardService {
                             r.get(PRINTING_SIDE_ABILITY.POSITION),
                             r.get(PRINTING_SIDE_ABILITY.INDENT_LEVEL))));
 
-    // Assemble facets
+    // Assemble sides
     Set<String> allCivilizations = new java.util.LinkedHashSet<>();
-    List<CardFacetDto> facets = new ArrayList<>(sideRows.size());
+    List<CardSideDto> sides = new ArrayList<>(sideRows.size());
 
     for (SideRow side : sideRows) {
       List<String> civNames = civilizationNames(side.civilizationIds());
@@ -241,8 +241,8 @@ public class CardService {
       List<EffectDto> effects =
           buildEffects(abilitiesByPrintingSide.getOrDefault(side.printingSideId(), List.of()));
 
-      facets.add(
-          new CardFacetDto(
+      sides.add(
+          new CardSideDto(
               (int) side.sideOrder(),
               side.name(),
               formatCost(side.cost(), side.costIsInfinity()),
@@ -266,7 +266,7 @@ public class CardService {
             setDto,
             deckZone,
             allCivilizations,
-            facets));
+            sides));
   }
 
   private static List<String> civilizationNames(List<Short> civilizationIds) {

@@ -10,7 +10,7 @@
 <Story
 	name="Bolshack Dragon"
 	args={{
-		facet: {
+		side: {
 			position: 0,
 			name: 'ボルシャック・ドラゴン',
 			cost: '6',
@@ -40,7 +40,7 @@
 <Story
 	name="Legend Horn"
 	args={{
-		facet: {
+		side: {
 			position: 0,
 			name: '熱血剣 レジェンドホーン',
 			cost: '4',

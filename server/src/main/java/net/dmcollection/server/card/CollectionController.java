@@ -101,47 +101,47 @@ public class CollectionController {
     }
   }
 
-  @PutMapping("/api/collection/cards/{cardId}")
+  @PutMapping("/api/collection/printings/{printingId}")
   ResponseEntity<CollectionInfo> setCardAmount(
       @CurrentUserId UUID currentUserId,
-      @PathVariable int cardId,
+      @PathVariable int printingId,
       @Valid @RequestBody AmountRequest request) {
     return collectionService
-        .setCardAmount(currentUserId, cardId, request.amount())
+        .setPrintingAmount(currentUserId, printingId, request.amount())
         .map(ResponseEntity::ok)
         .orElse(ResponseEntity.notFound().build());
   }
 
-  @GetMapping("/api/collectionStub/cards/{cardId}")
-  ResponseEntity<CollectionService.CollectionCardStub> getSingleCardAmount(
-      @CurrentUserId UUID currentUserId, @PathVariable int cardId) {
+  @GetMapping("/api/collectionStub/printings/{printingId}")
+  ResponseEntity<CollectionService.CollectionPrintingStub> getSingleCardAmount(
+      @CurrentUserId UUID currentUserId, @PathVariable int printingId) {
     return collectionService
-        .getSingleCardAmount(currentUserId, cardId)
+        .getSinglePrintingAmount(currentUserId, printingId)
         .map(ResponseEntity::ok)
         .orElse(ResponseEntity.notFound().build());
   }
 
-  @PutMapping("/api/collectionStub/cards/{cardId}")
-  ResponseEntity<CollectionService.CollectionCardStub> setSingleCardAmount(
+  @PutMapping("/api/collectionStub/printings/{printingId}")
+  ResponseEntity<CollectionService.CollectionPrintingStub> setSingleCardAmount(
       @CurrentUserId UUID currentUserId,
-      @PathVariable int cardId,
+      @PathVariable int printingId,
       @Valid @RequestBody AmountRequest request) {
     return collectionService
-        .setSingleCardAmount(currentUserId, cardId, request.amount())
+        .setSinglePrintingAmount(currentUserId, printingId, request.amount())
         .map(ResponseEntity::ok)
         .orElse(ResponseEntity.notFound().build());
   }
 
   @PutMapping("/api/collectionStub")
-  ResponseEntity<Map<Integer, Integer>> setCardAmountOnStub(
+  ResponseEntity<Map<Integer, Integer>> setPrintingAmountOnStub(
       @CurrentUserId UUID currentUserId, @Valid @RequestBody SetCardAmountRequest request) {
     return collectionService
-        .setCardAmountOnStub(currentUserId, request.cardId(), request.amount())
+        .setPrintingAmountOnStub(currentUserId, request.printingId(), request.amount())
         .map(ResponseEntity::ok)
         .orElse(ResponseEntity.notFound().build());
   }
 
-  record SetCardAmountRequest(int cardId, @Min(0) int amount) {}
+  record SetCardAmountRequest(int printingId, @Min(0) int amount) {}
 
   record AmountRequest(@Min(0) int amount) {}
 }

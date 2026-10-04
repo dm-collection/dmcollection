@@ -90,9 +90,9 @@ class CardControllerIntegrationTest extends IntegrationTestBase {
         .perform(get("/api/card/ctrl-detail-1").with(user(testUser)))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.dmId").value("ctrl-detail-1"))
-        .andExpect(jsonPath("$.facets").isArray())
-        .andExpect(jsonPath("$.facets.length()").value(1))
-        .andExpect(jsonPath("$.facets[0].civilizations[0]").value("光"));
+        .andExpect(jsonPath("$.sides").isArray())
+        .andExpect(jsonPath("$.sides.length()").value(1))
+        .andExpect(jsonPath("$.sides[0].civilizations[0]").value("光"));
   }
 
   @Test

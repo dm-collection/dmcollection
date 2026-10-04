@@ -16,6 +16,8 @@
 	import { SvelteSet } from 'svelte/reactivity';
 	import ExpandingCardStub from '$lib/components/ExpandingCardStub.svelte';
 	import CaretUpIcon from 'phosphor-svelte/lib/CaretUpIcon';
+	import { onDestroy } from 'svelte';
+	import { createDebouncedAmountSync } from '$lib/debouncedAmountSync';
 
 	let { data }: PageProps = $props();
 
@@ -95,27 +97,46 @@
 		expanded.delete(card);
 	}
 
-	async function amountChange(card: CardStub, printing: PrintingStub, newAmount: number) {
-		try {
-			const response = await api(`/api/collectionStub`, {
-				method: 'PUT',
-				json: { cardId: printing.id, amount: newAmount }
-			});
-			if (response.ok) {
-				const cardWasOwned = card.printings.some((p) => p.amount > 0);
-				const copiesDelta = newAmount - printing.amount;
-				printing.amount = newAmount;
-				const cardIsOwned = card.printings.some((p) => p.amount > 0);
-				if (info) {
-					info.numberOfCopies += copiesDelta;
-					info.numberOfCards += Number(cardIsOwned) - Number(cardWasOwned);
-				}
-			}
-		} catch (error) {
-			console.error(error);
+	function applyAmount(card: CardStub, printing: PrintingStub, newAmount: number) {
+		const cardWasOwned = card.printings.some((p) => p.amount > 0);
+		const copiesDelta = newAmount - printing.amount;
+		printing.amount = newAmount;
+		const cardIsOwned = card.printings.some((p) => p.amount > 0);
+		if (info) {
+			info.numberOfCopies += copiesDelta;
+			info.numberOfCards += Number(cardIsOwned) - Number(cardWasOwned);
 		}
 	}
+
+	// only used to look up printings for reverting, needs no reactivity
+	// eslint-disable-next-line svelte/prefer-svelte-reactivity
+	const changedPrintings = new Map<number, { card: CardStub; printing: PrintingStub }>();
+	const amountSync = createDebouncedAmountSync(
+		async (printingId, amount) => {
+			const response = await api(`/api/collectionStub`, {
+				method: 'PUT',
+				json: { printingId: printingId, amount },
+				keepalive: true
+			});
+			return response.ok;
+		},
+		(printingId, confirmedAmount) => {
+			const changed = changedPrintings.get(printingId);
+			if (changed) {
+				applyAmount(changed.card, changed.printing, confirmedAmount);
+			}
+		}
+	);
+	onDestroy(amountSync.flush);
+
+	function amountChange(card: CardStub, printing: PrintingStub, newAmount: number) {
+		changedPrintings.set(printing.id, { card, printing });
+		amountSync.set(printing.id, printing.amount, newAmount);
+		applyAmount(card, printing, newAmount);
+	}
 </script>
+
+<svelte:window onpagehide={amountSync.flush} />
 
 <svelte:head>
 	<title>Collection</title>

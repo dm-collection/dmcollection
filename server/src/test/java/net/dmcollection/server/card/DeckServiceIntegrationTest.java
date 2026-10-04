@@ -118,9 +118,9 @@ class DeckServiceIntegrationTest extends IntegrationTestBase {
 
   @Test
   void deckResponseIncludesCollectionAmounts() {
-    collectionService.setCardAmount(userId, lightCard.id(), 10);
-    collectionService.setCardAmount(userId, rainbowCard.id(), 3);
-    collectionService.setCardAmount(userId, fireCard.id(), 7);
+    collectionService.setPrintingAmount(userId, lightCard.id(), 10);
+    collectionService.setPrintingAmount(userId, rainbowCard.id(), 3);
+    collectionService.setPrintingAmount(userId, fireCard.id(), 7);
 
     var deckInfo = deckService.createDeck(userId, "Test Deck");
     deckService.setCardAmount(userId, deckInfo.id(), lightCard.id(), 4);
