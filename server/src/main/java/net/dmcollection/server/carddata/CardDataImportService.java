@@ -22,6 +22,7 @@ import static net.dmcollection.server.jooq.generated.Tables.WISHLIST_ENTRY;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -29,8 +30,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import net.dmcollection.server.card.RarityCode;
+import net.dmcollection.server.card.internal.query.NameNormalizer;
+import net.dmcollection.server.card.internal.query.NameNormalizer.SideName;
 import net.dmcollection.server.carddata.CardDataJson.CardAliasJson;
 import net.dmcollection.server.carddata.CardDataJson.CardJson;
+import net.dmcollection.server.carddata.CardDataJson.CardSideJson;
 import net.dmcollection.server.carddata.CardDataJson.CardSetJson;
 import net.dmcollection.server.carddata.CardDataJson.CivGroupJson;
 import net.dmcollection.server.carddata.CardDataJson.PrintingJson;
@@ -39,6 +43,7 @@ import net.dmcollection.server.carddata.CardDataJson.SetAliasJson;
 import net.dmcollection.server.carddata.CardDataJson.SetGroupJson;
 import org.jooq.DSLContext;
 import org.jooq.Field;
+import org.jooq.JSONB;
 import org.jooq.Table;
 import org.jooq.TableField;
 import org.jooq.impl.DSL;
@@ -46,6 +51,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.json.JsonMapper;
 
 @Service
 public class CardDataImportService {
@@ -53,9 +59,11 @@ public class CardDataImportService {
   private static final Logger log = LoggerFactory.getLogger(CardDataImportService.class);
 
   private final DSLContext dsl;
+  private final JsonMapper jsonMapper;
 
-  public CardDataImportService(DSLContext dsl) {
+  public CardDataImportService(DSLContext dsl, JsonMapper jsonMapper) {
     this.dsl = dsl;
+    this.jsonMapper = jsonMapper;
   }
 
   static Map<String, String> rarityDescriptions;
@@ -470,7 +478,9 @@ public class CardDataImportService {
                       CARD.SORT_COST,
                       CARD.SORT_POWER,
                       CARD.SORT_POWER_MODIFIER,
-                      CARD.SORT_CIVILIZATION)
+                      CARD.SORT_CIVILIZATION,
+                      CARD.SEARCH_NAME,
+                      CARD.SEARCH_READING)
                   .values(
                       DSL.val((String) null),
                       DSL.val((Boolean) null),
@@ -478,7 +488,9 @@ public class CardDataImportService {
                       DSL.val((Integer) null),
                       DSL.val((Integer) null),
                       DSL.val((Short) null),
-                      DSL.val((Short[]) null))
+                      DSL.val((Short[]) null),
+                      DSL.val((String) null),
+                      DSL.val((String) null))
                   .onConflict(CARD.NAME)
                   .doUpdate()
                   .set(CARD.IS_TWINPACT, DSL.field("excluded.is_twinpact", Boolean.class))
@@ -490,9 +502,16 @@ public class CardDataImportService {
                       DSL.field("excluded.sort_power_modifier", Short.class))
                   .set(
                       CARD.SORT_CIVILIZATION,
-                      DSL.field("excluded.sort_civilization", Short[].class)));
+                      DSL.field("excluded.sort_civilization", Short[].class))
+                  .set(CARD.SEARCH_NAME, DSL.field("excluded.search_name", String.class))
+                  .set(CARD.SEARCH_READING, DSL.field("excluded.search_reading", String.class)));
       for (var card : cards) {
         Short[] sortCiv = toShortArray(card.sortCivilization());
+        List<SideName> sideNames =
+            card.sides().stream()
+                .sorted(Comparator.comparingInt(CardSideJson::sideOrder))
+                .map(side -> new SideName(side.name(), side.nameReading()))
+                .toList();
         batch.bind(
             card.name(),
             card.isTwinpact(),
@@ -500,7 +519,9 @@ public class CardDataImportService {
             card.sortCost(),
             card.sortPower(),
             card.sortPowerModifier(),
-            sortCiv);
+            sortCiv,
+            NameNormalizer.normalize(card.name()),
+            NameNormalizer.reading(sideNames));
       }
       batch.execute();
     }
@@ -529,7 +550,9 @@ public class CardDataImportService {
                       CARD_SIDE.POWER,
                       CARD_SIDE.POWER_IS_INFINITY,
                       CARD_SIDE.POWER_MODIFIER,
-                      CARD_SIDE.CIVILIZATION_IDS)
+                      CARD_SIDE.CIVILIZATION_IDS,
+                      CARD_SIDE.NAME_READING,
+                      CARD_SIDE.NAME_RUBY)
                   .values(
                       DSL.val((Integer) null),
                       DSL.val((Short) null),
@@ -539,7 +562,9 @@ public class CardDataImportService {
                       DSL.val((Integer) null),
                       DSL.val((Boolean) null),
                       DSL.val((String) null),
-                      DSL.val((Short[]) null))
+                      DSL.val((Short[]) null),
+                      DSL.val((String) null),
+                      DSL.val((JSONB) null))
                   .onConflict(CARD_SIDE.CARD_ID, CARD_SIDE.SIDE_ORDER)
                   .doUpdate()
                   .set(CARD_SIDE.NAME, DSL.field("excluded.name", String.class))
@@ -554,7 +579,9 @@ public class CardDataImportService {
                   .set(CARD_SIDE.POWER_MODIFIER, DSL.field("excluded.power_modifier", String.class))
                   .set(
                       CARD_SIDE.CIVILIZATION_IDS,
-                      DSL.field("excluded.civilization_ids", Short[].class)));
+                      DSL.field("excluded.civilization_ids", Short[].class))
+                  .set(CARD_SIDE.NAME_READING, DSL.field("excluded.name_reading", String.class))
+                  .set(CARD_SIDE.NAME_RUBY, DSL.field("excluded.name_ruby", JSONB.class)));
       for (var card : cards) {
         int cardId = cardIds.get(card.name());
         for (var side : card.sides()) {
@@ -568,7 +595,11 @@ public class CardDataImportService {
               side.power(),
               side.powerIsInfinity(),
               side.powerModifier(),
-              civIds);
+              civIds,
+              side.nameReading(),
+              side.nameRuby() == null
+                  ? null
+                  : JSONB.valueOf(jsonMapper.writeValueAsString(side.nameRuby())));
         }
       }
       batch.execute();

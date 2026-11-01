@@ -102,6 +102,46 @@ class CardDataImportServiceIntegrationTest extends IntegrationTestBase {
   }
 
   @Test
+  void readingsImported() {
+    var card = dsl.selectFrom(CARD).where(CARD.NAME.eq("天空の守護者グラン・ギューレ")).fetchOne();
+    assertThat(card).isNotNull();
+    assertThat(card.getSearchName()).isEqualTo("天空ノ守護者グランギューレ");
+    assertThat(card.getSearchReading()).isEqualTo("テンクウノシュゴシャグランギューレ");
+
+    var side = dsl.selectFrom(CARD_SIDE).where(CARD_SIDE.CARD_ID.eq(card.getId())).fetchSingle();
+    assertThat(side.getNameReading()).isEqualTo("てんくうのしゅごしゃグラン・ギューレ");
+    List<CardDataJson.RubySegmentJson> ruby =
+        objectMapper.readValue(
+            side.getNameRuby().data(),
+            objectMapper
+                .getTypeFactory()
+                .constructCollectionType(List.class, CardDataJson.RubySegmentJson.class));
+    assertThat(ruby)
+        .containsExactly(
+            new CardDataJson.RubySegmentJson("天空", "てんくう"),
+            new CardDataJson.RubySegmentJson("の", null),
+            new CardDataJson.RubySegmentJson("守護者", "しゅごしゃ"),
+            new CardDataJson.RubySegmentJson("グラン・ギューレ", null));
+  }
+
+  @Test
+  void twinpactSearchReadingCombinesSides() {
+    var card = dsl.selectFrom(CARD).where(CARD.NAME.eq("ハザード・オウ禍武斗／禍武斗の轟印")).fetchOne();
+    assertThat(card).isNotNull();
+    assertThat(card.getSearchReading()).isEqualTo("ハザードオウカブトカブトノゴウイン");
+  }
+
+  @Test
+  void searchReadingFallsBackToNameWithoutReading() {
+    var card = dsl.selectFrom(CARD).where(CARD.NAME.eq("火 ジョーカード")).fetchOne();
+    assertThat(card).isNotNull();
+    assertThat(card.getSearchReading()).isEqualTo("火ジョーカード");
+    var side = dsl.selectFrom(CARD_SIDE).where(CARD_SIDE.CARD_ID.eq(card.getId())).fetchSingle();
+    assertThat(side.getNameReading()).isNull();
+    assertThat(side.getNameRuby()).isNull();
+  }
+
+  @Test
   void colorlessCardCivGroupHasEmptyCivilizationIds() {
     var card = dsl.selectFrom(CARD).where(CARD.NAME.eq("「武」の頂 マキシマム・ザ・マックス")).fetchOne();
     assertThat(card).isNotNull();

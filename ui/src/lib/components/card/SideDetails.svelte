@@ -11,7 +11,13 @@
 	<SideHeader cost={side.cost} civilizations={side.civilizations} />
 	{#if side.name || side.species}
 		<div class="mb-8 flex flex-col gap-1">
-			<h1 class="mx-auto text-xl font-bold">{side.name}</h1>
+			<h1
+				class="mx-auto text-2xl font-bold [&_rt]:text-xs [&_rt]:font-normal [&_rt]:text-neutral-500"
+			>
+				{#if side.nameRuby}{#each side.nameRuby as segment, i (i)}{#if segment.ruby}<ruby
+								>{segment.text}<rt>{segment.ruby}</rt></ruby
+							>{:else}{segment.text}{/if}{/each}{:else}{side.name}{/if}
+			</h1>
 			<h2 class="mx-auto text-sm font-light">
 				<span
 					>{#if side.species}{#each side.species as specie, i (specie)}{#if i > 0}/{/if}{specie}{/each}{/if}</span

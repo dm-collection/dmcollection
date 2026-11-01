@@ -52,9 +52,16 @@ export type CardEffect = {
 	children: Array<ChildEffect> | null;
 };
 
+export type RubySegment = {
+	text: string;
+	ruby: string | null;
+};
+
 export type PrintingSide = {
 	position: number | null;
 	name: string;
+	nameReading: string | null;
+	nameRuby: Array<RubySegment> | null;
 	cost: string | null;
 	civilizations: Array<Civ>;
 	imageFile: string | null;

@@ -43,6 +43,11 @@
 		side: {
 			position: 0,
 			name: '熱血剣 レジェンドホーン',
+			nameReading: 'ねっけつけん レジェンドホーン',
+			nameRuby: [
+				{ text: '熱血剣', ruby: 'ねっけつけん' },
+				{ text: ' レジェンドホーン', ruby: null }
+			],
 			cost: '4',
 			civilizations: ['水', '火', '自然'],
 			power: null,
