@@ -72,8 +72,15 @@
 <svelte:head>
 	<title>Cards</title>
 </svelte:head>
-
-<h1 class="txt-h1">{data.cardPage?.page.totalElements} Cards</h1>
+{#if data.cardPage?.page.totalElements === 1}
+	<h1 class="txt-h1">
+		1 Card{data.cardPage.content[0].printings.length > 1
+			? `, ${data.cardPage.content[0].printings.length} Printings`
+			: ''}
+	</h1>
+{:else}
+	<h1 class="txt-h1">{data.cardPage?.page.totalElements} Cards</h1>
+{/if}
 {#await getSets() then sets}
 	{#await getSpecies() then species}
 		{#await getRarities() then rarities}
