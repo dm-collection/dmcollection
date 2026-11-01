@@ -13,10 +13,27 @@ public class NameConditionBuilder {
     if (nameSearch == null || nameSearch.isEmpty()) {
       return noCondition();
     }
-    if (nameSearch.startsWith("\"") && nameSearch.endsWith("\"")) {
+    boolean exact = nameSearch.startsWith("\"") && nameSearch.endsWith("\"");
+    if (exact) {
       nameSearch = nameSearch.substring(1, nameSearch.length() - 1);
-      return CARD.NAME.equalIgnoreCase(nameSearch);
     }
-    return CARD.NAME.containsIgnoreCase(nameSearch);
+    String normalized = NameNormalizer.normalize(nameSearch);
+    // Inputs consisting only of ignored characters can only match the raw name
+    if (normalized.isEmpty()) {
+      return exact
+          ? CARD.NAME.equalIgnoreCase(nameSearch)
+          : CARD.NAME.containsIgnoreCase(nameSearch);
+    }
+    return exact ? matchesExactly(normalized) : matchesPartially(normalized);
+  }
+
+  /** Whether the normalized name of the card equals the normalized input. */
+  public static Condition matchesExactly(String normalized) {
+    return CARD.SEARCH_NAME.eq(normalized);
+  }
+
+  /** Whether the normalized name or reading of the card contains the normalized input. */
+  public static Condition matchesPartially(String normalized) {
+    return CARD.SEARCH_NAME.contains(normalized).or(CARD.SEARCH_READING.contains(normalized));
   }
 }

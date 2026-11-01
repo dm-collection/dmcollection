@@ -1024,6 +1024,59 @@ class CardQueryServiceIntegrationTest extends IntegrationTestBase {
   }
 
   @Test
+  void nameSearchIgnoresKanaWidthCaseAndPunctuation() {
+    var card = utils.testCard("超神星DEATH・ドラゲリオン").dark().cost(8).power(11000).creature().build();
+    utils.testCard("超神星ライラ・ボルストーム").fire().cost(5).power(18000).creature().build();
+
+    assertQueryFinds(search().setNameSearch("ｄｅａｔｈ ドラゲ"), card);
+    assertQueryFinds(search().setNameSearch("どらげりおん"), card);
+    assertQueryFinds(search().setNameSearch("ﾄﾞﾗｹﾞﾘｵﾝ"), card);
+    assertQueryFinds(search().setNameSearch("\"超神星 death ドラゲリオン\""), card);
+  }
+
+  @Test
+  void findsCardsByReading() {
+    var guardian =
+        utils
+            .testCard("dm01-001")
+            .withName("天空の守護者グラン・ギューレ")
+            .withReading("てんくうのしゅごしゃグラン・ギューレ")
+            .light()
+            .creature()
+            .cost(6)
+            .power(9000)
+            .build();
+    var diana =
+        utils
+            .testCard("dm32-s1")
+            .withName("時空の勇躍ディアナ")
+            .withReading("じくうのゆうやくディアナ")
+            .light()
+            .cost(5)
+            .secondSide()
+            .withName("閃光の覚醒者エル・ディアナ")
+            .withReading("せんこうのかくせいしゃエル・ディアナ")
+            .light()
+            .cost(10)
+            .build();
+
+    assertQueryFinds(search().setNameSearch("しゅごしゃ"), guardian);
+    assertQueryFinds(search().setNameSearch("シュゴシャ"), guardian);
+    assertQueryFinds(search().setNameSearch("てんくう の"), guardian);
+    assertQueryFinds(search().setNameSearch("かくせいしゃ"), diana);
+    assertQueryFinds(search().setNameSearch("ディアナ"), diana);
+    assertQueryFinds(search().setNameSearch("ぐらんぎゅーれ"), guardian);
+  }
+
+  @Test
+  void nameSearchOfOnlyIgnoredCharactersMatchesRawName() {
+    var infinity = utils.testCard("～アクア・ナイトの不死身な根性～").water().cost(3).power(30000).build();
+    utils.testCard("アクア・ナイト").water().cost(5).power(40000).build();
+
+    assertQueryFinds(search().setNameSearch("～"), infinity);
+  }
+
+  @Test
   void findsCardsByEffectText() {
     var blocker = utils.testCard("blocker").withAbility("ブロッカー").build();
     var wBreaker = utils.testCard("double-breaker").withAbility("W・ブレイカー").build();

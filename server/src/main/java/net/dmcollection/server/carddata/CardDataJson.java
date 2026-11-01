@@ -42,7 +42,11 @@ public record CardDataJson(
       @JsonProperty("power_modifier") String powerModifier,
       @JsonProperty("civilization_ids") List<Integer> civilizationIds,
       @JsonProperty("card_types") List<String> cardTypes,
-      List<String> races) {}
+      List<String> races,
+      @JsonProperty("name_reading") String nameReading,
+      @JsonProperty("name_ruby") List<RubySegmentJson> nameRuby) {}
+
+  public record RubySegmentJson(String text, String ruby) {}
 
   public record PrintingJson(
       @JsonProperty("official_site_id") String officialSiteId,

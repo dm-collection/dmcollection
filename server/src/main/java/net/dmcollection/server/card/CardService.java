@@ -14,6 +14,7 @@ import static net.dmcollection.server.jooq.generated.tables.Race.RACE;
 import static net.dmcollection.server.jooq.generated.tables.Rarity.RARITY;
 import static org.springframework.web.util.HtmlUtils.htmlEscape;
 
+import com.fasterxml.jackson.annotation.JsonRawValue;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -23,6 +24,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import org.jooq.DSLContext;
+import org.jooq.JSONB;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -50,6 +52,8 @@ public class CardService {
   public record CardSideDto(
       Integer position,
       String name,
+      String nameReading,
+      @JsonRawValue String nameRuby, // JSON array of {text, ruby} segments
       String cost,
       List<String> civilizations,
       String power,
@@ -109,6 +113,8 @@ public class CardService {
         int printingSideId,
         short sideOrder,
         String name,
+        String nameReading,
+        JSONB nameRuby,
         Integer cost,
         boolean costIsInfinity,
         Integer power,
@@ -123,6 +129,8 @@ public class CardService {
                 PRINTING_SIDE.ID,
                 CARD_SIDE.SIDE_ORDER,
                 CARD_SIDE.NAME,
+                CARD_SIDE.NAME_READING,
+                CARD_SIDE.NAME_RUBY,
                 CARD_SIDE.COST,
                 CARD_SIDE.COST_IS_INFINITY,
                 CARD_SIDE.POWER,
@@ -135,20 +143,21 @@ public class CardService {
             .on(CARD_SIDE.ID.eq(PRINTING_SIDE.CARD_SIDE_ID))
             .where(PRINTING_SIDE.PRINTING_ID.eq(printingId))
             .orderBy(CARD_SIDE.SIDE_ORDER)
-            .fetch(
-                r ->
-                    new SideRow(
-                        r.get(CARD_SIDE.ID),
-                        r.get(PRINTING_SIDE.ID),
-                        r.get(CARD_SIDE.SIDE_ORDER),
-                        r.get(CARD_SIDE.NAME),
-                        r.get(CARD_SIDE.COST),
-                        r.get(CARD_SIDE.COST_IS_INFINITY),
-                        r.get(CARD_SIDE.POWER),
-                        r.get(CARD_SIDE.POWER_IS_INFINITY),
-                        r.get(CARD_SIDE.POWER_MODIFIER),
-                        Arrays.stream(r.get(CARD_SIDE.CIVILIZATION_IDS)).toList(),
-                        r.get(PRINTING_SIDE.IMAGE_FILENAME)));
+            .fetch(r ->
+                new SideRow(
+                    r.get(CARD_SIDE.ID),
+                    r.get(PRINTING_SIDE.ID),
+                    r.get(CARD_SIDE.SIDE_ORDER),
+                    r.get(CARD_SIDE.NAME),
+                    r.get(CARD_SIDE.NAME_READING),
+                    r.get(CARD_SIDE.NAME_RUBY),
+                    r.get(CARD_SIDE.COST),
+                    r.get(CARD_SIDE.COST_IS_INFINITY),
+                    r.get(CARD_SIDE.POWER),
+                    r.get(CARD_SIDE.POWER_IS_INFINITY),
+                    r.get(CARD_SIDE.POWER_MODIFIER),
+                    Arrays.stream(r.get(CARD_SIDE.CIVILIZATION_IDS)).toList(),
+                    r.get(PRINTING_SIDE.IMAGE_FILENAME)));
 
     if (sideRows.isEmpty()) {
       return Optional.of(
@@ -175,12 +184,10 @@ public class CardService {
         .on(CARD_TYPE.ID.eq(CARD_SIDE_CARD_TYPE.CARD_TYPE_ID))
         .where(CARD_SIDE_CARD_TYPE.CARD_SIDE_ID.in(cardSideIds))
         .orderBy(CARD_SIDE_CARD_TYPE.CARD_SIDE_ID, CARD_SIDE_CARD_TYPE.POSITION)
-        .forEach(
-            r ->
-                typesBySide
-                    .computeIfAbsent(
-                        r.get(CARD_SIDE_CARD_TYPE.CARD_SIDE_ID), k -> new ArrayList<>())
-                    .add(r.get(CARD_TYPE.NAME)));
+        .forEach(r ->
+            typesBySide
+                .computeIfAbsent(r.get(CARD_SIDE_CARD_TYPE.CARD_SIDE_ID), k -> new ArrayList<>())
+                .add(r.get(CARD_TYPE.NAME)));
 
     // Phase 4: Races per side
     Map<Integer, List<String>> racesBySide = new LinkedHashMap<>();
@@ -190,11 +197,10 @@ public class CardService {
         .on(RACE.ID.eq(CARD_SIDE_RACE.RACE_ID))
         .where(CARD_SIDE_RACE.CARD_SIDE_ID.in(cardSideIds))
         .orderBy(CARD_SIDE_RACE.CARD_SIDE_ID, CARD_SIDE_RACE.POSITION)
-        .forEach(
-            r ->
-                racesBySide
-                    .computeIfAbsent(r.get(CARD_SIDE_RACE.CARD_SIDE_ID), k -> new ArrayList<>())
-                    .add(r.get(RACE.NAME)));
+        .forEach(r ->
+            racesBySide
+                .computeIfAbsent(r.get(CARD_SIDE_RACE.CARD_SIDE_ID), k -> new ArrayList<>())
+                .add(r.get(RACE.NAME)));
 
     // Phase 5: Abilities per printing side
     Map<Integer, List<AbilityRow>> abilitiesByPrintingSide = new LinkedHashMap<>();
@@ -208,16 +214,15 @@ public class CardService {
         .on(ABILITY.ID.eq(PRINTING_SIDE_ABILITY.ABILITY_ID))
         .where(PRINTING_SIDE_ABILITY.PRINTING_SIDE_ID.in(printingSideIds))
         .orderBy(PRINTING_SIDE_ABILITY.PRINTING_SIDE_ID, PRINTING_SIDE_ABILITY.POSITION)
-        .forEach(
-            r ->
-                abilitiesByPrintingSide
-                    .computeIfAbsent(
-                        r.get(PRINTING_SIDE_ABILITY.PRINTING_SIDE_ID), k -> new ArrayList<>())
-                    .add(
-                        new AbilityRow(
-                            r.get(ABILITY.TEXT),
-                            r.get(PRINTING_SIDE_ABILITY.POSITION),
-                            r.get(PRINTING_SIDE_ABILITY.INDENT_LEVEL))));
+        .forEach(r ->
+            abilitiesByPrintingSide
+                .computeIfAbsent(
+                    r.get(PRINTING_SIDE_ABILITY.PRINTING_SIDE_ID), k -> new ArrayList<>())
+                .add(
+                    new AbilityRow(
+                        r.get(ABILITY.TEXT),
+                        r.get(PRINTING_SIDE_ABILITY.POSITION),
+                        r.get(PRINTING_SIDE_ABILITY.INDENT_LEVEL))));
 
     // Assemble sides
     Set<String> allCivilizations = new java.util.LinkedHashSet<>();
@@ -245,6 +250,8 @@ public class CardService {
           new CardSideDto(
               (int) side.sideOrder(),
               side.name(),
+              side.nameReading(),
+              side.nameRuby() != null ? side.nameRuby().data() : null,
               formatCost(side.cost(), side.costIsInfinity()),
               civNames,
               formatPower(side.power(), side.powerIsInfinity(), side.powerModifier()),

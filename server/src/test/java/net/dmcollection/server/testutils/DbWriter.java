@@ -26,6 +26,8 @@ import java.util.stream.Collectors;
 import net.dmcollection.server.card.Civilization;
 import net.dmcollection.server.card.RarityCode;
 import net.dmcollection.server.card.internal.query.CardTypeResolver;
+import net.dmcollection.server.card.internal.query.NameNormalizer;
+import net.dmcollection.server.card.internal.query.NameNormalizer.SideName;
 import net.dmcollection.server.jooq.generated.tables.records.AbilityRecord;
 import net.dmcollection.server.jooq.generated.tables.records.CardCivGroupRecord;
 import net.dmcollection.server.jooq.generated.tables.records.CardRecord;
@@ -41,6 +43,7 @@ import net.dmcollection.server.jooq.generated.tables.records.ProductTypeRecord;
 import net.dmcollection.server.jooq.generated.tables.records.RarityRecord;
 import net.dmcollection.server.jooq.generated.tables.records.SetGroupRecord;
 import org.jooq.DSLContext;
+import org.jooq.JSONB;
 import org.jspecify.annotations.NonNull;
 
 public class DbWriter {
@@ -281,6 +284,8 @@ public class DbWriter {
       int cardId,
       int position,
       String name,
+      String nameReading,
+      String nameRubyJson,
       TestFixtureBuilder.Cost cost,
       TestFixtureBuilder.Power power,
       Collection<Civilization> civs,
@@ -298,6 +303,8 @@ public class DbWriter {
     side.setCardId(cardId)
         .setSideOrder((short) position)
         .setName(name)
+        .setNameReading(nameReading)
+        .setNameRuby(nameRubyJson != null ? JSONB.valueOf(nameRubyJson) : null)
         .setCost(cost.value)
         .setCostIsInfinity(cost.isInfinite)
         .setPower(power.value)
@@ -330,6 +337,14 @@ public class DbWriter {
     }
 
     return id;
+  }
+
+  public void updateSearchColumns(int cardId, String cardName, List<SideName> sides) {
+    db.update(CARD)
+        .set(CARD.SEARCH_NAME, NameNormalizer.normalize(cardName))
+        .set(CARD.SEARCH_READING, NameNormalizer.reading(sides))
+        .where(CARD.ID.eq(cardId))
+        .execute();
   }
 
   private void upsertCivGroups(

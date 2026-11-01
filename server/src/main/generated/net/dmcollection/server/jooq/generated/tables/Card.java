@@ -123,6 +123,16 @@ public class Card extends TableImpl<CardRecord> {
      */
     public final TableField<CardRecord, String> DECK_ZONE = createField(DSL.name("deck_zone"), SQLDataType.CLOB.nullable(false).defaultValue(DSL.field(DSL.raw("'main'::text"), SQLDataType.CLOB)), this, "");
 
+    /**
+     * The column <code>public.card.search_name</code>.
+     */
+    public final TableField<CardRecord, String> SEARCH_NAME = createField(DSL.name("search_name"), SQLDataType.CLOB.nullable(false).defaultValue(DSL.field(DSL.raw("''::text"), SQLDataType.CLOB)), this, "");
+
+    /**
+     * The column <code>public.card.search_reading</code>.
+     */
+    public final TableField<CardRecord, String> SEARCH_READING = createField(DSL.name("search_reading"), SQLDataType.CLOB.nullable(false).defaultValue(DSL.field(DSL.raw("''::text"), SQLDataType.CLOB)), this, "");
+
     private Card(Name alias, Table<CardRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
     }

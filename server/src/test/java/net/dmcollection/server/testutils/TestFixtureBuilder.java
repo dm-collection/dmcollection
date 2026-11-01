@@ -19,6 +19,7 @@ import net.dmcollection.server.card.Civilization;
 import net.dmcollection.server.card.PrintingStub;
 import net.dmcollection.server.card.RarityCode;
 import net.dmcollection.server.card.internal.query.CardTypeResolver;
+import net.dmcollection.server.card.internal.query.NameNormalizer.SideName;
 import net.dmcollection.server.user.User;
 import org.jooq.DSLContext;
 
@@ -298,6 +299,11 @@ public class TestFixtureBuilder {
       return this;
     }
 
+    public TestCardBuilder withReading(String reading) {
+      this.cardSides.getFirst().withReading(reading);
+      return this;
+    }
+
     public TestCardBuilder rarity(RarityCode rarity) {
       this.printings.forEach(printing -> printing.rarity(rarity));
       return this;
@@ -471,6 +477,8 @@ public class TestFixtureBuilder {
                 id,
                 side.position,
                 side.name,
+                side.reading,
+                side.rubyJson,
                 side.cost,
                 side.power,
                 side.civilizations,
@@ -478,6 +486,10 @@ public class TestFixtureBuilder {
                 cardTypeResolver,
                 side.races);
       }
+      dbWriter.updateSearchColumns(
+          id,
+          this.cardName,
+          this.cardSides.stream().map(side -> new SideName(side.name, side.reading)).toList());
 
       for (var printing : this.printings) {
         if (printing.setCode == null) {
@@ -539,6 +551,8 @@ public class TestFixtureBuilder {
     public class SideBuilder {
       Set<Civilization> civilizations = EnumSet.noneOf(Civilization.class);
       String name;
+      String reading;
+      String rubyJson;
       Cost cost;
       Power power;
       List<String> cardTypes = new ArrayList<>();
@@ -564,6 +578,16 @@ public class TestFixtureBuilder {
 
       public SideBuilder withName(String name) {
         this.name = name;
+        return this;
+      }
+
+      public SideBuilder withReading(String reading) {
+        this.reading = reading;
+        return this;
+      }
+
+      public SideBuilder withRuby(String rubyJson) {
+        this.rubyJson = rubyJson;
         return this;
       }
 

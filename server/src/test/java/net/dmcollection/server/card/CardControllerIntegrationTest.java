@@ -96,6 +96,40 @@ class CardControllerIntegrationTest extends IntegrationTestBase {
   }
 
   @Test
+  void getCardIncludesNameReadingAndRuby() throws Exception {
+    fixtures
+        .testCard("ctrl-reading-1")
+        .withName("天空の守護者")
+        .withReading("てんくうのしゅごしゃ")
+        .firstSide(
+            side ->
+                side.withRuby(
+                    """
+                    [{"text": "天空", "ruby": "てんくう"}, {"text": "の", "ruby": null},
+                     {"text": "守護者", "ruby": "しゅごしゃ"}]"""))
+        .build();
+
+    mockMvc
+        .perform(get("/api/card/ctrl-reading-1").with(user(testUser)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.sides[0].nameReading").value("てんくうのしゅごしゃ"))
+        .andExpect(jsonPath("$.sides[0].nameRuby.length()").value(3))
+        .andExpect(jsonPath("$.sides[0].nameRuby[0].text").value("天空"))
+        .andExpect(jsonPath("$.sides[0].nameRuby[0].ruby").value("てんくう"))
+        .andExpect(jsonPath("$.sides[0].nameRuby[1].ruby").isEmpty());
+  }
+
+  @Test
+  void getCardWithoutRubyReturnsNull() throws Exception {
+    fixtures.testCard("ctrl-reading-2").light().build();
+
+    mockMvc
+        .perform(get("/api/card/ctrl-reading-2").with(user(testUser)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.sides[0].nameRuby").isEmpty());
+  }
+
+  @Test
   void getCardIncludesDeckZone() throws Exception {
     var expected = fixtures.createFourSides();
 

@@ -31,6 +31,7 @@ import org.jooq.ForeignKey;
 import org.jooq.Identity;
 import org.jooq.Index;
 import org.jooq.InverseForeignKey;
+import org.jooq.JSONB;
 import org.jooq.Name;
 import org.jooq.Path;
 import org.jooq.PlainSQL;
@@ -147,6 +148,11 @@ public class CardSide extends TableImpl<CardSideRecord> {
      * The column <code>public.card_side.power_filter</code>.
      */
     public final TableField<CardSideRecord, Integer> POWER_FILTER = createField(DSL.name("power_filter"), SQLDataType.INTEGER, this, "");
+
+    /**
+     * The column <code>public.card_side.name_ruby</code>.
+     */
+    public final TableField<CardSideRecord, JSONB> NAME_RUBY = createField(DSL.name("name_ruby"), SQLDataType.JSONB, this, "");
 
     private CardSide(Name alias, Table<CardSideRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);

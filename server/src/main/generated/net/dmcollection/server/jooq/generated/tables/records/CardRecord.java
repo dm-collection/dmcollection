@@ -162,6 +162,36 @@ public class CardRecord extends UpdatableRecordImpl<CardRecord> {
         return (String) get(8);
     }
 
+    /**
+     * Setter for <code>public.card.search_name</code>.
+     */
+    public CardRecord setSearchName(String value) {
+        set(9, value);
+        return this;
+    }
+
+    /**
+     * Getter for <code>public.card.search_name</code>.
+     */
+    public String getSearchName() {
+        return (String) get(9);
+    }
+
+    /**
+     * Setter for <code>public.card.search_reading</code>.
+     */
+    public CardRecord setSearchReading(String value) {
+        set(10, value);
+        return this;
+    }
+
+    /**
+     * Getter for <code>public.card.search_reading</code>.
+     */
+    public String getSearchReading() {
+        return (String) get(10);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -185,7 +215,7 @@ public class CardRecord extends UpdatableRecordImpl<CardRecord> {
     /**
      * Create a detached, initialised CardRecord
      */
-    public CardRecord(Integer id, String name, String language, Boolean isTwinpact, Integer sortCost, Integer sortPower, Short sortPowerModifier, Short[] sortCivilization, String deckZone) {
+    public CardRecord(Integer id, String name, String language, Boolean isTwinpact, Integer sortCost, Integer sortPower, Short sortPowerModifier, Short[] sortCivilization, String deckZone, String searchName, String searchReading) {
         super(Card.CARD);
 
         setId(id);
@@ -197,6 +227,8 @@ public class CardRecord extends UpdatableRecordImpl<CardRecord> {
         setSortPowerModifier(sortPowerModifier);
         setSortCivilization(sortCivilization);
         setDeckZone(deckZone);
+        setSearchName(searchName);
+        setSearchReading(searchReading);
         resetTouchedOnNotNull();
     }
 }

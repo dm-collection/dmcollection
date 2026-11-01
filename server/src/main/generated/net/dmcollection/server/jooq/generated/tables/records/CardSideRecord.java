@@ -8,6 +8,7 @@ import javax.annotation.processing.Generated;
 
 import net.dmcollection.server.jooq.generated.tables.CardSide;
 
+import org.jooq.JSONB;
 import org.jooq.Record1;
 import org.jooq.impl.UpdatableRecordImpl;
 
@@ -237,6 +238,21 @@ public class CardSideRecord extends UpdatableRecordImpl<CardSideRecord> {
         return (Integer) get(13);
     }
 
+    /**
+     * Setter for <code>public.card_side.name_ruby</code>.
+     */
+    public CardSideRecord setNameRuby(JSONB value) {
+        set(14, value);
+        return this;
+    }
+
+    /**
+     * Getter for <code>public.card_side.name_ruby</code>.
+     */
+    public JSONB getNameRuby() {
+        return (JSONB) get(14);
+    }
+
     // -------------------------------------------------------------------------
     // Primary key information
     // -------------------------------------------------------------------------
@@ -260,7 +276,7 @@ public class CardSideRecord extends UpdatableRecordImpl<CardSideRecord> {
     /**
      * Create a detached, initialised CardSideRecord
      */
-    public CardSideRecord(Integer id, Integer cardId, Short sideOrder, String name, String nameReading, Integer cost, Boolean costIsInfinity, Integer power, Boolean powerIsInfinity, String powerModifier, Short[] civilizationIds, String sideType, Integer costFilter, Integer powerFilter) {
+    public CardSideRecord(Integer id, Integer cardId, Short sideOrder, String name, String nameReading, Integer cost, Boolean costIsInfinity, Integer power, Boolean powerIsInfinity, String powerModifier, Short[] civilizationIds, String sideType, Integer costFilter, Integer powerFilter, JSONB nameRuby) {
         super(CardSide.CARD_SIDE);
 
         setId(id);
@@ -277,6 +293,7 @@ public class CardSideRecord extends UpdatableRecordImpl<CardSideRecord> {
         setSideType(sideType);
         setCostFilter(costFilter);
         setPowerFilter(powerFilter);
+        setNameRuby(nameRuby);
         resetTouchedOnNotNull();
     }
 }
