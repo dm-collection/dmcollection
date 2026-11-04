@@ -74,6 +74,9 @@
 			if (showOwnedOnly) {
 				hashParams.set('ownedOnly', 'true');
 			}
+			if (pageNumber > 0) {
+				hashParams.set('page', String(pageNumber + 1));
+			}
 			url.hash = hashParams.toString();
 			replaceState(url, page.state);
 

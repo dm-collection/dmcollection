@@ -12,15 +12,24 @@ export const load: PageLoad = async ({ fetch, params }) => {
 	const fragment = window.location.hash.slice(1);
 	let search = new SearchFilter();
 	let ownedOnly = false;
+	let pageNumber = 0;
 	if (fragment.length > 0) {
 		const searchParams = new URLSearchParams(fragment);
 		ownedOnly = searchParams.get('ownedOnly') === 'true';
-		searchParams.delete('ownedOnly'); // Remove before passing to SearchFilter
+		const pageParam = searchParams.get('page');
+		if (pageParam !== null) {
+			const number = parseFloat(pageParam);
+			if (Number.isInteger(number) && number >= 1) {
+				pageNumber = number - 1;
+			}
+		}
+		searchParams.delete('ownedOnly');
+		searchParams.delete('page');
 		search = new SearchFilter(searchParams);
 	}
 
 	const endpoint = ownedOnly ? 'collection' : 'cards';
-	const response = await fetch(`/api/${endpoint}/0?${search.searchParams.toString()}`);
+	const response = await fetch(`/api/${endpoint}/${pageNumber}?${search.searchParams.toString()}`);
 	if (response.ok) {
 		let cardPage: PagedResult<CardStub>;
 		if (ownedOnly) {
