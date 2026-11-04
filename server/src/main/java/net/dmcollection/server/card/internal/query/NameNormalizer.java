@@ -11,7 +11,7 @@ import java.util.regex.Pattern;
  */
 public final class NameNormalizer {
 
-  private static final Pattern IGNORED = Pattern.compile("[\\p{Z}\\p{Cc}・「」！!＝=～~♪“”]");
+  private static final Pattern IGNORED = Pattern.compile("[\\p{Z}\\p{Cc}・「」！!＝=～~♪“”'’‘]");
 
   private NameNormalizer() {}
 
