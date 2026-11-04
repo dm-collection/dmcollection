@@ -26,6 +26,8 @@ class NameNormalizerTest {
     "'ドキンダム～エックス♪', ドキンダムエックス",
     "ギューレ, ギューレ",
     "“B-發”ボンバー,b-發ボンバー",
+    "Eine k'Reine,einekreine",
+    "Celeb k’Reine,celebkreine",
     "'  ', ''",
     // preserved symbols
     "∞, ∞",
