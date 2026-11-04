@@ -18,7 +18,7 @@ export const load: PageLoad = async ({ fetch, params }) => {
 		ownedOnly = searchParams.get('ownedOnly') === 'true';
 		const pageParam = searchParams.get('page');
 		if (pageParam !== null) {
-			const number = parseFloat(pageParam);
+			const number = Number.parseFloat(pageParam);
 			if (Number.isInteger(number) && number >= 1) {
 				pageNumber = number - 1;
 			}
