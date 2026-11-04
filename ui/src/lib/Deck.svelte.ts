@@ -12,6 +12,12 @@ export class Deck {
 		return this.deck?.info;
 	}
 
+	setInfo(info: DeckInfo) {
+		if (this.deck) {
+			this.deck.info = info;
+		}
+	}
+
 	isLoaded(): boolean {
 		return this.deck != undefined && this.deck != null;
 	}

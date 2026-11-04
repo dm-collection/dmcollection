@@ -72,21 +72,20 @@
 		{ order: CARD_ID_ASC, label: 'ID' }
 	];
 
-	let selectedSort1: OrderOption = $state(getOptionForOrderIndex(0, ORDER_OPTIONS[0]));
-	let selectedSort2: OrderOption = $state(getOptionForOrderIndex(1, ORDER_OPTIONS[10]));
+	let selectedSort1: OrderOption = $derived(getOptionForOrderIndex(0, ORDER_OPTIONS[0]));
+	let selectedSort2: OrderOption = $derived(getOptionForOrderIndex(1, ORDER_OPTIONS[10]));
 
-	let costSelectLabel: string | undefined = $state();
-	let powerSelectLabel: string | undefined = $state();
-
-	costSelectLabel =
+	let costSelectLabel: string = $derived(
 		search.searchParams.has('costRange') && search.searchParams.get('costRange') !== 'false'
 			? range
-			: eq;
+			: eq
+	);
 
-	powerSelectLabel =
+	let powerSelectLabel: string = $derived(
 		search.searchParams.has('powerRange') && search.searchParams.get('powerRange') !== 'false'
 			? range
-			: eq;
+			: eq
+	);
 
 	function getOptionForOrderIndex(orderIndex: number, defaultOption: OrderOption): OrderOption {
 		if (search.order != undefined && search.order.length > orderIndex) {
