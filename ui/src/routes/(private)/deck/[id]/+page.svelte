@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { goto, invalidate, replaceState } from '$app/navigation';
+	import { goto, replaceState } from '$app/navigation';
 	import { page } from '$app/state';
 	import CardFilters from '$lib/components/CardFilters.svelte';
 	import CountedPrintingStub from '$lib/components/CountedPrintingStub.svelte';
@@ -15,18 +15,13 @@
 	import type { CardStub } from '$lib/types/card';
 	import CaretUpIcon from 'phosphor-svelte/lib/CaretUpIcon';
 	import ExpandingCardStub from '$lib/components/ExpandingCardStub.svelte';
-	import type { DeckCardStub } from '$lib/types/deck';
+	import type { DeckCardStub, DeckInfo } from '$lib/types/deck';
 
 	let { data }: PageProps = $props();
 
-	let cardPage = $state(data.cardPage);
-	let ownedOnly = $state(data.ownedOnly ?? false);
-	// svelte-ignore state_referenced_locally
-	// eslint-disable-next-line svelte/prefer-writable-derived
-	let cards = $state(data.cardPage?.content);
-	$effect(() => {
-		cards = data.cardPage?.content;
-	});
+	let cardPage = $derived(data.cardPage);
+	let ownedOnly = $derived(data.ownedOnly ?? false);
+	let cards = $derived(cardPage?.content);
 	let expanded = new SvelteSet<CardStub | DeckCardStub>();
 
 	let editDialog: HTMLDialogElement;
@@ -48,7 +43,7 @@
 				json: { name: newName }
 			});
 			if (response.ok) {
-				invalidate(`/api/deck/${data.deck.id}`);
+				data.deck.setInfo((await response.json()) as DeckInfo);
 				newName = '';
 				closeDialog();
 			} else {
@@ -79,6 +74,9 @@
 			if (showOwnedOnly) {
 				hashParams.set('ownedOnly', 'true');
 			}
+			if (pageNumber > 0) {
+				hashParams.set('page', String(pageNumber + 1));
+			}
 			url.hash = hashParams.toString();
 			replaceState(url, page.state);
 
@@ -99,7 +97,6 @@
 
 				newCardPage.page.number += 1;
 				cardPage = newCardPage;
-				cards = newCardPage.content;
 			}
 		} catch (error) {
 			console.error(error);

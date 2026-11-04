@@ -11,16 +11,17 @@
 		collectionEntry
 	}: { printing: Printing; collectionEntry: { printingId: number; amount: number } | undefined } =
 		$props();
-	let cards: Array<Array<PrintingSide>> = $state([]);
-	if (printing.sides) {
-		for (const [i, side] of printing.sides.entries()) {
+	let cards = $derived.by(() => {
+		const result: Array<Array<PrintingSide>> = [];
+		for (const [i, side] of (printing.sides ?? []).entries()) {
 			if (side.imageFile || i == 0) {
-				cards.push([side]);
+				result.push([side]);
 			} else {
-				cards[cards.length - 1].push(side);
+				result[result.length - 1].push(side);
 			}
 		}
-	}
+		return result;
+	});
 	const amountSync = createDebouncedAmountSync(
 		async (printingId, amount) => {
 			const response = await api(`/api/collectionStub/printings/${printingId}`, {

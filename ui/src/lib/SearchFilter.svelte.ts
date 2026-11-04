@@ -197,10 +197,12 @@ export class SearchFilter {
 
 	set species(species) {
 		this.#searchParams.delete(keys.species);
-		if (species != undefined) {
+		if (species != undefined && species.trim() !== '') {
 			this.#searchParams.set(keys.species, species);
+			this.#species = species;
+		} else {
+			this.#species = undefined;
 		}
-		this.#species = species;
 	}
 
 	set rarity(rarity) {
@@ -221,18 +223,22 @@ export class SearchFilter {
 
 	set nameSearch(nameSearch) {
 		this.#searchParams.delete(keys.nameSearch);
-		if (nameSearch != undefined) {
+		if (nameSearch != undefined && nameSearch.trim() !== '') {
 			this.#searchParams.set(keys.nameSearch, nameSearch);
+			this.#nameSearch = nameSearch;
+		} else {
+			this.#nameSearch = undefined;
 		}
-		this.#nameSearch = nameSearch;
 	}
 
 	set effectSearch(effectSearch) {
 		this.#searchParams.delete(keys.effectSearch);
 		if (effectSearch != undefined && effectSearch.trim() !== '') {
 			this.#searchParams.set(keys.effectSearch, effectSearch);
+			this.#effectSearch = effectSearch;
+		} else {
+			this.#effectSearch = undefined;
 		}
-		this.#effectSearch = effectSearch;
 	}
 
 	set order(order) {

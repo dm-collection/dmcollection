@@ -4,7 +4,7 @@
 	import CostIcon from './CostIcon.svelte';
 
 	let { cost, civilizations }: { cost: string | null; civilizations: Array<Civ> } = $props();
-	let hasCost = $state(cost != undefined && cost != null);
+	let hasCost = $derived(cost != null);
 </script>
 
 <div class="flex flex-row text-xl" class:justify-end={!hasCost} class:justify-between={hasCost}>
