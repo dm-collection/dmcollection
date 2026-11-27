@@ -15,7 +15,7 @@ COPY --from=ui-builder /app/build/ server/src/main/resources/static/
 COPY server/src/ server/src/
 RUN ./mvnw -B package -DskipTests -pl server
 
-FROM gcr.io/distroless/java25-debian13:nonroot@sha256:7c7cdac86fc55ba2d4db46bd932e836f53ab0ac1a8533b6b454edb98fd34e78e
+FROM gcr.io/distroless/java25-debian13:nonroot@sha256:6f372d8e28092f93b3227ba3f530d3cf7d67422569b24a35543a14fcbb9749e5
 ARG APP_USER_HOME=/home/nonroot
 WORKDIR ${APP_USER_HOME}
 ENV JDK_JAVA_OPTIONS="-XX:+UseCompactObjectHeaders"
